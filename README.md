@@ -7,6 +7,7 @@ I've tried adding neural networks, wavelet decomposition and predictor mixing in
 Future improvements have to mix several predictions on a bit-level by remapping residuals to probability distributions. 
 
 This program wouldn't exist without the help from the following people (in no particular order):
+
 Matt Mahoney, Dmitry Shkarin, Eugene D. Shelwien, Florin Ghido
 
 ## Benchmark
