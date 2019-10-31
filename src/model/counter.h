@@ -142,8 +142,8 @@ public:
   {
     int n0=State_table[state][2];
     int n1=State_table[state][3];
-    if (n0==0) n1*=64;
-    if (n1==0) n0*=64;
+    //if (n0==0) n1*=64;
+    //if (n1==0) n0*=64;
     return ((n1+1)*PSCALE)/(n0+n1+2);
   };
 };

@@ -7,7 +7,7 @@ double VecMulVecInner(const std::vector<double> &v1,const std::vector<double> &v
   return sum;
 }
 
-std::vector<double> MatrixMulVec(Matrix &m,const std::vector<double> &v)
+std::vector<double> MatrixMulVec(SQMatrix &m,const std::vector<double> &v)
 {
   int n=v.size();
   std::vector<double> t(n);
@@ -15,7 +15,7 @@ std::vector<double> MatrixMulVec(Matrix &m,const std::vector<double> &v)
   return t;
 }
 
-std::vector<double> VecMulMatrix(const std::vector<double> &v, Matrix &m)
+std::vector<double> VecMulMatrix(const std::vector<double> &v, SQMatrix &m)
 {
   int n=v.size();
   std::vector<double> t(n);
@@ -35,19 +35,19 @@ std::vector<double> ScalarMulVec(const double x,const std::vector<double> &v)
   return t;
 }
 
-Matrix VecMulVecOuter(const std::vector<double> &v1,const std::vector<double> &v2)
+SQMatrix VecMulVecOuter(const std::vector<double> &v1,const std::vector<double> &v2)
 {
   int n=v1.size();
-  Matrix m(n);
+  SQMatrix m(n);
   for (int j=0;j<n;j++)
     for (int i=0;i<n;i++) m[j][i]=v1[j]*v2[i];
   return m;
 }
 
-Matrix MatrixMulMatrix(Matrix &m1,Matrix &m2)
+SQMatrix MatrixMulMatrix(SQMatrix &m1,SQMatrix &m2)
 {
   int n=m1[0].size();
-  Matrix m(n);
+  SQMatrix m(n);
   for (int i=0;i<n;i++) { // for every row
     for (int j=0;j<n;j++) { // for every column
       double sum=0.;
@@ -90,11 +90,11 @@ void RLS::UpdateGain()
  #endif
 }
 
-      //update inverse of covariance matrix P(n)=1/lambda*P(n-1)-1/lambda * k(n)*x^T(n)*P(n-1)
+//update inverse of covariance matrix P(n)=1/lambda*P(n-1)-1/lambda * k(n)*x^T(n)*P(n-1)
 void RLS::UpdateP()
 {
- Matrix m1=VecMulVecOuter(k,hist); //m1 is symmetric
- Matrix m2=MatrixMulMatrix(m1,P);
+ SQMatrix m1=VecMulVecOuter(k,hist); //m1 is symmetric
+ SQMatrix m2=MatrixMulMatrix(m1,P);
  for (int i=0;i<n;i++)
  for (int j=0;j<n;j++) P[i][j]=1./alpha*(P[i][j]-m2[i][j]);
 }
@@ -110,5 +110,6 @@ void RLS::Update(double val)
 void RLS::UpdateHist(double val)
 {
   Update(val);
-  for (int i=n-1;i>0;i--) hist[i]=hist[i-1];hist[0]=val;
+  for (int i=n-1;i>0;i--) hist[i]=hist[i-1];
+  hist[0]=val;
 }

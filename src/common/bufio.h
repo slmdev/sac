@@ -1,7 +1,8 @@
 #ifndef BUFIO_H
 #define BUFIO_H
 
-#include "../global.h"
+#include <vector>
+#include <cstdint>
 
 class BufIO {
   public:

@@ -1,5 +1,7 @@
 #include "range.h"
 
+#define DO(n) for (uint32_t _=0;_<n;_++)
+
 void RangeCoder::Init()
 {
   low     = code  = 0;

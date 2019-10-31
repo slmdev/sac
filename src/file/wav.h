@@ -2,7 +2,6 @@
 #define WAV_H
 
 #include "file.h"
-#include "../common/utils.h"
 
 class Chunks {
   public:

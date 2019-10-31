@@ -11,8 +11,8 @@ class HistBuffer {
       :n(n),mask(n-1),pos(0),buf(n)
       {
       }
-      T& operator[](std::size_t idx) { return buf[(pos-idx)&mask];};
-      const T operator[](std::size_t idx) const { return buf[(pos-idx)&mask];};
+      T& operator[](int idx) { return buf[(pos-idx)&mask];};
+      const T operator[](int idx) const { return buf[(pos-idx)&mask];};
       void PushBack(T val)
       {
          buf[pos]=val;
@@ -23,5 +23,32 @@ class HistBuffer {
     std::vector <T> buf;
 };
 
+template <class T>
+class RollBuffer {
+  public:
+    RollBuffer(int n)
+    :n(n),pos(-1),buf(n)
+    {
+
+    }
+    const T operator[](int idx) const
+    {
+      return buf[clamp_idx(pos-idx)];
+    };
+    void PushBack(T val)
+    {
+      if (++pos>=n) pos=0;
+      buf[pos]=val;
+    }
+    int clamp_idx(int idx) const
+    {
+      if (idx>=n) idx-=n;
+      else if (idx<0) idx+=n;
+      return idx;
+    }
+  private:
+    int n,pos;
+    std::vector <T> buf;
+};
 
 #endif // HISTBUF_H

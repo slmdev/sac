@@ -2,7 +2,28 @@
 #define RLS_H
 
 #include "../global.h"
-#include "../math/matrix.h"
+
+// simple Square-Matrix class
+class SQMatrix
+{
+  public:
+    SQMatrix(){};
+    SQMatrix(int dim):mat(dim,std::vector<double>(dim,0.))
+    {
+    }
+    std::vector<double>& operator[] (size_t i) { return mat[i]; } // index operator
+
+    void Print() {
+      int n=mat.size();
+      for (int i=0;i<n;i++) {
+        for (int j=0;j<n;j++) std::cout << mat[j][i] << " ";
+        std::cout << std::endl;
+      }
+    }
+    size_t Dim()const {return mat.size();};
+    std::vector<std::vector<double>> mat;
+  private:
+};
 
 // recursive least squares algorithm
 class RLS {
@@ -18,7 +39,7 @@ class RLS {
     int n;
     double alpha,p;
     std::vector<double> hist,w,k;
-    Matrix P;
+    SQMatrix P;
 };
 
 

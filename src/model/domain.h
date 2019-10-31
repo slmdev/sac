@@ -2,6 +2,7 @@
 #define _DOMAIN_H
 
 #include "..\global.h"
+#include <cmath>
 
 static class LogDomain {
   public:

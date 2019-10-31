@@ -1,7 +1,10 @@
 #ifndef FILE_H
 #define FILE_H
 
-#include "../global.h"
+//#include "../global.h"
+#include <string>
+#include <vector>
+#include <fstream>
 
 class AudioFile {
   public:
@@ -17,6 +20,7 @@ class AudioFile {
     int getSampleRate()const {return samplerate;};
     int getBitsPerSample()const {return bitspersample;};
     int getKBPS()const {return kbps;};
+    void setKBPS(int kbps) {this->kbps=kbps;};
     int getNumSamples()const {return numsamples;};
     std::streampos readFileSize();
     void Close() {if (file.is_open()) file.close();};

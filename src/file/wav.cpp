@@ -1,4 +1,6 @@
 #include "wav.h"
+#include "../common/utils.h"
+#include <iostream>
 
 void Chunks::Append(uint32_t chunkid,uint32_t chunksize,const uint8_t *data,uint32_t len)
 {
@@ -122,7 +124,7 @@ int Wav::ReadHeader()
             bitspersample=BitUtils::get16LH(buf+14);
             if (chunksize==18) {
                int cbsize=BitUtils::get16LH(buf+16);
-               std::cout << "  WAVE-Ext size: " << cbsize << " Bytes"<<std::endl;
+               if (verbose) std::cout << "  WAVE-Ext size: " << cbsize << " Bytes"<<std::endl;
             }
             kbps=(samplerate*numchannels*bitspersample)/1000;
         }

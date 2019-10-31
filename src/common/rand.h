@@ -1,7 +1,8 @@
 #ifndef RAND_H
 #define RAND_H
 
-#include "../global.h"
+//#include "../global.h"
+#include <random>
 
 class Random {
   public:

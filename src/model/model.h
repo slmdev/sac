@@ -12,4 +12,6 @@
 #define WSCALE  (1<<WBITS)
 #define WSCALEh (WSCALE>>1)
 
+template <class T> T clamp(T val,T min,T max) {return val<min?min:val>max?max:val;};
+
 #endif // MODEL_H

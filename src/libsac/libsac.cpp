@@ -1,33 +1,71 @@
 #include "libsac.h"
+#include "pred.h"
 #include "../common/timer.h"
 
-FrameCoder::FrameCoder(int numchannels,int framesize,int profile,int sparse_pcm)
-:numchannels_(numchannels),framesize_(framesize),sparse_pcm_(sparse_pcm)
+FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
+:numchannels_(numchannels),framesize_(framesize),opt(opt)
 {
-  if (profile==0)   {
-    baseprofile.Init(2,0);
-    baseprofile.Set(0,0.99,0.999,0.996);
-    baseprofile.Set(1,0.1,2.0,0.5);
-  } else if (profile==1) {
-    baseprofile.Init(6,1);
-    baseprofile.Set(0,0.99,0.9999,0.998);
-    baseprofile.Set(1,0.000001,0.001,0.0004);
-    baseprofile.Set(2,0.000001,0.001,0.0001);
-    baseprofile.Set(3,0.00001,0.01,0.003);
-    baseprofile.Set(4,0.0001,0.1 ,0.01);
-    baseprofile.Set(5,0.99,0.9999,0.998);
-  } else if (profile==2) {
-    baseprofile.Init(8,2);
-    baseprofile.Set(0,0.98,0.9999,0.997);
-    baseprofile.Set(1,0.0000001,0.0001,0.00001);
-    baseprofile.Set(2,0.0000001,0.0001,0.000005);
+  if (opt.profile==0)   {
+    baseprofile.Init(29,0);
+    baseprofile.Set(0,0.99,0.9999,0.998); // ols-lambda
+    baseprofile.Set(1,0.001,2.0,0.001);//ols-nu
+    baseprofile.Set(2,0.00001,0.008,0.0008);//mu0
+    baseprofile.Set(3,0.00008,0.008,0.002);//mu1
+    baseprofile.Set(4,0.0001,0.05,0.008);//mu2
+    baseprofile.Set(5,0.0,1.0,0.8);   // pow-decay0
+    baseprofile.Set(6,0.0,1.0,0.8);   // pow-decay1
+    baseprofile.Set(7,0.0,1.0,0.8);   // pow-decay2
+    baseprofile.Set(8,0.98,1,1.0); // mu-decay0
+    baseprofile.Set(9,0.98,1,1.0); // mu-decay1
+    baseprofile.Set(10,0.98,1,1.0); // mu-decay2
+    baseprofile.Set(11,0.0001,0.008,0.002);//mu-mix
+    baseprofile.Set(12,0.8,0.9999,0.95); //mu-mix-beta
 
-    baseprofile.Set(3,0.000001,0.001,0.0005);
-    baseprofile.Set(4,0.000001,0.001,0.0001);
-    baseprofile.Set(5,0.0001,0.01 ,0.003);
-    baseprofile.Set(6,0.001,0.1   ,0.01);
-    baseprofile.Set(7,0.99,0.9999,0.998);
+    baseprofile.Set(13,0.99,0.9999,0.998); // ols-lambda
+    baseprofile.Set(14,0.001,2.0,0.001);//ols-nu
+    baseprofile.Set(15,0.00001,0.008,0.0008);//mu0
+    baseprofile.Set(16,0.00008,0.008,0.002);//mu1
+    baseprofile.Set(17,0.0001,0.05,0.008);//mu2
+    baseprofile.Set(18,0.0,1.0,0.8);   // pow-decay0
+    baseprofile.Set(19,0.0,1.0,0.8);   // pow-decay1
+    baseprofile.Set(20,0.0,1.0,0.8);   // pow-decay2
+    baseprofile.Set(21,0.98,1,1.0); // mu-decay0
+    baseprofile.Set(22,0.98,1,1.0); // mu-decay1
+    baseprofile.Set(23,0.98,1,1.0); // mu-decay2
+    baseprofile.Set(24,0.0001,0.008,0.002);//mu-mix
+    baseprofile.Set(25,0.8,0.9999,0.95); //mu-mix-beta
+
+    baseprofile.Set(26,8,32,16);//ols-order
+    baseprofile.Set(27,4,32,8);//ols-order
+    baseprofile.Set(28,4,32,8);//ols-order
+
+  } else if (opt.profile==1) {
+    baseprofile.Init(16,1);
+    baseprofile.Set(0,0.99,0.9999,0.998);
+    baseprofile.Set(1,0.001,2.0,0.001);
+    //baseprofile.Set(2,0.00001,0.008,0.00008);//mu0
+    //baseprofile.Set(3,0.00001,0.008,0.0005);//mu1
+    //baseprofile.Set(4,0.0001,0.008,0.002);//mu2
+    //baseprofile.Set(5,0.001,0.08,0.01);//mu3
+
+    baseprofile.Set(2,0.001,1.0,0.1);//mu0
+    baseprofile.Set(3,0.001,1.0,0.12);//mu1
+    baseprofile.Set(4,0.001,1.0,0.06);//mu2
+    baseprofile.Set(5,0.001,1.0,0.04);//mu3
+
+    baseprofile.Set(6,0.98,1,1.0); // mu-decay
+    baseprofile.Set(7,0.0,1.0,0.8);   // pow-decay
+    baseprofile.Set(8,0.0001,0.008,0.002);//mu-mix
+    baseprofile.Set(9,8,32,16);//ols-order
+    baseprofile.Set(10,4,32,8);//ols-order
+    baseprofile.Set(11,4,32,8);//ols-order
+    baseprofile.Set(12,0.8,0.9999,0.95);//mu-mom
+
+    baseprofile.Set(13,256,2048,1280);
+    baseprofile.Set(14,32,256,256);
+    baseprofile.Set(15,4,32,32);
   }
+
   profile_size_bytes_=baseprofile.coefs.size()*4;
 
   framestats.resize(numchannels);
@@ -71,7 +109,7 @@ void FrameCoder::AnalyseChannel(int ch,int numsamples)
 
       mean+=src[i];
     }
-    /*int tshift=0;
+    int tshift=0;
     if (!(ordata&1)) {
         while (!(ordata&1)) {
             tshift++;
@@ -87,148 +125,157 @@ void FrameCoder::AnalyseChannel(int ch,int numsamples)
             tshift++;
             xordata>>=1;
         }
-    }*/
-    //cout << "total shift: " << tshift << endl;
+    }
+    if (tshift) std::cout << "total shift: " << tshift << std::endl;
 
-    mean=mean/numsamples;
-    /*if (mean) {
+    mean=mean/static_cast<int64_t>(numsamples);
+    if (mean!=0) std::cout << "mean: " << mean << '\n';
+    if (mean) {
        minval-=mean;
        maxval-=mean;
        for (int i=0;i<numsamples;i++) src[i]-=mean;
-    }*/
+    }
     framestats[ch].minval=minval;
     framestats[ch].maxval=maxval;
     framestats[ch].mean=mean;
-    std::cout << "mean: " << mean << ", min: " << minval << " ,max: " << maxval << std::endl;
+    //std::cout << "mean: " << mean << ", min: " << minval << " ,max: " << maxval << std::endl;
   }
 }
 
-StereoPredictor *FrameCoder::AllocProfile(const SacProfile &profile)
+
+void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
-  StereoPredictor *pred=nullptr;
-  switch (profile.type) {
-    case 0:pred=new StereoFast(profile);break;
-    case 1:pred=new StereoNormal(profile);break;
-    case 2:pred=new StereoHigh(profile);break;
-    default:break;
+  param.nA=16;
+  //param.nS0=round(profile.Get(9));
+  //param.nS1=round(profile.Get(10));
+  if (optimize) param.k=4;
+  else param.k=1;
+  param.lambda0=param.lambda1=profile.Get(0);
+  param.ols_nu0=param.ols_nu1=profile.Get(1);
+
+  if (profile.type==0) {
+    //param.vn={256,32,4};
+    param.vn={256,32,4};
+    param.vmu0={profile.Get(2),profile.Get(3),profile.Get(4)};
+    param.vpowdecay0={profile.Get(5),profile.Get(6),profile.Get(7)};
+    param.vmudecay0={profile.Get(8),profile.Get(9),profile.Get(10)};
+    param.mu_mix0=profile.Get(11);
+    param.mu_mix_beta0=profile.Get(12);
+
+    param.lambda1=profile.Get(13);
+    param.ols_nu1=profile.Get(14);
+    param.vmu1={profile.Get(15),profile.Get(16),profile.Get(17)};
+    param.vpowdecay1={profile.Get(18),profile.Get(19),profile.Get(20)};
+    param.vmudecay1={profile.Get(21),profile.Get(22),profile.Get(23)};
+    param.mu_mix1=profile.Get(24);
+    param.mu_mix_beta1=profile.Get(25);
+
+    param.nA=round(profile.Get(26));
+    param.nS0=round(profile.Get(27));
+    param.nS1=round(profile.Get(28));
+  } else if (profile.type==1) {
+    param.vn={(int)round(profile.Get(13)),(int)round(profile.Get(14)),(int)round(profile.Get(15)),4};
+    param.vmu0={profile.Get(2)/double(param.vn[0]),profile.Get(3)/double(param.vn[1]),profile.Get(4)/double(param.vn[2]),profile.Get(5)/double(param.vn[3])};
+    param.vmu1={profile.Get(2)/double(param.vn[0]),profile.Get(3)/double(param.vn[1]),profile.Get(4)/double(param.vn[2]),profile.Get(5)/double(param.vn[3])};
+    param.vmudecay0=param.vmudecay1={profile.Get(6),profile.Get(6),profile.Get(6),profile.Get(6)};
+    param.vpowdecay0=param.vpowdecay1={profile.Get(7),profile.Get(7),profile.Get(7),profile.Get(7)};
+    param.mu_mix0=param.mu_mix1=profile.Get(8);
+    param.nA=round(profile.Get(9));
+    param.nS0=round(profile.Get(10));
+    param.nS1=round(profile.Get(11));
+    param.mu_mix_beta0=param.mu_mix_beta1=profile.Get(12);
   }
-  return pred;
 }
 
-int Signed2Unsigned(int32_t pred,int32_t error,int32_t minval,int32_t maxval)
+void FrameCoder::PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int from,int numsamples,bool optimize)
 {
-  int32_t abserr=std::abs(error);
-  if (abserr) {
-    if (pred <= 0) {
-      int32_t diff=(-minval)+pred;
-      if (error<0) return (2*(-error));
-      else {
-        if (error<=diff) return (2*error-1);
-        else return (diff+error);
-      }
-    } else {
-      int32_t diff=maxval-pred;
-      if (error>0) return(2*error-1);
-      else {
-        if (abserr<=diff) return (2*abserr);
-        else return (diff+abserr);
-      }
-    }
-  } return 0;
-}
-
-void FrameCoder::PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int from,int numsamples)
-{
- StereoPredictor *pred=AllocProfile(profile);
-
- if (pred!=nullptr) {
-  const int32_t *src0=&(samples[ch0][from]);
-  const int32_t *src1=&(samples[ch1][from]);
+  int32_t *src0=&(samples[ch0][from]);
+  int32_t *src1=&(samples[ch1][from]);
   int32_t *dst0=&(error[ch0][0]);
   int32_t *dst1=&(error[ch1][0]);
   int32_t emax0=0,emax1=0;
   int32_t emax0_map=0,emax1_map=0;
 
+  Predictor::tparam param;
+  SetParam(param,profile,optimize);
+  Predictor pr(param);
+
   for (int i=0;i<numsamples;i++) {
-    int32_t p0=pred->Predict();
-    pred->Update(src0[i]);
-    int32_t p1=pred->Predict();
-    pred->Update(src1[i]);
-    p0=clamp(p0,-(1<<15),1<<15);
-    p1=clamp(p1,-(1<<15),1<<15);
+    double p=pr.PredictMaster();
+    int32_t p0=clamp((int)round(p),-(1<<15),(1<<15));
 
     dst0[i]=src0[i]-p0;
-    dst1[i]=src1[i]-p1;
 
-    int map_a=framestats[0].mymap.Map(p0,dst0[i]); // remap the error
-    int map_b=framestats[1].mymap.Map(p1,dst1[i]);
-
-    #if 0 //debug code
-      int unmap_a=framestats[0].mymap.Unmap(pred0,map_a);
-      int unmap_b=framestats[1].mymap.Unmap(pred1,map_b);
-      if (unmap_a != dst0[i]) cout << unmap_a << " " << dst0[i] << endl;
-      if (unmap_b != dst1[i]) cout << unmap_b << " " << dst1[i] << endl;
-    #endif
+    pr.UpdateMaster(src0[i]);
 
     int32_t e0=MathUtils::S2U(dst0[i]);
-    int32_t e1=MathUtils::S2U(dst1[i]);
-
-    //int e0x=Signed2Unsigned(p0,dst0[i],-(1<<15),1<<15);
-    //int e1x=Signed2Unsigned(p1,dst1[i],-(1<<15),1<<15);
-
-    //if (e0x < e0) std::cout << e0 << " " << e0x << std::endl;
-
-    int32_t e0_map=MathUtils::S2U(map_a);
-    int32_t e1_map=MathUtils::S2U(map_b);
-
-    s2u_error[ch0][i]=e0;
-    s2u_error[ch1][i]=e1;
-
-    s2u_error_map[ch0][i]=e0_map;
-    s2u_error_map[ch1][i]=e1_map;
 
     if (e0>emax0) emax0=e0;
-    if (e1>emax1) emax1=e1;
+    s2u_error[ch0][i]=e0;
 
-    if (e0_map>emax0_map) emax0_map=e0_map;
-    if (e1_map>emax1_map) emax1_map=e1_map;
+    if (opt.sparse_pcm && !optimize) {
+      int map_a=framestats[0].mymap.Map(p0,dst0[i]); // remap the error
+      //map_a=t1-t2;
+      int32_t e0_map=MathUtils::S2U(map_a);
+      s2u_error_map[ch0][i]=e0_map;
+      if (e0_map>emax0_map) emax0_map=e0_map;
+    }
   }
+  for (int i=0;i<numsamples;i++) {
+    double p=pr.PredictSlave(src0,i,numsamples);//lm1.Predict();
+    int32_t p1=clamp((int)round(p),-(1<<15),(1<<15));
+    dst1[i]=src1[i]-p1;
+
+    pr.UpdateSlave(src1[i]);
+
+    int32_t e1=MathUtils::S2U(dst1[i]);
+
+    if (e1>emax1) emax1=e1;
+    s2u_error[ch1][i]=e1;
+
+    if (opt.sparse_pcm && !optimize) {
+      //int32_t t1=framestats[1].mymap.Map2(src1[i]);
+      //int32_t t2=framestats[1].mymap.Map2(p1);
+
+      int map_b=framestats[1].mymap.Map(p1,dst1[i]);
+      int32_t e1_map=MathUtils::S2U(map_b);
+      s2u_error_map[ch1][i]=e1_map;
+      if (e1_map>emax1_map) emax1_map=e1_map;
+    }
+  }
+  //std::cout << pr.r0()*100. << ' ';
 
   framestats[0].maxbpn=MathUtils::iLog2(emax0);
   framestats[1].maxbpn=MathUtils::iLog2(emax1);
 
   framestats[0].maxbpn_map=MathUtils::iLog2(emax0_map);
   framestats[1].maxbpn_map=MathUtils::iLog2(emax1_map);
-  delete pred;
- }
 }
 
 void FrameCoder::UnpredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int numsamples)
 {
-  StereoPredictor *pred=AllocProfile(profile);
-
   const int32_t *src0=&(error[ch0][0]);
   const int32_t *src1=&(error[ch1][0]);
   int32_t *dst0=&(samples[ch0][0]);
   int32_t *dst1=&(samples[ch1][0]);
 
+  Predictor::tparam param;
+  SetParam(param,profile,false);
+  Predictor pr(param);
   for (int i=0;i<numsamples;i++) {
-    int32_t p0=pred->Predict();
-    p0=clamp(p0,-(1<<15),1<<15);
-
+    double p=pr.PredictMaster();
+    int32_t p0=clamp((int)round(p),-(1<<15),(1<<15));
     if (framestats[0].enc_mapped) dst0[i]=p0+framestats[0].mymap.Unmap(p0,src0[i]);
     else dst0[i]=p0+src0[i];
-    pred->Update(dst0[i]);
-
-    int32_t p1=pred->Predict();
-    p1=clamp(p1,-(1<<15),1<<15);
-
+    pr.UpdateMaster(dst0[i]);
+  }
+  for (int i=0;i<numsamples;i++) {
+    double p=pr.PredictSlave(dst0,i,numsamples);
+    int32_t p1=clamp((int)round(p),-(1<<15),(1<<15));
     if (framestats[1].enc_mapped) dst1[i]=p1+framestats[1].mymap.Unmap(p1,src1[i]);
     else dst1[i]=p1+src1[i];
-    pred->Update(dst1[i]);
+    pr.UpdateSlave(dst1[i]);
   }
-
-  delete pred;
 }
 
 int FrameCoder::EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf)
@@ -236,6 +283,7 @@ int FrameCoder::EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf)
   buf.Reset();
   RangeCoderSH rc(buf);
   rc.Init();
+  //BitplaneCoder2 bc(rc,framestats[ch].maxbpn,numsamples);
   BitplaneCoder bc(rc,framestats[ch].maxbpn,numsamples);
   int32_t *srca=&(s2u_error[ch][0]);
   bc.Encode(srca);
@@ -254,7 +302,7 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
 
   MapEncoder me(rc,framestats[ch].mymap.usedl,framestats[ch].mymap.usedh);
   me.Encode();
-  //cout << "mapsize: " << buf.GetBufPos() << " Bytes\n";
+  std::cout << "mapsize: " << buf.GetBufPos() << " Bytes\n";
 
   bc.Encode(&(s2u_error_map[ch][0]));
   rc.Stop();
@@ -264,8 +312,8 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
 
 void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
 {
-  if (sparse_pcm_==0) {
-    int size_normal=EncodeMonoFrame_Normal(ch,numsamples,enc_temp1[ch]);
+  if (opt.sparse_pcm==0) {
+    EncodeMonoFrame_Normal(ch,numsamples,enc_temp1[ch]);
     framestats[ch].enc_mapped=false;
     encoded[ch]=enc_temp1[ch];
   } else {
@@ -302,45 +350,6 @@ void FrameCoder::DecodeMonoFrame(int ch,int numsamples)
   rc.Stop();
 }
 
-class CostMeanRMS : public CostFunction {
-  public:
-      double Calc(const int32_t *buf,int numsamples)
-      {
-        if (numsamples) {
-          double pow=0.0;
-          for (int i=0;i<numsamples;i++) pow+=std::abs(buf[i]);
-          return pow/static_cast<double>(numsamples);
-        } else return 0.;
-      }
-};
-
-// estimate number of needed bits with a simple golomb model
-class CostGolomb : public CostFunction {
-  public:
-      CostGolomb():mean_err(0.98){};
-      double Calc(const int32_t *buf,int numsamples)
-      {
-        double nbits=0;
-        if (numsamples) {
-          for (int i=0;i<numsamples;i++) {
-            int32_t val=MathUtils::S2U(buf[i]);
-            int m=std::max(static_cast<int>(mean_err.Get()),1);
-            int q=val/m;
-            //int r=val-q*m;
-            nbits+=(q+1);
-            if (m>1) {
-              int b=ceil(log(m)/log(2));
-              nbits+=b;
-            }
-            mean_err.Update(val);
-          }
-          return nbits/(double)numsamples;
-        } else return 0;
-      }
-  private:
-    RunExp mean_err;
-};
-
 double FrameCoder::GetCost(SacProfile &profile,CostFunction *func,int coef,double testval,int start_sample,int samples_to_optimize)
 {
   const int32_t *err0=&(error[0][0]);
@@ -348,158 +357,178 @@ double FrameCoder::GetCost(SacProfile &profile,CostFunction *func,int coef,doubl
 
   SacProfile testprofile=profile;
   testprofile.coefs[coef].vdef=testval;
-  PredictStereoFrame(testprofile,0,1,start_sample,samples_to_optimize);
+  PredictStereoFrame(testprofile,0,1,start_sample,samples_to_optimize,true);
   double c1=func->Calc(err0,samples_to_optimize);
   double c2=func->Calc(err1,samples_to_optimize);
   return (c1+c2)/2.;
 }
 
-int SolveQuadratic(double x0,double x1,double x2,double y0,double y1,double y2,double &xm)
-{
-  double det=(x0-x1)*(x1*x1-x2*x2)+(x2-x1)*(x0*x0-x1*x1);
-  if (fabs(det)>0.0) {
-    double b=((y0-y1)*(x1*x1-x2*x2)+(y2-y1)*(x0*x0-x1*x1))/det;
-    double a=(y0-y1-b*(x0-x1))/(x0*x0-x1*x1);
-    double c=y0-a*(x0*x0)-b*x0;
 
-    if (a>0.) {xm=-b/(2*a);return 0;};
+#include "../opt/dds.h"
+
+void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize)
+{
+  //std::cout << params_to_optimize.size() << " parameters to optimize\n";
+  int norm_samples=framesize_/opt.optimize_div;
+  int samples_to_optimize=numsamples_/opt.optimize_div;
+  if (samples_to_optimize<norm_samples) {
+    samples_to_optimize=std::min(numsamples_,norm_samples);
   }
-  return 1;
-}
 
-void FrameCoder::Optimize(SacProfile &profile)
-{
-  int blocksize=4;
-  int samples_to_optimize=numsamples_/blocksize;
-  //cout << numsamples << "->" << samples_to_optimize << " " << endl;
-  int start=(numsamples_-samples_to_optimize)/2;
-  //cout << start << "->" << start+samples_to_optimize << " " << endl;
-  const int32_t *err0=&(error[0][0]);
-  const int32_t *err1=&(error[1][0]);
+  const int start=(numsamples_-samples_to_optimize)/2;
 
-  CostGolomb CostFunc;
+  CostFunction *CostFunc=nullptr;
+  switch (opt.optimize_cost)  {
+    case opt.SearchCost::L1:CostFunc=new CostMeanRMS();break;
+    case opt.SearchCost::Golomb:CostFunc=new CostGolomb();break;
+    case opt.SearchCost::Entropy:CostFunc=new CostEntropy();break;
+    case opt.SearchCost::Bitplane:CostFunc=new CostBitplane();break;
+    default:std::cerr << "  error: unknown FramerCoder::CostFunction\n";return;
+  }
 
-  #if 0
-  double tx[4],ty[4];
-  for (int coef=0;coef<2;coef++) {
-    tx[0]=profile.coefs[coef].vdef;
-    tx[1]=profile.coefs[coef].vmin;
-    tx[2]=profile.coefs[coef].vmax;
-    tx[3]=0.;
-    ty[0]=GetCost(profile,&CostFunc,coef,tx[0],start,samples_to_optimize);
-    ty[1]=GetCost(profile,&CostFunc,coef,tx[1],start,samples_to_optimize);
-    ty[2]=GetCost(profile,&CostFunc,coef,tx[2],start,samples_to_optimize);
-    ty[3]=std::numeric_limits<double>::max();
+  int nmodel_run=0;
+  switch (opt.optimize_search) {
+    case opt.SearchMethod::GRS:nmodel_run=opt.optimize_ncycle*opt.optimize_maxiter*params_to_optimize.size();break;
+    case opt.SearchMethod::DDS:nmodel_run=opt.optimize_maxnfunc;break;
+  }
+  std::cout << "\n  optimize m=" << opt.optimize_search << ", div=" << opt.optimize_div << ", n=" << nmodel_run << '\n';
 
-    if (SolveQuadratic(tx[0],tx[1],tx[2],ty[0],ty[1],ty[2],tx[3])==0) {
-      ty[3]=GetCost(profile,&CostFunc,coef,tx[3],start,samples_to_optimize);
+  if (opt.optimize_search==opt.SearchMethod::DDS) {
+    int ndim=params_to_optimize.size();
+    vec1D param(ndim);
+    Opt::param_const defparam(ndim);
+    for (int i=0;i<ndim;i++) {
+      defparam[i].xmin=profile.coefs[params_to_optimize[i]].vmin;
+      defparam[i].xmax=profile.coefs[params_to_optimize[i]].vmax;
+      param[i]=profile.coefs[params_to_optimize[i]].vdef;
     }
 
-    double xbest=tx[0];
-    double ybest=ty[0];
-    for (int i=1;i<4;i++)
-      if (ty[i]<ybest) {xbest=tx[i];ybest=ty[i];};
+    auto f=[&](const vec1D &x) {
+      for (int i=0;i<ndim;i++) {
+        profile.coefs[params_to_optimize[i]].vdef=x[i];
+      };
+      return GetCost(profile,CostFunc,0,profile.coefs[0].vdef,start,samples_to_optimize);
+    };
 
-    profile.coefs[coef].vdef=xbest;
-  }
-  #else
-  //std::cout << xbest << ":" << ybest << std::endl;
+    DDS dds(defparam);
+    Opt::opt_ret opt_ret=dds.Run(0.15,opt.optimize_maxnfunc,param,f);
+    for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=opt_ret.second[i];
 
-  /*vector <SacProfile::coef>&coefs=testprofile.coefs;
-  int n=static_cast<int>(coefs.size());
-  vector <double>dx(n),gx(n);
-  for (int i=0;i<n;i++) {
-      dx[i]=(coefs[i].vmax-coefs[i].vmin)*0.01;
-  }*/
+  } else if (opt.optimize_search==opt.SearchMethod::GRS) {
 
-  /*double cost,dwcost,tcost,grad;
-  testprofile=profile;
-  cost=GetCost(testprofile,&CostFunc,0,coefs[0].vdef,start,samples_to_optimize);
-  dwcost=GetCost(testprofile,&CostFunc,0,coefs[0].vdef+dx[0],start,samples_to_optimize);
-  grad=(dwcost-cost)/dx[0];
+  double best_cost=GetCost(profile,CostFunc,0,profile.coefs[0].vdef,start,samples_to_optimize);
+  #if 0
+    for (int cycle=0;cycle<ncycle;cycle++) {
+      for (auto i:params_to_optimize) {
+        auto f=[&](double x) {return GetCost(profile,&CostFunc,i,x,start,samples_to_optimize);};
 
-  cout << cost << " " << dwcost << endl;
-  double mu=0.01;*/
-
-  //cout << (coefs[0].vdef-mu*grad/fabs(grad)) << endl;
-  //profile.coefs[0].vdef=x;
-
-  double best_cost=GetCost(profile,&CostFunc,0,profile.coefs[0].vdef,start,samples_to_optimize);
-
-  //for (int k=0;k<2;k++)
-  for (int i=0;i<2;i++)
-  {
-      double best_x=profile.coefs[i].vdef;
-      double x=profile.coefs[i].vmin;
-      double xinc=(profile.coefs[i].vmax-profile.coefs[i].vmin)/10.;
-      //cout << i << ":" << best_x << " -> ";
-      while (x<=profile.coefs[i].vmax)
-      {
-          double cost=GetCost(profile,&CostFunc,i,x,start,samples_to_optimize);
-          //cout << x << " " << cost << " " << best_cost << endl;
-          if (cost<best_cost) {
-            best_x=x;
-            best_cost=cost;
-          }
-          x+=xinc;
+        int bits = std::numeric_limits<double>::digits;
+        boost::uintmax_t it = max_iter;
+        //std::cout << profile.coefs[i].vmin << ' ' << profile.coefs[i].vmax << '\n';
+        std::pair<double,double>r = boost::math::tools::brent_find_minima(f, profile.coefs[i].vmin,profile.coefs[i].vmax,bits,it);
+        if (r.second < best_cost) {
+          profile.coefs[i].vdef=r.first;
+          best_cost=r.second;
+        }
       }
-      std::cout << best_x << std::endl;
-      profile.coefs[i].vdef=best_x;
+    }
+    for (auto i:params_to_optimize)
+    {
+      std::cout << i << ':' << profile.coefs[i].vdef << '\n';
+    }
+  #else
+  for (int cycle=0;cycle<opt.optimize_ncycle;cycle++)
+  for (auto i:params_to_optimize)
+  {
+        // golden ratio search
+        double xl=profile.coefs[i].vmin;
+        double xu=profile.coefs[i].vmax;
+
+        double phi=1.0/((sqrt(5)+1)/2.0);
+        double x1=xl+phi*(xu-xl);
+        double x2=xu-phi*(xu-xl);
+        double fx1=GetCost(profile,CostFunc,i,x1,start,samples_to_optimize);
+        double fx2=GetCost(profile,CostFunc,i,x2,start,samples_to_optimize);
+        int maxn=opt.optimize_maxiter-3;
+        int state=0;
+        for (int n=0;n<maxn;n++) {
+          if (fx1<best_cost) {profile.coefs[i].vdef=x1;best_cost=fx1;};
+          if (fx2<best_cost) {profile.coefs[i].vdef=x2;best_cost=fx2;};
+          if (fx1<fx2) {
+            xl=x2;
+            x2=x1;
+            x1=xl+phi*(xu-xl);
+            fx1=GetCost(profile,CostFunc,i,x1,start,samples_to_optimize);
+            state=0;
+          } else {
+            xu=x1;
+            x1=x2;
+            x2=xu-phi*(xu-xl);
+            fx2=GetCost(profile,CostFunc,i,x2,start,samples_to_optimize);
+            state=1;
+          }
+        }
+        if (state==0) { // test unknown interval endpoints
+          double fx=GetCost(profile,CostFunc,i,xu,start,samples_to_optimize);
+          if (fx<best_cost) {profile.coefs[i].vdef=xu;best_cost=fx;};
+        } else {
+          double fx=GetCost(profile,CostFunc,i,xl,start,samples_to_optimize);
+          if (fx<best_cost) {profile.coefs[i].vdef=xl;best_cost=fx;};
+        }
   }
   #endif
+  }
+
+  std::cout << "\n[";
+  for (auto i:params_to_optimize)
+    std::cout << profile.coefs[i].vdef << ' ';
+  std::cout << "]\n";
+  delete CostFunc;
 }
 
-void FrameCoder::InterChannel(int ch0,int ch1,int numsamples)
+
+void Codec::SetOptimizeParam(FrameCoder::coder_ctx &opt)
 {
-  int32_t *src0=&(samples[ch0][0]);
-  int32_t *src1=&(samples[ch1][0]);
-  uint64_t sum[4],score[4];
-  sum[0]=sum[1]=sum[2]=sum[3]=0;
-  for (int i=0;i<numsamples;i++) {
-    int32_t v0=src0[i];
-    int32_t v1=src1[i];
-
-    sum[0]+=abs(v0);
-    sum[1]+=abs(v1);
-    sum[2]+=abs((v0+v1)>>1);
-    sum[3]+=abs(v0-v1);
-  }
-  score[0]=sum[0]+sum[1];
-  score[1]=sum[0]+sum[3];
-  score[2]=sum[1]+sum[3];
-  score[3]=sum[2]+sum[3];
-
-  if (score[3]*1.5 < score[0]) {
-    std::cout << "ms\n";
-    for (int i=0;i<numsamples;i++) {
-     int32_t v0=src0[i];
-     int32_t v1=src1[i];
-     src0[i]=(v0+v1)>>1;
-     src1[i]=v0-v1;
-
-   };
+  opt.optimize_ncycle=1;
+  opt.optimize_div=4;
+  opt.optimize_cost=opt.SearchCost::Entropy;
+  opt.optimize_search=opt.SearchMethod::DDS;
+  if (opt.optimize_mode==0) {
+    opt.optimize_maxnfunc=100;
+  } else if (opt.optimize_mode==1) {
+    opt.optimize_maxnfunc=250;
+    //opt.optimize_div=2;
+  } else if (opt.optimize_mode==2) {
+    opt.optimize_maxnfunc=500;
+    opt.optimize_div=2;
+  } else if (opt.optimize_mode==3) { // insane
+    opt.optimize_cost=opt.SearchCost::Bitplane;
+    opt.optimize_maxnfunc=1000;
+    opt.optimize_div=1;
   }
 }
 
 void FrameCoder::Predict()
 {
-  //for (int ch=0;ch<numchannels_;ch++) AnalyseChannel(ch,numsamples_);
-  //AnalyseSpectrum(0,numsamples);
-  //for (int ch=0;ch<numchannels;ch++) AnalyseChannel(ch,numsamples);
-  //AnalyseSpectrum(1,numsamples);
   for (int ch=0;ch<numchannels_;ch++)
   {
     framestats[ch].mymap.Reset();
     framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
   }
-  //cout << framestats[0].mymap.Compare(framestats[1].mymap) << endl;
 
-  //SacProfile optprofile=baseprofile;
-  //Optimize(baseprofile);
+  SacProfile optprofile=baseprofile;
+  if (opt.optimize)
+  {
+     if (opt.profile==0) {
+        std::vector<int>lparam{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28};
+        Optimize(baseprofile,lparam);
+     } else if (opt.profile==1) {
+        Optimize(baseprofile,{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
+     }
+  }
   if (numchannels_==2) {
-    //InterChannel(0,1,numsamples);
     PredictStereoFrame(baseprofile,0,1,0,numsamples_);
-  }// else for (int ch=0;ch<numchannels;ch++) PredictMonoFrame(ch,numsamples);
+  }
 }
 
 void FrameCoder::Unpredict()
@@ -597,15 +626,19 @@ void Codec::PrintProgress(int samplesprocessed,int totalsamples)
   std::cout << "  " << samplesprocessed << "/" << totalsamples << ":" << std::setw(6) << miscUtils::ConvertFixed(r,1) << "%\r";
 }
 
+// fix-me
 void Codec::ScanFrames(Sac &mySac)
 {
   std::streampos fsize=mySac.getFileSize();
   int frame_num=1;
+  int size_profile_bytes=mySac.GetProfile()==0?FrameCoder::size_profile_bytes_normal:FrameCoder::size_profile_bytes_high;
   while (mySac.file.tellg()<fsize) {
     uint8_t buf[8];
     mySac.file.read(reinterpret_cast<char*>(buf),4);
     int numsamples=BitUtils::get32LH(buf);
     std::cout << "Frame " << frame_num << ": " << numsamples << " samples "<< std::endl;
+
+    mySac.file.seekg(size_profile_bytes,std::ios_base::cur); // skip profile coefs
 
     for (int ch=0;ch<mySac.getNumChannels();ch++) {
       mySac.file.read(reinterpret_cast<char*>(buf),6);
@@ -620,14 +653,15 @@ void Codec::ScanFrames(Sac &mySac)
   }
 }
 
-void Codec::EncodeFile(Wav &myWav,Sac &mySac,int profile)
+void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
 {
   const int numchannels=myWav.getNumChannels();
-  framesize=4*myWav.getSampleRate();
+  framesize=8*myWav.getSampleRate();
 
-  FrameCoder myFrame(numchannels,framesize,profile,0);
+  SetOptimizeParam(opt);
+  FrameCoder myFrame(numchannels,framesize,opt);
 
-  mySac.SetProfile(profile);
+  mySac.SetProfile(opt.profile);
   mySac.WriteHeader(myWav);
   myWav.InitFileBuf(framesize);
 
@@ -656,7 +690,7 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,int profile)
   if (time_total>0.)   {
      double rprd=time_prd*100./time_total;
      double renc=time_enc*100./time_total;
-     std::cout << "Timing: pred " << miscUtils::ConvertFixed(rprd,2) << "%, ";
+     std::cout << "  Timing: pred " << miscUtils::ConvertFixed(rprd,2) << "%, ";
      std::cout << "enc " << miscUtils::ConvertFixed(renc,2) << "%, ";
      std::cout << "misc " << miscUtils::ConvertFixed(100.-rprd-renc,2) << "%" << std::endl;
   }
@@ -665,7 +699,7 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,int profile)
 void Codec::DecodeFile(Sac &mySac,Wav &myWav)
 {
   const int numchannels=mySac.getNumChannels();
-  framesize=4*mySac.getSampleRate();
+  framesize=8*mySac.getSampleRate();
 
   int samplestodecode=mySac.getNumSamples();
   int samplesdecoded=0;
@@ -673,8 +707,9 @@ void Codec::DecodeFile(Sac &mySac,Wav &myWav)
   myWav.InitFileBuf(framesize);
   mySac.UnpackMetaData(myWav);
   myWav.WriteHeader();
-  int profile=mySac.GetProfile();
-  FrameCoder myFrame(numchannels,framesize,profile,0);
+  FrameCoder::coder_ctx opt;
+  opt.profile=mySac.GetProfile();
+  FrameCoder myFrame(numchannels,framesize,opt);
   while (samplestodecode>0) {
     myFrame.ReadEncoded(mySac);
     myFrame.Decode();

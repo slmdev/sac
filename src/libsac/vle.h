@@ -11,16 +11,21 @@
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
 
 class BitplaneCoder {
-  const int cnt_upd_rate=350;
-  const int mix_upd_rate=800;
-  const int cntsse_upd_rate=1000;
-  const int mixsse_upd_rate=300;
+  const int cnt_upd_rate_p=150;
+  const int cnt_upd_rate_sig=300;
+  const int cnt_upd_rate_ref=100;
+  const int mix_upd_rate_ref=800;
+  const int mix_upd_rate_sig=700;
+  const int cntsse_upd_rate=250;
+  const int mixsse_upd_rate=250;
   public:
     BitplaneCoder(RangeCoderSH &rc,int maxbpn,int numsamples);
     void Encode(int32_t *abuf);
     void Decode(int32_t *buf);
   private:
+    void CountSig(int n,int &n1,int &n2);
     void GetSigState(int i); // get actual significance state
+    int PredictLaplace();
     int PredictRef();
     void UpdateRef(int bit);
     int PredictSig();
@@ -28,27 +33,29 @@ class BitplaneCoder {
     int PredictSSE(int p1);
     void UpdateSSE(int bit);
     RangeCoderSH &rc;
-    //int gc0[32],gc1[32];
-    LinearCounter16 bpn1[1<<10],bpn2[1<<10];
+
+    std::vector<LinearCounterLimit> csig0,csig1,csig2,csig3,cref0,cref1,cref2,cref3;
+    std::vector<LinearCounterLimit>p_laplace;
     std::vector <NMixLogistic>lmixref,lmixsig;
-    std::vector <NMixLogistic> finalmix;
-    //SSENL<32> sse[2048];
-    //SSENL<32> *psse;
-    SSE<4> sse[2048];
-    SSE<4> *psse;
-    LinearCounter16 *pc1,*pc2,*pc3,*pc4,*pc5;
+    NMixLogistic ssemix;
+
+    SSENL<15> sse[1<<12];
+    SSENL<15> *psse1,*psse2;
+    LinearCounterLimit *pc1,*pc2,*pc3,*pc4,*pc5;
+    LinearCounterLimit *pl;
     NMixLogistic *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
-    int sigst[9];
-    int maxbpn,bpn,numsamples;
-    uint32_t bctx,state,sighist;
+    int sigst[17];
+    uint32_t bmask[32];
+    int maxbpn,bpn,numsamples,nrun,pestimate;
+    uint32_t state;
 };
 
 class Golomb {
   public:
     Golomb (RangeCoderSH &rc)
-    :msum(0.8,1<<15),rc(rc)
+    :msum(0.98,1<<15),rc(rc)
     {
       lastl=0;
     }

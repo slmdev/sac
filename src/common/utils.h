@@ -1,6 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <sstream>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <cmath>
+#include <iomanip>
 #include "../global.h"
 
 // running exponential smoothing
@@ -29,11 +35,37 @@ class RunWeight {
     double alpha,sum;
 };
 
-class strUtils {
+class StrUtils {
   public:
-      static void strUpper(std::string &str)
+      static void StrUpper(std::string &str)
       {
         std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+      }
+      static void SplitToken(const std::string& str,std::vector<std::string>& tokens,const std::string& delimiters)
+      {
+        auto lastPos = str.find_first_not_of(delimiters, 0); // Skip delimiters at beginning.
+        auto pos     = str.find_first_of(delimiters, lastPos); // Find first "non-delimiter".
+
+        while (std::string::npos != pos || std::string::npos != lastPos)  {
+          tokens.push_back(str.substr(lastPos, pos - lastPos)); // Found a token, add it to the vector.
+          lastPos = str.find_first_not_of(delimiters, pos); // Skip delimiters.  Note the "not_of"
+          pos = str.find_first_of(delimiters, lastPos); // Find next "non-delimiter"
+        }
+      }
+      static void RemoveWhite(std::string &str,const std::string &whites)
+      {
+        auto firstPos = str.find_first_not_of(whites);
+
+        if (firstPos!=std::string::npos) {
+          auto lastPos = str.find_last_not_of(whites);
+          str=str.substr(firstPos,lastPos-firstPos+1);
+        } else str="";
+      }
+      static void SplitFloat(const std::string &str,std::vector<float>&x)
+      {
+        std::vector <std::string> tokens;
+        SplitToken(str,tokens,",");
+        for (auto &token:tokens) x.push_back(std::stof(token));
       }
 };
 
@@ -74,7 +106,7 @@ class MathUtils {
            return sqrt(sum);
          }
       }
-      static double L2Dist2(const std::vector<double> &vec1,const std::vector<double> &vec2)
+      /*static double L2Dist2(const std::vector<double> &vec1,const std::vector<double> &vec2)
       {
          if (vec1.size()!=vec2.size()) return -1;
          else {
@@ -82,12 +114,33 @@ class MathUtils {
            for (size_t i=0;i<vec1.size();i++) {double t=vec1[i]-vec2[i];sum+=t*t;};
            return sum;
          }
-      }
+      }*/
 };
 
 class miscUtils {
   public:
   // retrieve time string
+/*static float rsqrt(float __x)
+{
+    float reciprocal;
+    __asm__ __volatile__ (
+        "movss %1, %%xmm0\n"
+        "rsqrtss %%xmm0, %%xmm1\n"
+        "movss %%xmm1, %0\n"
+        :"=m"(reciprocal)
+        :"m"(__x)
+        :"xmm0", "xmm1"
+    );
+  return reciprocal;
+}*/
+  static void RollBack(vec1D &data,double input)
+  {
+    if (data.size()) {
+      for (int i=(int)(data.size()-1);i>0;i--)
+        data[i]=data[i-1];
+      data[0]=input;
+    }
+  }
   static std::string getTimeStrFromSamples(int numsamples,int samplerate)
   {
    std::ostringstream ss;

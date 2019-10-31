@@ -1,4 +1,6 @@
 #include "sac.h"
+#include "../common/utils.h"
+#include <iostream>
 
 int Sac::WriteHeader(Wav &myWav)
 {

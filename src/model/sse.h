@@ -78,7 +78,7 @@ class HistProbMapping
     }
   protected:
     uint8_t st;
-    LinearCounter16 Map[NUMSTATES];
+    LinearCounterLimit Map[NUMSTATES];
 };
 
 template <int N>
@@ -120,7 +120,7 @@ class SSENL
        if (updlb) lb=bit;
     };
   protected:
-    LinearCounterLimit Map[2][N+1];
+    LinearCounter16 Map[2][N+1];
     int lb;
 };
 

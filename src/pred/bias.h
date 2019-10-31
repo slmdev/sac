@@ -2,104 +2,153 @@
 #define BIAS_H
 
 #include "../global.h"
+#include "../common/utils.h"
+#include "lms.h"
 
-class BC {
-  public:
-      BC():hist(10),cmix(2,0.001)
+/*
+gives a tiny gain
+*/
+
+class BiasEstimator {
+  class BiasCnt {
+    struct bias_cnt {
+      int cnt;
+      double val;
+    };
+    public:
+      BiasCnt(int scale,int isize)
+      :scale_(scale),bias(isize)
       {
-        for (int i=0;i<4;i++) {esum[i]=0;en[i]=0;};
+        for (auto &x:bias) {x.cnt=0;x.val=0.0;};
       }
-    double Predict(double p) {
-      ctx=0;
-      if (hist[0]>p) ctx+=1;
-      if (hist[1]>p) ctx+=2;
-      //ctx=0;
+      double GetBias(int ctx)
+      {
+        return bias[ctx].val/(bias[ctx].cnt+1);
+      }
+      void UpdateBias(int ctx,double delta) {
+        bias[ctx].val+=delta;
+        bias[ctx].cnt++;
+        if (bias[ctx].cnt>scale_) {
+          bias[ctx].val/=2.0;
+          bias[ctx].cnt/=2;
+        }
+      }
+    private:
+      int scale_;
+      std::vector <bias_cnt>bias;
+  };
 
-      if (en[ctx]) {
-        bias=esum[ctx]/double(en[ctx]);
-        //cout << bias << " ";
-      } else bias=0;
-      pm=p+bias;
-
-      std::vector<double> pred={p,pm};
-      double px=cmix.Predict(pred);
-      //cout << pm << " " << px << endl;
-      return px;
-    }
-    void Update(double val)
+  public:
+    BiasEstimator(double mu,double alpha=0.97)
+    :mix_ada(32,SSLMS(3,mu)),
+    hist_input(8),hist_delta(8),alpha(alpha),
+    bias(1<<20),
+    Bias0(32,1<<20)
     {
-       cmix.Update(val);
-       double e=val-pm;
-       double ae=fabs(e);
-       if (ae<256) {
-         esum[ctx]+=e;
-         en[ctx]++;
-         if (en[ctx]>32) {
-            en[ctx]=en[ctx]/2;
-            esum[ctx]=esum[ctx]/2.;
-         }
-       }
-       for (int i=9;i>0;i--) hist[i]=hist[i-1];hist[0]=val;
+      ctx0=ctx1=ctx2=mix_ctx=0;
+      p=0.0;
+      lambda=0.998;
+      mean_est=var_est=0.;
+    }
+    void CalcContext()
+    {
+      int b0=hist_input[0]>p?0:1;
+      //int b1=hist_input[1]>p?0:1;
+      int b2=hist_delta[0]<0?0:1;
+      int b3=hist_delta[1]<0?0:1;
+      int b4=hist_delta[2]<0?0:1;
+      //int b42=hist_delta[3]<0?0:1;
+      int b5=hist_delta[1]<hist_delta[0]?0:1;
+      int b6=hist_delta[2]<hist_delta[1]?0:1;
+      int b7=hist_delta[3]<hist_delta[2]?0:1;
+      int b8=hist_delta[4]<hist_delta[3]?0:1;
+      int b9=(fabs(hist_delta[0]))>32?0:1;
+      int b10=2*hist_input[0]-hist_input[1]>p?0:1;
+      int b11=3*hist_input[0]-3*hist_input[1]+hist_input[2]>p?0:1;
+
+      double t=(fabs(hist_delta[0])+fabs(hist_delta[1])+fabs(hist_delta[2])+fabs(hist_delta[3])+fabs(hist_delta[4]))/5.;
+      mix_ctx=0;
+      if (t>512) mix_ctx=2;
+      else if (t>32) mix_ctx=1;
+      else mix_ctx=0;
+
+      //int c0=fabs(hist_delta[0])>t?1:0;
+      //int c1=fabs(hist_delta[1])>t?1:0;
+      //int c2=fabs(hist_delta[2])>t?1:0;
+
+      ctx0=0;
+      /*ctx0+=c0<<0;
+      ctx0+=c1<<1;
+      ctx0+=c2<<2;*/
+      ctx0+=b0<<0;
+      ctx0+=b2<<1;
+      ctx0+=b9<<2;
+      ctx0+=b10<<3;
+      ctx0+=b11<<4;
+
+      ctx1=64;
+      ctx1+=b2<<0;
+      ctx1+=b3<<1;
+      ctx1+=b4<<2;
+
+      ctx2=1024;
+      ctx2+=b5<<0;
+      ctx2+=b6<<1;
+      ctx2+=b7<<2;
+      ctx2+=b8<<3;
+    }
+    double Predict(double pred)
+    {
+      p=pred;
+      CalcContext();
+
+      bias0=bias[ctx0];
+      bias1=bias[ctx1];
+      bias2=bias[ctx2];
+
+      double bias0_a=Bias0.GetBias(ctx0);
+      double bias1_a=Bias0.GetBias(ctx1);
+      double bias2_a=Bias0.GetBias(ctx2);
+
+      double pbias=mix_ada[mix_ctx].Predict({bias0_a,bias1_a,bias2_a});
+      if (std::isnan(pbias)) std::cout << "nan";
+
+      return pred+pbias;
+    }
+    void Update(double val) {
+      const double delta=val-p;
+      miscUtils::RollBack(hist_input,val);
+      miscUtils::RollBack(hist_delta,val-p);
+
+      double sigma=1.5;
+      double lb=mean_est-sigma*sqrt(var_est);
+      double ub=mean_est+sigma*sqrt(var_est);
+      bool is_in=delta>lb && delta<ub;
+
+      if (is_in) {
+        bias[ctx0]=alpha*bias[ctx0]+(1.0-alpha)*delta;
+        bias[ctx1]=alpha*bias[ctx1]+(1.0-alpha)*delta;
+        bias[ctx2]=alpha*bias[ctx2]+(1.0-alpha)*delta;
+
+        Bias0.UpdateBias(ctx0,delta);
+        Bias0.UpdateBias(ctx1,delta);
+        Bias0.UpdateBias(ctx2,delta);
+      }
+
+
+      mix_ada[mix_ctx].Update(delta);
+
+      mean_est=lambda*mean_est+(1.0-lambda)*delta;
+      var_est=lambda*var_est+(1.0-lambda)*((delta-mean_est)*(delta-mean_est));
     }
   private:
-    double pm,bias;
-    double esum[4];
-    int en[4];
-    std::vector<double> hist;
-    int ctx;
-    SSLMS cmix;
-};
-
-class BiasCorrection {
-  public:
-    struct ectx {
-      int sum;
-      int num;
-      int succ;
-    };
-    BiasCorrection():hist(10),err(512) {
-      ctx=0;lerr=0;
-    };
-    int32_t Predict(int pred)
-    {
-      ctx=0;
-      if (hist[0]>pred) ctx+=1;
-      if (hist[1]>pred) ctx+=2;
-      //if ((2*hist[0]-hist[1])>pred) ctx+=4;
-      //if ((2*hist[1]-hist[2])>pred) ctx+=8;
-      //if (lerr>0) ctx+=16;
-
-      p=pred;
-      bias=0;
-
-      if (err[ctx].num) {
-         bias=(err[ctx].sum)/err[ctx].num;
-         if (abs(bias)) {
-           double r=err[ctx].succ/(double)err[ctx].num;
-           //cout << "(" << r << "," << bias << ")";
-           if (r>0.9) return (p+bias);
-           else return p;
-         } else return p;
-      } else return p;
-    }
-    void Update(int32_t val) {
-      int error=val-(p+bias);
-      err[ctx].sum+=error;
-      err[ctx].num++;
-      if (abs(val-(p+bias))<=abs(val-p)) err[ctx].succ++;
-      if (err[ctx].num==2048) {
-        err[ctx].sum/=2;
-        err[ctx].num/=2;
-        err[ctx].succ/=2;
-      }
-      for (int i=9;i>0;i--) hist[i]=hist[i-1];hist[0]=val;
-      lerr=error;
-    }
-  protected:
-    std::vector<double> hist;
-    std::vector <ectx>err;
-    int ctx,p,bias,lerr;
-
+    std::vector<SSLMS> mix_ada;
+    vec1D hist_input,hist_delta;
+    int ctx0,ctx1,ctx2,mix_ctx;
+    double alpha,p,bias0,bias1,bias2;
+    vec1D bias;
+    BiasCnt Bias0;
+    double mean_est,var_est,lambda;
 };
 
 
