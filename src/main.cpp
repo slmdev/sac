@@ -2,7 +2,7 @@
 
 int main(int argc,char *argv[])
 {
-  std::cout << "Sac v0.5.1 - Lossless Audio Coder (c) Sebastian Lehmann\n";
+  std::cout << "Sac v0.5.2 - Lossless Audio Coder (c) Sebastian Lehmann\n";
   std::cout << "compiled on " << __DATE__ << " ";
   #ifdef __x86_64
     std::cout << "(64-bit)";

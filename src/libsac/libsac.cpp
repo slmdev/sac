@@ -1,5 +1,6 @@
 #include "libsac.h"
 #include "pred.h"
+#include "../opt/dds.h"
 #include "../common/timer.h"
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
@@ -40,13 +41,9 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
     baseprofile.Set(28,4,32,8);//ols-order
 
   } else if (opt.profile==1) {
-    baseprofile.Init(16,1);
+    baseprofile.Init(33,1);
     baseprofile.Set(0,0.99,0.9999,0.998);
     baseprofile.Set(1,0.001,2.0,0.001);
-    //baseprofile.Set(2,0.00001,0.008,0.00008);//mu0
-    //baseprofile.Set(3,0.00001,0.008,0.0005);//mu1
-    //baseprofile.Set(4,0.0001,0.008,0.002);//mu2
-    //baseprofile.Set(5,0.001,0.08,0.01);//mu3
 
     baseprofile.Set(2,0.001,1.0,0.1);//mu0
     baseprofile.Set(3,0.001,1.0,0.12);//mu1
@@ -55,15 +52,37 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 
     baseprofile.Set(6,0.98,1,1.0); // mu-decay
     baseprofile.Set(7,0.0,1.0,0.8);   // pow-decay
-    baseprofile.Set(8,0.0001,0.008,0.002);//mu-mix
-    baseprofile.Set(9,8,32,16);//ols-order
-    baseprofile.Set(10,4,32,8);//ols-order
-    baseprofile.Set(11,4,32,8);//ols-order
-    baseprofile.Set(12,0.8,0.9999,0.95);//mu-mom
+    baseprofile.Set(8,0.0,1.0,0.8);   // pow-decay
+    baseprofile.Set(9,0.0,1.0,0.8);   // pow-decay
+    baseprofile.Set(10,0.0001,0.008,0.002);//mu-mix
+    baseprofile.Set(11,0.8,0.9999,0.95);//mu-mix-beta
 
-    baseprofile.Set(13,256,2048,1280);
-    baseprofile.Set(14,32,256,256);
-    baseprofile.Set(15,4,32,32);
+    baseprofile.Set(12,0.99,0.9999,0.998);
+    baseprofile.Set(13,0.001,2.0,0.001);
+
+    baseprofile.Set(14,0.001,1.0,0.1);//mu0
+    baseprofile.Set(15,0.001,1.0,0.12);//mu1
+    baseprofile.Set(16,0.001,1.0,0.06);//mu2
+    baseprofile.Set(17,0.001,1.0,0.04);//mu3
+
+    baseprofile.Set(18,0.98,1,1.0); // mu-decay
+    baseprofile.Set(19,0.0,1.0,0.8);   // pow-decay
+    baseprofile.Set(20,0.0,1.0,0.8);   // pow-decay
+    baseprofile.Set(21,0.0,1.0,0.8);   // pow-decay
+    baseprofile.Set(22,0.0001,0.008,0.002);//mu-mix
+    baseprofile.Set(23,0.8,0.9999,0.95);//mu-mix-beta*/
+
+    baseprofile.Set(24,8,32,16);//ols-order
+    baseprofile.Set(25,4,32,8);//ols-order
+    baseprofile.Set(26,4,32,8);//ols-order
+
+    baseprofile.Set(27,256,2048,1280);
+    baseprofile.Set(28,32,256,256);
+    baseprofile.Set(29,4,32,32);
+
+    baseprofile.Set(30,256,2048,1280);
+    baseprofile.Set(31,32,256,256);
+    baseprofile.Set(32,4,32,32);
   }
 
   profile_size_bytes_=baseprofile.coefs.size()*4;
@@ -155,7 +174,7 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 
   if (profile.type==0) {
     //param.vn={256,32,4};
-    param.vn={256,32,4};
+    param.vn0=param.vn1={256,32,4};
     param.vmu0={profile.Get(2),profile.Get(3),profile.Get(4)};
     param.vpowdecay0={profile.Get(5),profile.Get(6),profile.Get(7)};
     param.vmudecay0={profile.Get(8),profile.Get(9),profile.Get(10)};
@@ -174,16 +193,26 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
     param.nS0=round(profile.Get(27));
     param.nS1=round(profile.Get(28));
   } else if (profile.type==1) {
-    param.vn={(int)round(profile.Get(13)),(int)round(profile.Get(14)),(int)round(profile.Get(15)),4};
-    param.vmu0={profile.Get(2)/double(param.vn[0]),profile.Get(3)/double(param.vn[1]),profile.Get(4)/double(param.vn[2]),profile.Get(5)/double(param.vn[3])};
-    param.vmu1={profile.Get(2)/double(param.vn[0]),profile.Get(3)/double(param.vn[1]),profile.Get(4)/double(param.vn[2]),profile.Get(5)/double(param.vn[3])};
-    param.vmudecay0=param.vmudecay1={profile.Get(6),profile.Get(6),profile.Get(6),profile.Get(6)};
-    param.vpowdecay0=param.vpowdecay1={profile.Get(7),profile.Get(7),profile.Get(7),profile.Get(7)};
-    param.mu_mix0=param.mu_mix1=profile.Get(8);
-    param.nA=round(profile.Get(9));
-    param.nS0=round(profile.Get(10));
-    param.nS1=round(profile.Get(11));
-    param.mu_mix_beta0=param.mu_mix_beta1=profile.Get(12);
+    param.vn0={(int)round(profile.Get(27)),(int)round(profile.Get(28)),(int)round(profile.Get(29)),4};
+    param.vn1={(int)round(profile.Get(30)),(int)round(profile.Get(31)),(int)round(profile.Get(32)),4};
+
+    param.vmu0={profile.Get(2)/double(param.vn0[0]),profile.Get(3)/double(param.vn0[1]),profile.Get(4)/double(param.vn0[2]),profile.Get(5)/double(param.vn0[3])};
+    param.vmudecay0={profile.Get(6),profile.Get(6),profile.Get(6),profile.Get(6)};
+    param.vpowdecay0={profile.Get(7),profile.Get(8),profile.Get(9),profile.Get(9)};
+    param.mu_mix0=profile.Get(10);
+    param.mu_mix_beta0=profile.Get(11);
+
+    param.lambda1=profile.Get(12);
+    param.ols_nu1=profile.Get(13);
+    param.vmu1={profile.Get(14)/double(param.vn1[0]),profile.Get(15)/double(param.vn1[1]),profile.Get(16)/double(param.vn1[2]),profile.Get(17)/double(param.vn1[3])};
+    param.vmudecay1={profile.Get(18),profile.Get(18),profile.Get(18),profile.Get(18)};
+    param.vpowdecay1={profile.Get(19),profile.Get(20),profile.Get(21),profile.Get(21)};
+    param.mu_mix1=profile.Get(22);
+    param.mu_mix_beta1=profile.Get(23);
+
+    param.nA=round(profile.Get(24));
+    param.nS0=round(profile.Get(25));
+    param.nS1=round(profile.Get(26));
   }
 }
 
@@ -302,7 +331,7 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
 
   MapEncoder me(rc,framestats[ch].mymap.usedl,framestats[ch].mymap.usedh);
   me.Encode();
-  std::cout << "mapsize: " << buf.GetBufPos() << " Bytes\n";
+  //std::cout << "mapsize: " << buf.GetBufPos() << " Bytes\n";
 
   bc.Encode(&(s2u_error_map[ch][0]));
   rc.Stop();
@@ -342,7 +371,7 @@ void FrameCoder::DecodeMonoFrame(int ch,int numsamples)
     framestats[ch].mymap.Reset();
     MapEncoder me(rc,framestats[ch].mymap.usedl,framestats[ch].mymap.usedh);
     me.Decode();
-    std::cout << buf.GetBufPos() << std::endl;
+    //std::cout << buf.GetBufPos() << std::endl;
   }
 
   BitplaneCoder bc(rc,framestats[ch].maxbpn,numsamples);
@@ -364,8 +393,6 @@ double FrameCoder::GetCost(SacProfile &profile,CostFunction *func,int coef,doubl
 }
 
 
-#include "../opt/dds.h"
-
 void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize)
 {
   //std::cout << params_to_optimize.size() << " parameters to optimize\n";
@@ -386,12 +413,12 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
     default:std::cerr << "  error: unknown FramerCoder::CostFunction\n";return;
   }
 
-  int nmodel_run=0;
+  /*int nmodel_run=0;
   switch (opt.optimize_search) {
     case opt.SearchMethod::GRS:nmodel_run=opt.optimize_ncycle*opt.optimize_maxiter*params_to_optimize.size();break;
     case opt.SearchMethod::DDS:nmodel_run=opt.optimize_maxnfunc;break;
   }
-  std::cout << "\n  optimize m=" << opt.optimize_search << ", div=" << opt.optimize_div << ", n=" << nmodel_run << '\n';
+  std::cout << "\n  optimize m=" << opt.optimize_search << ", div=" << opt.optimize_div << ", n=" << nmodel_run << '\n';*/
 
   if (opt.optimize_search==opt.SearchMethod::DDS) {
     int ndim=params_to_optimize.size();
@@ -479,10 +506,10 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
   #endif
   }
 
-  std::cout << "\n[";
+  /*std::cout << "\n[";
   for (auto i:params_to_optimize)
     std::cout << profile.coefs[i].vdef << ' ';
-  std::cout << "]\n";
+  std::cout << "]\n";*/
   delete CostFunc;
 }
 
@@ -523,7 +550,8 @@ void FrameCoder::Predict()
         std::vector<int>lparam{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28};
         Optimize(baseprofile,lparam);
      } else if (opt.profile==1) {
-        Optimize(baseprofile,{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
+        std::vector<int>lparam{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32};
+        Optimize(baseprofile,lparam);
      }
   }
   if (numchannels_==2) {

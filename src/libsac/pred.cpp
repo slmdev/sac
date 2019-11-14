@@ -4,8 +4,8 @@ Predictor::Predictor(const tparam &p)
 :p(p),nA(p.nA),nS0(p.nS0),nS1(p.nS1),
 ols0(nA,p.k,p.lambda0,p.ols_nu0),
 ols1(nA+nS0+nS1+1,p.k,p.lambda1,p.ols_nu1),
-lms0(p.vn,p.vmu0,p.vmudecay0,p.vpowdecay0,p.mu_mix0,p.mu_mix_beta0),
-lms1(p.vn,p.vmu1,p.vmudecay1,p.vpowdecay1,p.mu_mix1,p.mu_mix_beta1),
+lms0(p.vn0,p.vmu0,p.vmudecay0,p.vpowdecay0,p.mu_mix0,p.mu_mix_beta0),
+lms1(p.vn1,p.vmu1,p.vmudecay1,p.vpowdecay1,p.mu_mix1,p.mu_mix_beta1),
 be0(0.001,0.95),be1(0.001,0.95),
 hist0(nA),hist1(nA),tbuf(nA+nS0+nS1+1)
 {

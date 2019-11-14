@@ -10,7 +10,7 @@ class Predictor {
   public:
     struct tparam {
       int nA,nS0,nS1,k;
-      std::vector <int>vn;
+      std::vector <int>vn0,vn1;
       std::vector <double>vmu0,vmu1;
       std::vector <double>vmudecay0,vmudecay1;
       std::vector <double>vpowdecay0,vpowdecay1;

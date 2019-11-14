@@ -51,7 +51,6 @@ class DDS : public Opt {
         }
         nfunc++;
       }
-      //std::cout << fbest << '\n';
       return opt_ret{fbest,xbest};
     }
   protected:

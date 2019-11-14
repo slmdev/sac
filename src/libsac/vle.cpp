@@ -203,20 +203,26 @@ void BitplaneCoder::Encode(int32_t *abuf)
   pabuf=abuf;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     state=0;
+    double nbits=0;
     for (sample=0;sample<numsamples;sample++) {
       pestimate=PredictLaplace();
       GetSigState(sample);
       int bit=(pabuf[sample]>>bpn)&1;
+      int p=0;
       if (sigst[0]) { // coef is significant, refine
-        rc.EncodeBitOne(PredictSSE(PredictRef()),bit);
+        p=PredictSSE(PredictRef());
+        rc.EncodeBitOne(p,bit);
         UpdateRef(bit);
         UpdateSSE(bit);
       } else { // coef is insignificant
-        rc.EncodeBitOne(PredictSSE(PredictSig()),bit);
+        p=PredictSSE(PredictSig());
+        rc.EncodeBitOne(p,bit);
         UpdateSig(bit);
         UpdateSSE(bit);
         if (bit) msb[sample]=bpn;
       }
+      double pf=double(p)/double(PSCALE);
+      nbits+=-log(1.0-pf)/log(2.);
     }
   }
 }

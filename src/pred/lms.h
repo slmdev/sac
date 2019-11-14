@@ -25,7 +25,15 @@ class NLMS_ROLL {
     }
     double Predict()
     {
-      pred=0.0;
+      //pred=0.0;
+      /*double sum1=0,sum2=0;
+      const int n2=n/2;
+      for (int i=0;i<n2;i++) {
+        sum1+=w[i]*x[i];
+        sum2+=w[n2+i]*x[n2+i];
+      }
+      pred=sum1+sum2;*/
+      pred=0;
       for (int i=0;i<n;i++) pred+=w[i]*x[i];
       return pred;
     }
