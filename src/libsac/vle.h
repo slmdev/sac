@@ -10,10 +10,35 @@
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
 
+class StaticLaplaceModel {
+  public:
+    StaticLaplaceModel(int maxbpn)
+    :pr((1<<maxbpn),std::vector<int>(32))
+    {
+      for (int sum=0;sum<(1<<maxbpn);sum++) {
+        for (int bpn=0;bpn<32;bpn++) {
+          double pd=0.;
+          if (sum>0) {
+            double theta=exp(-1.0/static_cast<double>(sum));
+            pd=1.0-1.0/(1+pow(theta,1<<bpn));
+          }
+          int pi=clamp((int)round(pd*PSCALE),1,PSCALEm);
+          pr[sum][bpn]=pi;
+        }
+      }
+    }
+    int Predict(int avg,int bpn)
+    {
+      return pr[avg][bpn];
+    }
+  private:
+    std::vector<std::vector<int>> pr;
+};
+
 class BitplaneCoder {
   const int cnt_upd_rate_p=150;
   const int cnt_upd_rate_sig=300;
-  const int cnt_upd_rate_ref=100;
+  const int cnt_upd_rate_ref=150;
   const int mix_upd_rate_ref=800;
   const int mix_upd_rate_sig=700;
   const int cntsse_upd_rate=250;
@@ -25,13 +50,15 @@ class BitplaneCoder {
   private:
     void CountSig(int n,int &n1,int &n2);
     void GetSigState(int i); // get actual significance state
-    int PredictLaplace();
+    int PredictLaplace(uint32_t avg_sum);
     int PredictRef();
     void UpdateRef(int bit);
     int PredictSig();
     void UpdateSig(int bit);
     int PredictSSE(int p1);
     void UpdateSSE(int bit);
+    uint32_t GetAvgSum(int n);
+
     RangeCoderSH &rc;
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,csig3,cref0,cref1,cref2,cref3;
@@ -41,15 +68,18 @@ class BitplaneCoder {
 
     SSENL<15> sse[1<<12];
     SSENL<15> *psse1,*psse2;
-    LinearCounterLimit *pc1,*pc2,*pc3,*pc4,*pc5;
+    LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
     LinearCounterLimit *pl;
     NMixLogistic *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
+    //int n_laplace;
+    //std::vector <double>weights_laplace;
     int sigst[17];
     uint32_t bmask[32];
     int maxbpn,bpn,numsamples,nrun,pestimate;
     uint32_t state;
+    StaticLaplaceModel lm;
 };
 
 class Golomb {
@@ -64,7 +94,7 @@ class Golomb {
       if (val<0) val=2*(-val);
       else if (val>0) val=(2*val)-1;
 
-      int m=std::max(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.Get()),1);
       int q=val/m;
       int r=val-q*m;
 
@@ -112,7 +142,7 @@ class Golomb {
       int q=0;
       while (rc.DecodeBitOne(PSCALEh)!=0) q++;
 
-      int m=std::max(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.Get()),1);
       int r=0;
 
       if (m>1)
@@ -150,7 +180,7 @@ class GolombRC {
       if (val<0) val=2*(-val);
       else if (val>0) val=(2*val)-1;
 
-      int m=std::max(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.Get()),1);
       int q=val/m;
       int r=val-q*m;
 
@@ -165,7 +195,7 @@ class GolombRC {
       int q=0;
       while (rc.DecodeBitOne(PSCALEh)!=0) q++;
 
-      int m=std::max(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.Get()),1);
 
       int r=rc.DecProb(m);
       rc.DecodeSymbol(r,1);

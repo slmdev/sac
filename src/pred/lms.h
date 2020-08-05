@@ -25,15 +25,7 @@ class NLMS_ROLL {
     }
     double Predict()
     {
-      //pred=0.0;
-      /*double sum1=0,sum2=0;
-      const int n2=n/2;
-      for (int i=0;i<n2;i++) {
-        sum1+=w[i]*x[i];
-        sum2+=w[n2+i]*x[n2+i];
-      }
-      pred=sum1+sum2;*/
-      pred=0;
+      pred=0.;
       for (int i=0;i<n;i++) pred+=w[i]*x[i];
       return pred;
     }
@@ -154,9 +146,9 @@ class LMS {
     }
     virtual void Update(double)=0;
     virtual ~LMS(){};
-  protected:
     int n;
     vec1D x,w;
+  protected:
     double mu,pred;
 };
 
@@ -205,7 +197,7 @@ class LAD_ADA : public LMS
 class LMS_ADAM : public LMS
 {
   public:
-    LMS_ADAM(int n,double mu,double beta1=0.0,double beta2=0.95)
+    LMS_ADAM(int n,double mu,double beta1=0.9,double beta2=0.999)
     :LMS(n,mu),M(n),S(n),beta1(beta1),beta2(beta2)
     {
       power_beta1=1.0;

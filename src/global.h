@@ -1,7 +1,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
-#include "windows.h"
+//#include "windows.h"
 #include <iostream>
 #include <algorithm>
 #include <fstream>

@@ -35,7 +35,7 @@ class CostGolomb : public CostFunction {
         if (numsamples) {
           for (int i=0;i<numsamples;i++) {
             int32_t val=MathUtils::S2U(buf[i]);
-            int m=std::max(static_cast<int>(mean_err.Get()),1);
+            int m=(std::max)(static_cast<int>(mean_err.Get()),1);
             int q=val/m;
             //int r=val-q*m;
             nbits+=(q+1);
@@ -52,9 +52,9 @@ class CostGolomb : public CostFunction {
     RunExp mean_err;
 };
 
-class CostEntropy : public CostFunction {
+class CostEntropyO0 : public CostFunction {
   public:
-    CostEntropy(){};
+    CostEntropyO0(){};
     double Calc(const int32_t *buf,int numsamples)
     {
       std::vector <int>counts;

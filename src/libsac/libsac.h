@@ -8,8 +8,8 @@
 
 class FrameCoder {
   public:
-    const static int size_profile_bytes_normal=12*4;
-    const static int size_profile_bytes_high=13*4;
+    const static int size_profile_bytes_normal=34*4;
+    const static int size_profile_bytes_high=42*4;
     struct coder_ctx {
       enum SearchCost {L1,Entropy,Golomb,Bitplane};
       enum SearchMethod {DDS,GRS};
@@ -34,12 +34,13 @@ class FrameCoder {
     void Decode();
     void WriteEncoded(AudioFile &fout);
     void ReadEncoded(AudioFile &fin);
-    std::vector <std::vector<int32_t>>samples,err0,err1,error,s2u_error,s2u_error_map;
+    std::vector <std::vector<int32_t>>samples,err0,err1,error,s2u_error,s2u_error_map,pred;
     std::vector <BufIO> encoded,enc_temp1,enc_temp2;
     std::vector <SacProfile::FrameStats> framestats;
   private:
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
     void DecodeProfile(SacProfile &profile,const std::vector <uint8_t>&buf);
+    void AnalyseMonoChannel(int ch, int numsamples);
     //void InterChannel(int ch0,int ch1,int numsamples);
     int EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf);
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
@@ -49,6 +50,7 @@ class FrameCoder {
     void AnalyseChannel(int ch,int numsamples);
     void PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int from,int numsamples,bool optimize=false);
     void UnpredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int numsamples);
+    void RemapError(int ch, int numsamples);
     void EncodeMonoFrame(int ch,int numsamples);
     void DecodeMonoFrame(int ch,int numsamples);
     int numchannels_,framesize_,numsamples_;

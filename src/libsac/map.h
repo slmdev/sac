@@ -31,7 +31,6 @@ class MapEncoder {
     NMixLogistic *mix;
     SSENL<32> sse[32];
     std::vector <bool>&ul,&uh;
-    int lb;
 };
 
 class Remap {

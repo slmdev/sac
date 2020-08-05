@@ -4,6 +4,10 @@
 #include "file.h"
 #include "wav.h"
 
+struct tFrameHeader {
+
+};
+
 class Sac : public AudioFile
 {
   public:
@@ -15,6 +19,7 @@ class Sac : public AudioFile
     }
     void SetProfile(int val){profile=val;};
     int GetProfile(){return profile;};
+    void WriteFrameHeader(tFrameHeader &hdr);
     int WriteHeader(Wav &myWav);
     int ReadHeader();
     int UnpackMetaData(Wav &myWav);

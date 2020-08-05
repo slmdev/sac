@@ -28,7 +28,7 @@ class SSE {
       int p_mod=p1&(mapsize-1); //int p_mod=p1%map_size;
       int pl=Map[p_quant].p1;
       int ph=Map[p_quant+1].p1;
-      px=(pl+((p_mod*(ph-pl))>>NB));
+      px=pl+((p_mod*(ph-pl))>>NB);
       return px;
     }
     void Update(int bit,int rate) // update both bins
@@ -102,7 +102,7 @@ class SSENL
     };
     int Predict(int p1)
     {
-       int pq=std::min(2*tscale,std::max(0,myDomain.Fwd(p1)+tscale));
+       int pq=(std::min)(2*tscale,(std::max)(0,myDomain.Fwd(p1)+tscale));
 
        p_quant=pq/xscale;
        int p_mod=pq-(p_quant*xscale); //%xscale;

@@ -134,9 +134,11 @@ int CmdLine::Parse(int argc,char *argv[])
            opt.optimize_mode=1;
          } else if (val=="HIGH") {
            opt.optimize_mode=2;
-         } else if (val=="INSANE") {
+         } else if (val=="VERYHIGH") {
            opt.optimize_mode=3;
-         }
+         } else if (val=="INSANE") {
+           opt.optimize_mode=4;
+         } else std::cout << "warning: unknown optimize mode '" << val << "'\n";
        }
        else if (key=="--SPARSE-PCM") opt.sparse_pcm=1;
        else std::cout << "warning: unknown option '" << param << "'\n";
@@ -186,7 +188,8 @@ int CmdLine::Process()
               case 0: std::cout << " (optimize fast)";break;
               case 1: std::cout << " (optimize normal)";break;
               case 2: std::cout << " (optimize high)";break;
-              case 3: std::cout << " (optimize insane)";break;
+              case 3: std::cout << " (optimize very high)";break;
+              case 4: std::cout << " (optimize insane)";break;
               default: std::cout << " (unknown profile)";break;
             }
            }

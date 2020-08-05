@@ -1,7 +1,7 @@
 #ifndef LPC_H
 #define LPC_H
 
-//#define OLS_FORGET
+#include "../common/utils.h"
 
 template <class T>
 class OLS {
@@ -9,28 +9,35 @@ class OLS {
   typedef std::vector<vec1D> vec2D;
   const T ftol=1E-8;
   public:
-    OLS(int n,int kmax=1,T lambda=0.998,T nu=0.001)
+    OLS(int n,int kmax=1,T lambda=0.998,T nu=0.001,T beta_sum=0.6,T beta_pow=0.75,T beta_add=2)
     :x(n),n(n),kmax(kmax),lambda(lambda),nu(nu),
-    w(n),b(n),mcov(n,vec1D(n)),mchol(n,vec1D(n))
+    w(n),b(n),mcov(n,vec1D(n)),mchol(n,vec1D(n)),
+    beta_pow(beta_pow),beta_add(beta_add),esum(beta_sum)
     {
       km=0;
+      pred=0.0;
     }
-    T Predict(const vec1D &p) {
+    /*T Predict(const vec1D &p) {
       x=p;
-      T sum=0.;
-      for (int i=0;i<n;i++) sum+=w[i]*x[i];
-      return sum;
+      pred=0.;
+      for (int i=0;i<n;i++) pred+=w[i]*x[i];
+      return pred;
+    }*/
+    T Predict() {
+      pred=0.;
+      for (int i=0;i<n;i++) pred+=w[i]*x[i];
+      return pred;
     }
     void Update(T val)
     {
+      T err=val-pred;
+      esum.Update(fabs(err));
+      double c0=pow(esum.Get()+beta_add,-beta_pow);
+      //double c0=1.0-lambda;
+
       for (int j=0;j<n;j++) {
-        #ifdef OLS_FORGET
-          for (int i=0;i<n;i++) mcov[j][i]=lambda*mcov[j][i]+(x[j]*x[i]);
-          b[j]=lambda*b[j]+(x[j]*val);
-        #else
-          for (int i=0;i<n;i++) mcov[j][i]=lambda*mcov[j][i]+(1.0-lambda)*(x[j]*x[i]);
-          b[j]=lambda*b[j]+(1.0-lambda)*(x[j]*val);
-        #endif
+        for (int i=0;i<n;i++) mcov[j][i]=lambda*mcov[j][i]+c0*(x[j]*x[i]);
+        b[j]=lambda*b[j]+c0*(x[j]*val);
       }
 
       km++;
@@ -45,6 +52,11 @@ class OLS {
     {
       mchol=mcov; // copy the matrix
       for (int i=0;i<n;i++) mchol[i][i]+=nu;
+      /*for (int j=0;j<n;j++)
+        for (int i=0;i<n;i++) {
+          mchol[j][i]=beta_pow*mchol[j][i];
+          if (j==i) mchol[i][i]+=(1.0-beta_pow);
+      }*/
 
       #if 1
       for (int i=0;i<n;i++) {
@@ -88,9 +100,11 @@ class OLS {
       }
     }
     int n,kmax,km;
-    T lambda,nu;
+    T lambda,nu,pred;
     vec1D w,b;
     vec2D mcov,mchol;
+    T beta_pow,beta_add;
+    RunWeight esum;
 };
 
 #endif // LPC_H

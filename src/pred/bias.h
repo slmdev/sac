@@ -38,16 +38,25 @@ class BiasEstimator {
       std::vector <bias_cnt>bias;
   };
 
+  double med3(double a,double b, double c) {
+    if ((a<b && b<c) || (c<b && b<a)) {
+      return b;
+    } else if ((b < a && a < c) || (c < a && a < b)) {
+      return a;
+    } else
+      return c;
+  }
+
   public:
-    BiasEstimator(double mu,double alpha=0.97)
+    BiasEstimator(double mu=0.002,double lambda=0.998,int re_scale=32)
     :mix_ada(32,SSLMS(3,mu)),
-    hist_input(8),hist_delta(8),alpha(alpha),
+    hist_input(8),hist_delta(8),
     bias(1<<20),
-    Bias0(32,1<<20)
+    Bias0(re_scale,1<<20),lambda(lambda)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
       p=0.0;
-      lambda=0.998;
+      //lambda=0.998;
       mean_est=var_est=0.;
     }
     void CalcContext()
@@ -96,22 +105,25 @@ class BiasEstimator {
       ctx2+=b6<<1;
       ctx2+=b7<<2;
       ctx2+=b8<<3;
+      //ctx2+=mix_ctx<<4;
     }
     double Predict(double pred)
     {
       p=pred;
       CalcContext();
 
-      bias0=bias[ctx0];
-      bias1=bias[ctx1];
-      bias2=bias[ctx2];
+      //bias0=bias[ctx0];
+      //bias1=bias[ctx1];
+      //bias2=bias[ctx2];
 
       double bias0_a=Bias0.GetBias(ctx0);
       double bias1_a=Bias0.GetBias(ctx1);
       double bias2_a=Bias0.GetBias(ctx2);
+      //double bias_mean = (bias0_a+bias1_a+bias2_a)/3.0;
+      //double bias_med = med3(bias0_a,bias1_a,bias2_a);
 
       double pbias=mix_ada[mix_ctx].Predict({bias0_a,bias1_a,bias2_a});
-      if (std::isnan(pbias)) std::cout << "nan";
+      //if (std::isnan(pbias)) std::cout << "nan";
 
       return pred+pbias;
     }
@@ -126,9 +138,9 @@ class BiasEstimator {
       bool is_in=delta>lb && delta<ub;
 
       if (is_in) {
-        bias[ctx0]=alpha*bias[ctx0]+(1.0-alpha)*delta;
+        /*bias[ctx0]=alpha*bias[ctx0]+(1.0-alpha)*delta;
         bias[ctx1]=alpha*bias[ctx1]+(1.0-alpha)*delta;
-        bias[ctx2]=alpha*bias[ctx2]+(1.0-alpha)*delta;
+        bias[ctx2]=alpha*bias[ctx2]+(1.0-alpha)*delta;*/
 
         Bias0.UpdateBias(ctx0,delta);
         Bias0.UpdateBias(ctx1,delta);
@@ -145,7 +157,8 @@ class BiasEstimator {
     std::vector<SSLMS> mix_ada;
     vec1D hist_input,hist_delta;
     int ctx0,ctx1,ctx2,mix_ctx;
-    double alpha,p,bias0,bias1,bias2;
+    double p;
+    //double alpha,p,bias0,bias1,bias2;
     vec1D bias;
     BiasCnt Bias0;
     double mean_est,var_est,lambda;
