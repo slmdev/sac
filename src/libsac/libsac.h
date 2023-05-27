@@ -8,8 +8,8 @@
 
 class FrameCoder {
   public:
-    const static int size_profile_bytes_normal=34*4;
-    const static int size_profile_bytes_high=42*4;
+    const static int size_profile_bytes_normal=35*4;
+    const static int size_profile_bytes_high=44*4;
     struct coder_ctx {
       enum SearchCost {L1,Entropy,Golomb,Bitplane};
       enum SearchMethod {DDS,GRS};

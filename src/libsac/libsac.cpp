@@ -292,10 +292,10 @@ void FrameCoder::PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,in
   Predictor::tparam param;
   SetParam(param,profile,optimize);
   Predictor pr(param);
-  int lag=param.nS1;
-  int j=-lag;
+  //int lag=param.nS1;
+  //int j=-lag;
 
-  #if 1
+  #if 0
   const int32_t minval=-(1<<15);
   const int32_t maxval=(1<<15);
 
@@ -582,7 +582,7 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
   #endif
   }
 
-  #if 1
+  #if 0
   std::cout << "\n[";
   for (auto i:params_to_optimize)
     std::cout << profile.coefs[i].vdef << ' ';
@@ -629,11 +629,11 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
     }
     framestats[ch].mean = (sum) / numsamples;
 
-    if (framestats[ch].mean > 0) {
+    /*if (framestats[ch].mean != 0) {
       for (int i=0;i<numsamples;i++) src[i]-=framestats[ch].mean;
-    }
+    }*/
 
-    /*
+
     int32_t minval = std::numeric_limits<int32_t>::max();
     int32_t maxval = std::numeric_limits<int32_t>::min();
     for (int i=0;i<numsamples;i++) {
@@ -643,7 +643,7 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
     }
     framestats[ch].minval = minval;
     framestats[ch].maxval = maxval;
-    std::cout << framestats[ch].minval << ' ' << framestats[ch].maxval << '\n';*/
+    //std::cout << "stats: " << numsamples << " " << framestats[ch].minval << ' ' << framestats[ch].maxval << "\n\n";
   }
 }
 
@@ -677,12 +677,12 @@ void FrameCoder::Predict()
 void FrameCoder::Unpredict()
 {
   if (numchannels_==2) UnpredictStereoFrame(baseprofile,0,1,numsamples_);
-  for (int ch=0;ch<numchannels_;ch++) {
-    if (framestats[ch].mean > 0) {
+  /*for (int ch=0;ch<numchannels_;ch++) {
+    if (framestats[ch].mean != 0) {
       int32_t *dst=&(samples[ch][0]);
       for (int i=0;i<numsamples_;i++) dst[i] += framestats[ch].mean;
     }
-  }
+  }*/
   //else for (int ch=0;ch<numchannels;ch++) UnpredictMonoFrame(ch,numsamples);
 }
 

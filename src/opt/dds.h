@@ -50,7 +50,6 @@ class DDS : public Opt {
           std::cout << '\n';*/
         }
         nfunc++;
-        std::cout << "dds: " << nfunc << '\r';
       }
       return opt_ret{fbest,xbest};
     }
