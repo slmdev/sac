@@ -1,7 +1,7 @@
 #ifndef _DOMAIN_H
 #define _DOMAIN_H
 
-#include "..\global.h"
+#include "../global.h"
 #include <cmath>
 
 static class LogDomain {
