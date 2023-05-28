@@ -11,7 +11,7 @@ const char SACHelp[] =
 "   --normal        normal compression (default)\n"
 "   --high          high compression, slow\n"
 "   --optimize=#  enable frame-based optimization\n"
-"     #=fast|normal|high\n"
+"     #=fast|normal|high|veryhigh|insane\n"
 "   --sparse-pcm    enable pcm modelling\n"
 "  --decode         decode input.sac to output.wav\n"
 "  --list           list info about input.[wav|sac]\n"
