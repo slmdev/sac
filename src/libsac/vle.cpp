@@ -115,7 +115,7 @@ int BitplaneCoder::PredictRef()
   int x2=(nval>>(bpn+1))<<1;
   int x3=(lval2>>(bpn));
   int x4=(nval2>>(bpn+1))<<1;
-  int xm=(x0+x1+x2+x3+x4)/4;
+  int xm=(x0+x1+x2+x3+x4)/5;
 
   int d0=x0>xm;
   int d1=x1>xm;

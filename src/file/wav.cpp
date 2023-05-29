@@ -38,7 +38,10 @@ size_t Chunks::UnpackMetaData(const std::vector <uint8_t>&data)
     chunksize=BitUtils::get32LH(&data[ofs]);ofs+=4;
     if (chunkid==0x46464952) {Append(chunkid,chunksize,&data[ofs],4);ofs+=4;}
     else if (chunkid==0x61746164) {Append(chunkid,chunksize,NULL,0);}
-    else {Append(chunkid,chunksize,&data[ofs],chunksize);ofs+=chunksize;};
+    else {
+        uint32_t writesize=(chunksize&1)? (chunksize+1):(chunksize);
+        Append(chunkid,chunksize,&data[ofs],writesize);ofs+=writesize;
+    };
   }
   return ofs;
 }
@@ -140,8 +143,7 @@ int Wav::ReadHeader()
           file.seekg(pos+chunksize);
         }
       } else { // read remaining chunks
-        uint32_t readsize=chunksize;
-        if (chunksize&1) readsize++; // chunkdata is word-aligned, although chunksize may be odd
+        uint32_t readsize=(chunksize&1)? (chunksize+1):(chunksize);
         ReadData(vbuf,readsize);
         myChunks.Append(chunkid,chunksize,&vbuf[0],readsize);
       }
