@@ -643,7 +643,8 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
     }
     framestats[ch].minval = minval;
     framestats[ch].maxval = maxval;
-    //std::cout << "stats: " << numsamples << " " << framestats[ch].minval << ' ' << framestats[ch].maxval << "\n\n";
+    //std::cout << "stats: " << numsamples << '\n';
+    //std::cout << "mean:" << framestats[ch].mean << " min:" << framestats[ch].minval << " max:" << framestats[ch].maxval << "\n\n";
   }
 }
 
@@ -762,7 +763,7 @@ void FrameCoder::ReadEncoded(AudioFile &fin)
   for (int ch=0;ch<numchannels_;ch++) {
     fin.file.read(reinterpret_cast<char*>(buf),8);
     uint32_t blocksize=BitUtils::get32LH(buf);
-    framestats[ch].mean=BitUtils::get16LH(buf+4);
+    framestats[ch].mean=static_cast<int16_t>(BitUtils::get16LH(buf+4));
     uint16_t flag=BitUtils::get16LH(buf+6);
     if (flag>>9) framestats[ch].enc_mapped=true;
     else framestats[ch].enc_mapped=false;
@@ -794,7 +795,7 @@ void Codec::ScanFrames(Sac &mySac)
     for (int ch=0;ch<mySac.getNumChannels();ch++) {
       mySac.file.read(reinterpret_cast<char*>(buf),8);
       uint32_t blocksize=BitUtils::get32LH(buf);
-      uint16_t mean=BitUtils::get16LH(buf+4);
+      int16_t mean=static_cast<int16_t>(BitUtils::get16LH(buf+4));
       uint16_t flag=BitUtils::get16LH(buf+6);
       //bool enc_mapped=flag>>9;
       int maxbpn=flag&0xff;
