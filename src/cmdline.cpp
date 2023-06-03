@@ -120,28 +120,27 @@ int CmdLine::Parse(int argc,char *argv[])
     std::string key,val;
     Split(uparam,key,val);
     if (param.length()>1 && (param[0]=='-' && param[1]=='-')) {
-       if (key=="--ENCODE") mode=ENCODE;
-       else if (key=="--DECODE") mode=DECODE;
-       else if (key=="--LIST") mode=LIST;
-       else if (key=="--LISTFULL") mode=LISTFULL;
-       else if (key=="--NORMAL") opt.profile=0;
-       else if (key=="--HIGH") opt.profile=1;
-       else if (key=="--OPTIMIZE") {
-         opt.optimize=1;
-         if (val=="FAST") {
-           opt.optimize_mode=0;
-         } else if (val=="NORMAL") {
-           opt.optimize_mode=1;
-         } else if (val=="HIGH") {
-           opt.optimize_mode=2;
-         } else if (val=="VERYHIGH") {
-           opt.optimize_mode=3;
-         } else if (val=="INSANE") {
-           opt.optimize_mode=4;
-         } else std::cout << "warning: unknown optimize mode '" << val << "'\n";
-       }
-       else if (key=="--SPARSE-PCM") opt.sparse_pcm=1;
-       else std::cout << "warning: unknown option '" << param << "'\n";
+      if (key=="--HELP") {
+        std::cout << SACHelp;
+        return 1;
+      }
+      else if (key=="--ENCODE") mode=ENCODE;
+      else if (key=="--DECODE") mode=DECODE;
+      else if (key=="--LIST") mode=LIST;
+      else if (key=="--LISTFULL") mode=LISTFULL;
+      else if (key=="--NORMAL") opt.profile=0;
+      else if (key=="--HIGH") opt.profile=1;
+      else if (key=="--OPTIMIZE") {
+        opt.optimize=1;
+        if (val=="FAST") opt.optimize_mode=0;
+        else if (val=="NORMAL") opt.optimize_mode=1;
+        else if (val=="HIGH") opt.optimize_mode=2;
+        else if (val=="VERYHIGH") opt.optimize_mode=3;
+        else if (val=="INSANE") opt.optimize_mode=4;
+        else std::cout << "warning: unknown optimize mode '" << val << "'\n";
+      }
+      else if (key=="--SPARSE-PCM") opt.sparse_pcm=1;
+      else std::cout << "warning: unknown option '" << param << "'\n";
     } else {
        if (first) {sinputfile=param;first=false;}
        else soutputfile=param;

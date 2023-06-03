@@ -7,6 +7,7 @@
 
 const char SACHelp[] =
 "usage: sac [--options] input output\n\n"
+"  --help           print this message\n"
 "  --encode         encode input.wav to output.sac (default)\n"
 "   --normal        normal compression (default)\n"
 "   --high          high compression, slow\n"
