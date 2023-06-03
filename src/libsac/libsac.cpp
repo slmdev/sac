@@ -2,6 +2,7 @@
 #include "pred.h"
 #include "../opt/dds.h"
 #include "../common/timer.h"
+#include <cstring>
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 :numchannels_(numchannels),framesize_(framesize),opt(opt)
@@ -776,6 +777,7 @@ void Codec::PrintProgress(int samplesprocessed,int totalsamples)
 {
   double r=samplesprocessed*100.0/(double)totalsamples;
   std::cout << "  " << samplesprocessed << "/" << totalsamples << ":" << std::setw(6) << miscUtils::ConvertFixed(r,1) << "%\r";
+  std::cout.flush();
 }
 
 // fix-me
