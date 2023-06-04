@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <cstdint>
 
 class AudioFile {
   public:

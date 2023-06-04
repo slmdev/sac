@@ -3,6 +3,7 @@
 
 #include "file.h"
 #include "wav.h"
+#include <cstdint>
 
 struct tFrameHeader {
 
