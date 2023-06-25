@@ -36,5 +36,5 @@ Numbers are bits per sample (smaller is better)
 |SinceAlways|10.348|10.409|10.479|
 |thear1|11.388|11.400|11.496|
 |TomsDiner|7.001|7.108|7.087|
-|velvet|**9.833**|9.990|10.059|
+|velvet|9.833|9.990|10.059|
 |*Mean*|**8.388**|8.493|8.580|
