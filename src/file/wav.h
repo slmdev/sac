@@ -2,6 +2,7 @@
 #define WAV_H
 
 #include "file.h"
+#include <cstdint>
 
 class Chunks {
   public:

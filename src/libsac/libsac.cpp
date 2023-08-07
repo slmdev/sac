@@ -2,6 +2,7 @@
 #include "pred.h"
 #include "../opt/dds.h"
 #include "../common/timer.h"
+#include <cstring>
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 :numchannels_(numchannels),framesize_(framesize),opt(opt)
@@ -482,10 +483,10 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 
   CostFunction *CostFunc=nullptr;
   switch (opt.optimize_cost)  {
-    case opt.SearchCost::L1:CostFunc=new CostMeanRMS();break;
-    case opt.SearchCost::Golomb:CostFunc=new CostGolomb();break;
-    case opt.SearchCost::Entropy:CostFunc=new CostEntropyO0();break;
-    case opt.SearchCost::Bitplane:CostFunc=new CostBitplane();break;
+    case coder_ctx::SearchCost::L1:CostFunc=new CostMeanRMS();break;
+    case coder_ctx::SearchCost::Golomb:CostFunc=new CostGolomb();break;
+    case coder_ctx::SearchCost::Entropy:CostFunc=new CostEntropyO0();break;
+    case coder_ctx::SearchCost::Bitplane:CostFunc=new CostBitplane();break;
     default:std::cerr << "  error: unknown FramerCoder::CostFunction\n";return;
   }
 
@@ -776,6 +777,7 @@ void Codec::PrintProgress(int samplesprocessed,int totalsamples)
 {
   double r=samplesprocessed*100.0/(double)totalsamples;
   std::cout << "  " << samplesprocessed << "/" << totalsamples << ":" << std::setw(6) << miscUtils::ConvertFixed(r,1) << "%\r";
+  std::cout.flush();
 }
 
 // fix-me
