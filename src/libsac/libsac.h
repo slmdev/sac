@@ -8,8 +8,8 @@
 
 class FrameCoder {
   public:
-    const static int size_profile_bytes_normal=35*4;
-    const static int size_profile_bytes_high=44*4;
+    //const static int size_profile_bytes_normal=35*4;
+    //const static int size_profile_bytes_high=45*4;
     struct coder_ctx {
       enum SearchCost {L1,Entropy,Golomb,Bitplane};
       enum SearchMethod {DDS,GRS};
@@ -21,7 +21,7 @@ class FrameCoder {
       int optimize_mode=0;
       SearchMethod optimize_search=DDS;
       SearchCost optimize_cost=L1;
-      int optimize_div=0;
+      double optimize_fraction=0;
       int optimize_ncycle=0;
       SacProfile profiledata;
     };
@@ -37,6 +37,9 @@ class FrameCoder {
     std::vector <std::vector<int32_t>>samples,err0,err1,error,s2u_error,s2u_error_map,pred;
     std::vector <BufIO> encoded,enc_temp1,enc_temp2;
     std::vector <SacProfile::FrameStats> framestats;
+
+    static int WriteBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
+    static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
   private:
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
     void DecodeProfile(SacProfile &profile,const std::vector <uint8_t>&buf);
@@ -46,7 +49,6 @@ class FrameCoder {
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
     void Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize);
     double GetCost(SacProfile &profile,CostFunction *func,int coef,double testval,int start_sample,int samples_to_optimize);
-
     void AnalyseChannel(int ch,int numsamples);
     void PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int from,int numsamples,bool optimize=false);
     void UnpredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int numsamples);
@@ -66,8 +68,8 @@ class Codec {
     //void EncodeFile(Wav &myWav,Sac &mySac,int profile,int optimize,int sparse_pcm);
     void DecodeFile(Sac &mySac,Wav &myWav);
     void ScanFrames(Sac &mySac);
+    static void SetOptimizeParam(FrameCoder::coder_ctx &opt);
   private:
-    void SetOptimizeParam(FrameCoder::coder_ctx &opt);
     void PrintProgress(int samplesprocessed,int totalsamples);
     int framesize;
 };

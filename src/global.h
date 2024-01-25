@@ -27,6 +27,6 @@ typedef std::vector <double*>ptr_vec1D;
 template <class T> T abs(T a){return ((a) < 0)?-(a):(a);}
 template <class T> T div_signed(T val,T s){return val<0?-(((-val)+(1<<(s-1)))>>s):(val+(1<<(s-1)))>>s;};
 
-#define RNDINT(f) ((int)(f >= 0.0 ? (f + 0.5))
+#define RNDINT(f) ((int)(f >= 0.0 ? (f + 0.5) : (f - 0.5))
 
 #endif // GLOBAL_H

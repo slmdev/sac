@@ -134,7 +134,7 @@ class LMS {
     }
   public:
     LMS(int n,double mu)
-    :n(n),x(n),w(n),mu(mu)
+    :n(n),x(n),w(n),mu(mu),pred(0)
     {
     }
     virtual double Predict(const vec1D &inp)

@@ -2,6 +2,7 @@
 #define FILE_H
 
 //#include "../global.h"
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <fstream>

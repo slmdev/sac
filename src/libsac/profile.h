@@ -9,7 +9,7 @@ class SacProfile {
     struct FrameStats {
       int maxbpn,maxbpn_map;
       bool enc_mapped;
-      int32_t minval,maxval,mean;
+      int32_t blocksize,minval,maxval,mean;
       Remap mymap;
     };
     struct coef {

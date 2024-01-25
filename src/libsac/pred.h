@@ -18,6 +18,7 @@ class Predictor {
       double beta_sum0,beta_pow0,beta_add0;
       double mix_nu0,mix_nu1;
       int bias_rescale;
+      double bias_mu;
     };
     Predictor(const tparam &p);
     double PredictMaster();

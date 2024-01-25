@@ -9,6 +9,8 @@
 gives a tiny gain
 */
 
+#define BIAS_ROUND_PRED 1
+
 class BiasEstimator {
   class BiasCnt {
     struct bias_cnt {
@@ -48,15 +50,14 @@ class BiasEstimator {
   }
 
   public:
-    BiasEstimator(double mu=0.002,double lambda=0.998,int re_scale=32)
+    BiasEstimator(double mu=0.003,int re_scale=32,double nd_sigma=1.5,double nd_lambda=0.998)
     :mix_ada(32,SSLMS(3,mu)),
     hist_input(8),hist_delta(8),
     bias(1<<20),
-    Bias0(re_scale,1<<20),lambda(lambda)
+    Bias0(re_scale,1<<20),sigma(nd_sigma),lambda(nd_lambda)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
       p=0.0;
-      //lambda=0.998;
       mean_est=var_est=0.;
     }
     void CalcContext()
@@ -90,6 +91,7 @@ class BiasEstimator {
       ctx0+=c1<<1;
       ctx0+=c2<<2;*/
       ctx0+=b0<<0;
+      //ctx0+=b1<<1;
       ctx0+=b2<<1;
       ctx0+=b9<<2;
       ctx0+=b10<<3;
@@ -128,27 +130,25 @@ class BiasEstimator {
       return pred+pbias;
     }
     void Update(double val) {
-      const double delta=val-p;
+      #ifdef BIAS_ROUND_PRED
+        const double delta=val-std::round(p);
+      #else
+        const double delta=val-p;
+      #endif
       miscUtils::RollBack(hist_input,val);
-      miscUtils::RollBack(hist_delta,val-p);
+      miscUtils::RollBack(hist_delta,delta);
 
-      double sigma=1.5;
-      double lb=mean_est-sigma*sqrt(var_est);
-      double ub=mean_est+sigma*sqrt(var_est);
-      bool is_in=delta>lb && delta<ub;
+      const double lb=mean_est-sigma*sqrt(var_est);
+      const double ub=mean_est+sigma*sqrt(var_est);
 
-      if (is_in) {
-        /*bias[ctx0]=alpha*bias[ctx0]+(1.0-alpha)*delta;
-        bias[ctx1]=alpha*bias[ctx1]+(1.0-alpha)*delta;
-        bias[ctx2]=alpha*bias[ctx2]+(1.0-alpha)*delta;*/
-
+      if ( (delta>lb) && (delta<ub)) {
         Bias0.UpdateBias(ctx0,delta);
         Bias0.UpdateBias(ctx1,delta);
         Bias0.UpdateBias(ctx2,delta);
       }
 
-
       mix_ada[mix_ctx].Update(delta);
+
 
       mean_est=lambda*mean_est+(1.0-lambda)*delta;
       var_est=lambda*var_est+(1.0-lambda)*((delta-mean_est)*(delta-mean_est));
@@ -161,7 +161,7 @@ class BiasEstimator {
     //double alpha,p,bias0,bias1,bias2;
     vec1D bias;
     BiasCnt Bias0;
-    double mean_est,var_est,lambda;
+    double mean_est,var_est,sigma,lambda;
 };
 
 

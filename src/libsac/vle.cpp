@@ -16,7 +16,7 @@ maxbpn(maxbpn),numsamples(numsamples),lm(maxbpn)
   nrun=0;
   double theta=0.99;
   for (int i=0;i<32;i++) {
-    int p=(std::min)((std::max)((int)round((1-1.0/(1+pow(theta,1<<i)))*PSCALE),1),PSCALEm);
+    int p=(std::min)((std::max)((int)round((1.0-1.0/(1+pow(theta,1<<i)))*PSCALE),1),PSCALEm);
     //std::cout << p << ' ';
     p_laplace[i].p1=p;
   }
