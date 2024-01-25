@@ -38,3 +38,4 @@ Numbers are bits per sample (smaller is better)
 |TomsDiner|7.001|7.108|7.087|
 |velvet|9.833|9.990|10.059|
 |*Mean*|**8.388**|8.493|8.580|
+
