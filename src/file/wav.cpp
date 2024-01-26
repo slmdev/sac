@@ -46,6 +46,23 @@ size_t Chunks::UnpackMetaData(const std::vector <uint8_t>&data)
   return ofs;
 }
 
+Wav::Wav(bool verbose)
+:chunkpos(0),datapos(0),endofdata(0),byterate(0),blockalign(0),samplesleft(0),verbose(verbose)
+{
+  MD5::Init(&md5ctx);
+};
+
+Wav::Wav(AudioFile &file,bool verbose)
+:AudioFile(file),chunkpos(0),verbose(verbose)
+{
+  byterate=samplerate*numchannels*bitspersample/8;
+  blockalign=numchannels*bitspersample/8;
+  kbps=(samplerate*numchannels*bitspersample)/1000;
+
+  MD5::Init(&md5ctx);
+};
+
+
 void Wav::InitFileBuf(int maxframesize)
 {
   filebuffer.resize(maxframesize*blockalign);
@@ -57,9 +74,13 @@ int Wav::ReadSamples(std::vector <std::vector <int32_t>>&data,int samplestoread)
   if (samplestoread>samplesleft) samplestoread=samplesleft;
   int bytestoread=samplestoread*blockalign;
   file.read(reinterpret_cast<char*>(&filebuffer[0]),bytestoread);
-  int samplesread=(file.gcount()/blockalign);
+  int bytesread=file.gcount();
+  int samplesread=bytesread/blockalign;
+
   samplesleft-=samplesread;
-  if (samplesread!=samplestoread) std::cout << "warning: read over eof\n";
+  if (samplesread!=samplestoread) std::cerr << "warning: read over eof\n";
+
+  MD5::Update(&md5ctx, &filebuffer[0], bytestoread);
 
   // decode samples
   int bufptr=0;
@@ -87,6 +108,8 @@ int Wav::WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrit
   }
   int bytestowrite=samplestowrite*blockalign;
   file.write(reinterpret_cast<char*>(&filebuffer[0]),bytestowrite);
+
+  MD5::Update(&md5ctx, &filebuffer[0], bytestowrite);
   return 0;
 }
 

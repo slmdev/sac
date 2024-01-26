@@ -2,6 +2,7 @@
 #include "common/utils.h"
 #include "common/timer.h"
 #include "file/sac.h"
+#include <cstring>
 
 CmdLine::CmdLine()
 :mode(ENCODE)
@@ -160,6 +161,20 @@ int CmdLine::Parse(int argc,char *argv[])
   return 0;
 }
 
+/*#include "common/md5.h"
+void MD5Test()
+{
+  MD5::MD5Context ctx;
+  MD5::Init(&ctx);
+  //md5 '123'=202cb962ac59075b964b07152d234b70
+  std::vector<uint8_t> x={'1','2','3'};
+  MD5::Update(&ctx,&x[0],3);
+  std::vector <uint8_t> out(16);
+  MD5::Finalize(&ctx);
+  for (auto x : ctx.digest) std::cout << std::hex << (int)x;
+  std::cout << '\n';
+}*/
+
 int CmdLine::Process()
 {
   Timer myTimer;
@@ -227,6 +242,9 @@ int CmdLine::Process()
       std::streampos FileSizeSAC = mySac.getFileSize();
       std::cout << "ok (" << FileSizeSAC << " Bytes)\n";
       if (mySac.ReadHeader()==0) {
+        uint8_t md5digest[16];
+        mySac.ReadMD5(md5digest);
+
         double bps=(static_cast<double>(FileSizeSAC)*8.0)/static_cast<double>(mySac.getNumSamples()*mySac.getNumChannels());
         int kbps=round((mySac.getSampleRate()*mySac.getNumChannels()*bps)/1000);
         mySac.setKBPS(kbps);
@@ -238,18 +256,32 @@ int CmdLine::Process()
         }
         std::cout << std::endl;
         std::cout << "  Ratio:   " << std::fixed << std::setprecision(3) << bps << " bits per sample\n\n";
+        std::cout << "  Audio MD5: ";
+        for (auto x : md5digest) std::cout << std::hex << (int)x;
+        std::cout << std::dec << '\n';
 
 
         if (mode==LISTFULL) {
           Codec myCodec;
           myCodec.ScanFrames(mySac);
         } else if (mode==DECODE) {
+
           Wav myWav(mySac);
           std::cout << "Create: '" << soutputfile << "': ";
           if (myWav.OpenWrite(soutputfile)==0) {
             std::cout << "ok\n";
             Codec myCodec;
             myCodec.DecodeFile(mySac,myWav);
+            MD5::Finalize(&myWav.md5ctx);
+            bool md5diff=std::memcmp(myWav.md5ctx.digest, md5digest, 16);
+            std::cout << '\n';
+            std::cout << "  Audio MD5: ";
+            if (!md5diff) std::cout << "ok\n";
+            else {
+              std::cout << "Error (";
+              for (auto x : myWav.md5ctx.digest) std::cout << std::hex << (int)x;
+              std::cout << std::dec << ")\n";
+            }
             myWav.Close();
           } else std::cout << "could not create\n";
         }

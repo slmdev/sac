@@ -832,6 +832,7 @@ void Codec::ScanFrames(Sac &mySac)
 {
   std::vector<SacProfile::FrameStats> framestats(mySac.getNumChannels());
   std::streampos fsize=mySac.getFileSize();
+
   SacProfile profile_tmp; //create dummy profile
   switch (mySac.GetProfile())
   {
@@ -871,6 +872,8 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
 
   mySac.SetProfile(opt.profile);
   mySac.WriteHeader(myWav);
+  std::streampos hdrpos = mySac.file.tellg();
+  mySac.WriteMD5(myWav.md5ctx.digest);
   myWav.InitFileBuf(framesize);
 
   Timer gtimer,ltimer;
@@ -893,6 +896,7 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
     PrintProgress(samplescoded,myWav.getNumSamples());
     samplestocode-=samplesread;
   }
+  MD5::Finalize(&myWav.md5ctx);
   gtimer.stop();
   double time_total=gtimer.elapsedS();
   if (time_total>0.)   {
@@ -902,6 +906,15 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
      std::cout << "enc " << miscUtils::ConvertFixed(renc,2) << "%, ";
      std::cout << "misc " << miscUtils::ConvertFixed(100.-rprd-renc,2) << "%" << std::endl;
   }
+  std::cout << "\n  Audio MD5: ";
+  for (auto x : myWav.md5ctx.digest) std::cout << std::hex << (int)x;
+  std::cout << std::dec << '\n';
+
+  std::streampos eofpos = mySac.file.tellg();
+  //std::cout << eofpos << '\n';
+  mySac.file.seekg(hdrpos);
+  mySac.WriteMD5(myWav.md5ctx.digest);
+  mySac.file.seekg(eofpos);
 }
 
 void Codec::DecodeFile(Sac &mySac,Wav &myWav)
@@ -929,5 +942,4 @@ void Codec::DecodeFile(Sac &mySac,Wav &myWav)
     samplestodecode-=myFrame.GetNumSamples();
   }
   myWav.WriteHeader();
-  std::cout << std::endl;
 }

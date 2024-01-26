@@ -2,6 +2,7 @@
 #define WAV_H
 
 #include "file.h"
+#include "../common/md5.h"
 
 class Chunks {
   public:
@@ -25,21 +26,15 @@ class Chunks {
 
 class Wav : public AudioFile {
   public:
-    Wav(bool verbose=false)
-    :chunkpos(0),datapos(0),endofdata(0),byterate(0),blockalign(0),samplesleft(0),verbose(verbose){};
-    Wav(AudioFile &file,bool verbose=false)
-    :AudioFile(file),chunkpos(0),verbose(verbose)
-    {
-      byterate=samplerate*numchannels*bitspersample/8;
-      blockalign=numchannels*bitspersample/8;
-      kbps=(samplerate*numchannels*bitspersample)/1000;
-    };
+    Wav(bool verbose=false);
+    Wav(AudioFile &file,bool verbose=false);
     int ReadHeader();
     int WriteHeader();
     void InitFileBuf(int maxframesize);
     int ReadSamples(std::vector <std::vector <int32_t>>&data,int samplestoread);
     int WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrite);
     Chunks &GetChunks(){return myChunks;};
+    MD5::MD5Context md5ctx;
   private:
     Chunks myChunks;
     size_t chunkpos;

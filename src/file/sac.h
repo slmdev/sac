@@ -21,6 +21,8 @@ class Sac : public AudioFile
     int GetProfile(){return profile;};
     void WriteFrameHeader(tFrameHeader &hdr);
     int WriteHeader(Wav &myWav);
+    std::streamsize WriteMD5(uint8_t digest[16]);
+    std::streamsize ReadMD5(uint8_t digest[16]);
     int ReadHeader();
     int UnpackMetaData(Wav &myWav);
     std::vector <uint8_t>metadata;
