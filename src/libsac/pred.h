@@ -33,7 +33,7 @@ class Predictor {
     LMSCascade lms0,lms1;
     BiasEstimator be0,be1;
     vec1D hist0,hist1; //,tbuf;
-    double p_lpc0,p_lpc1,p_lms0,p_lms1;
+    double p_lpc0,p_lpc1,p_lms0,p_lms1,p_be0,p_be1;
 };
 
 #endif // PRED_H

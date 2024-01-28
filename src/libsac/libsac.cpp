@@ -34,10 +34,11 @@ void SetProfileNormal(SacProfile &profile)
     profile.Set(24,0.0001,0.008,0.002);//mu-mix
     profile.Set(25,0.8,0.9999,0.95); //mu-mix-beta
 
-    profile.Set(26,8,32,16);//ols-order
-    profile.Set(27,8,32,16);//ols-order
-    profile.Set(28,0,32,8);//ols-order
-    profile.Set(29,0,32,8);//ols-order
+    const int mo_lpc=64;
+    profile.Set(26,4,mo_lpc,16);//ols-order
+    profile.Set(27,4,mo_lpc,16);//ols-order
+    profile.Set(28,0,mo_lpc,8);//ols-order
+    profile.Set(29,0,mo_lpc,8);//ols-order
 
     profile.Set(30,0,1,0.6);//ols-order
     profile.Set(31,0.8,2,0.8);//ols-order
@@ -82,18 +83,19 @@ void SetProfileHigh(SacProfile &profile)
     profile.Set(22,0.0001,0.008,0.002);//mu-mix
     profile.Set(23,0.8,0.9999,0.95);//mu-mix-beta*/
 
-    profile.Set(24,8,32,16);//ols-order
-    profile.Set(25,8,32,16);//ols-order
-    profile.Set(26,4,32,8);//ols-order
-    profile.Set(27,4,32,8);//ols-order
+    const int mo_lpc=32;
+    profile.Set(24,8,mo_lpc,16);//ols-order
+    profile.Set(25,8,mo_lpc,16);//ols-order
+    profile.Set(26,4,mo_lpc,8);//ols-order
+    profile.Set(27,4,mo_lpc,8);//ols-order
 
-    profile.Set(28,256,2048,1280);
-    profile.Set(29,32,256,256);
-    profile.Set(30,4,32,32);
+    profile.Set(28,256,4096,1280);
+    profile.Set(29,32,512,256);
+    profile.Set(30,4,64,32);
 
-    profile.Set(31,256,2048,1280);
-    profile.Set(32,32,256,256);
-    profile.Set(33,4,32,32);
+    profile.Set(31,256,4096,1280);
+    profile.Set(32,32,512,256);
+    profile.Set(33,4,64,32);
 
     profile.Set(34,0,1,0.6);//ols-order
     profile.Set(35,0.1,2,0.8);//ols-order
@@ -573,6 +575,20 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 
   if (opt.optimize_mode==5) {
     std::cout << "bias_mu="<<profile.Get(44) << ' ' << "bias_scale="<<profile.Get(39) << '\n';
+  }
+  //std::cout << profile.Get(24) << ' ' << profile.Get(25) << '\n';
+  //std::cout << profile.Get(26) << ' ' << profile.Get(27) << " S=" << profile.Get(28) <<' ' << profile.Get(29) <<'\n';
+  if (opt.profile==1) {
+    std::cout << '\n';
+    std::cout << "lpc: ";
+    for (int i=24;i<=27;i++) std::cout << std::round(profile.Get(i)) << ' ';
+    std::cout << '\n';
+    std::cout << "lms0: ";
+    for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
+    std::cout << '\n';
+    std::cout << "lms1: ";
+    for (int i=31;i<=33;i++) std::cout << std::round(profile.Get(i)) << ' ';
+    std::cout << '\n';
   }
   #if 0
   std::cout << "\n[";

@@ -126,12 +126,18 @@ int CmdLine::Parse(int argc,char *argv[])
        else if (key=="--LIST") mode=LIST;
        else if (key=="--LISTFULL") mode=LISTFULL;
        else if (key=="--NORMAL") opt.profile=0;
-       else if (key=="--HIGH") {
+       else if (key=="--HIGH")
+       {
+         opt.profile=1;
+         opt.optimize=1;
+         opt.optimize_mode=0;
+         opt.sparse_pcm=0;
+       } else if (key=="--VERYHIGH") {
          opt.profile=1;
          opt.optimize=1;
          opt.optimize_mode=2;
          opt.sparse_pcm=1;
-       } else if (key=="--VERYHIGH") {
+       } else if (key=="--BEST") {
          opt.profile=1;
          opt.optimize=1;
          opt.optimize_mode=3;

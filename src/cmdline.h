@@ -8,13 +8,14 @@
 const char SACHelp[] =
 "usage: sac [--options] input output\n\n"
 "  --encode         encode input.wav to output.sac (default)\n"
-"  --normal         normal compression (default)\n"
-"  --high           high compression, slow\n"
-"  --veryhigh       very high compression, really slow\n"
+"    --normal       normal compression (default)\n"
+"    --high         high compression, slow\n"
+"    --veryhigh     very high compression, really slow\n"
+"    --best         why even bother"
 "  --decode         decode input.sac to output.wav\n"
 "  --list           list info about input.sac\n"
 "  --listfull       verbose info about input\n\n"
-"  advanced options\n"
+"  advanced options (automatically set)\n"
 "   --optimize=#    frame-based optimization\n"
 "     #=fast|normal|high|veryhigh|insane\n"
 "   --sparse-pcm    enable pcm modelling\n";
