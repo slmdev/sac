@@ -8,8 +8,6 @@
 
 class FrameCoder {
   public:
-    //const static int size_profile_bytes_normal=35*4;
-    //const static int size_profile_bytes_high=45*4;
     struct coder_ctx {
       enum SearchCost {L1,Entropy,Golomb,Bitplane};
       enum SearchMethod {DDS,GRS};
@@ -19,6 +17,7 @@ class FrameCoder {
       int optimize_maxiter=0;
       int optimize_maxnfunc=0;
       int optimize_mode=0;
+      int verbose_level=0;
       SearchMethod optimize_search=DDS;
       SearchCost optimize_cost=L1;
       double optimize_fraction=0;

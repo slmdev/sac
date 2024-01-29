@@ -11,7 +11,7 @@ const char SACHelp[] =
 "    --normal       normal compression (default)\n"
 "    --high         high compression, slow\n"
 "    --veryhigh     very high compression, really slow\n"
-"    --best         why even bother"
+"    --best         why even bother\n"
 "  --decode         decode input.sac to output.wav\n"
 "  --list           list info about input.sac\n"
 "  --listfull       verbose info about input\n\n"

@@ -125,6 +125,10 @@ int CmdLine::Parse(int argc,char *argv[])
        else if (key=="--DECODE") mode=DECODE;
        else if (key=="--LIST") mode=LIST;
        else if (key=="--LISTFULL") mode=LISTFULL;
+       else if (key=="--VERBOSE") {
+          if (val.length()) opt.verbose_level=stoi(val);
+          else opt.verbose_level=0;
+       }
        else if (key=="--NORMAL") opt.profile=0;
        else if (key=="--HIGH")
        {
@@ -156,8 +160,10 @@ int CmdLine::Parse(int argc,char *argv[])
            opt.optimize_mode=4;
          } else std::cout << "warning: unknown optimize mode '" << val << "'\n";
        }
-       else if (key=="--SPARSE-PCM") opt.sparse_pcm=1;
-       else std::cout << "warning: unknown option '" << param << "'\n";
+       else if (key=="--SPARSE-PCM") {
+          if (val.length()) opt.sparse_pcm=stoi(val);
+          else opt.sparse_pcm=1;
+       } else std::cout << "warning: unknown option '" << param << "'\n";
     } else {
        if (first) {sinputfile=param;first=false;}
        else soutputfile=param;
@@ -227,7 +233,6 @@ int CmdLine::Process()
            Codec myCodec;
 
            myCodec.EncodeFile(myWav,mySac,opt);
-
            uint64_t infilesize=myWav.getFileSize();
            uint64_t outfilesize=mySac.readFileSize();
            double r=0.,bps=0.;

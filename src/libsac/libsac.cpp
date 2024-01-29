@@ -5,6 +5,7 @@
 
 void SetProfileNormal(SacProfile &profile)
 {
+    const int mo_lpc=32; // maximum ols order
     profile.Init(35,0);
     profile.Set(0,0.99,0.9999,0.998); // ols-lambda
     profile.Set(1,0.0001,10.0,0.001);//ols-nu
@@ -34,7 +35,6 @@ void SetProfileNormal(SacProfile &profile)
     profile.Set(24,0.0001,0.008,0.002);//mu-mix
     profile.Set(25,0.8,0.9999,0.95); //mu-mix-beta
 
-    const int mo_lpc=64;
     profile.Set(26,4,mo_lpc,16);//ols-order
     profile.Set(27,4,mo_lpc,16);//ols-order
     profile.Set(28,0,mo_lpc,8);//ols-order
@@ -51,6 +51,8 @@ void SetProfileNormal(SacProfile &profile)
 
 void SetProfileHigh(SacProfile &profile)
 {
+    const int mo_lpc=32; // maximum ols order
+
     profile.Init(45,1);
 
     profile.Set(0,0.99,0.9999,0.998);
@@ -83,9 +85,8 @@ void SetProfileHigh(SacProfile &profile)
     profile.Set(22,0.0001,0.008,0.002);//mu-mix
     profile.Set(23,0.8,0.9999,0.95);//mu-mix-beta*/
 
-    const int mo_lpc=32;
-    profile.Set(24,8,mo_lpc,16);//ols-order
-    profile.Set(25,8,mo_lpc,16);//ols-order
+    profile.Set(24,4,mo_lpc,16);//ols-order
+    profile.Set(25,4,mo_lpc,16);//ols-order
     profile.Set(26,4,mo_lpc,8);//ols-order
     profile.Set(27,4,mo_lpc,8);//ols-order
 
@@ -578,7 +579,7 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
   }
   //std::cout << profile.Get(24) << ' ' << profile.Get(25) << '\n';
   //std::cout << profile.Get(26) << ' ' << profile.Get(27) << " S=" << profile.Get(28) <<' ' << profile.Get(29) <<'\n';
-  if (opt.profile==1) {
+  if (opt.profile==1 && opt.verbose_level>0) {
     std::cout << '\n';
     std::cout << "lpc: ";
     for (int i=24;i<=27;i++) std::cout << std::round(profile.Get(i)) << ' ';
@@ -589,6 +590,7 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
     std::cout << "lms1: ";
     for (int i=31;i<=33;i++) std::cout << std::round(profile.Get(i)) << ' ';
     std::cout << '\n';
+    std::cout << "mu-nu: " << profile.Get(42) << ", " << profile.Get(43) << "\n";
   }
   #if 0
   std::cout << "\n[";
