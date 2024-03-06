@@ -57,6 +57,7 @@ class CostEntropyO0 : public CostFunction {
     CostEntropyO0(){};
     double Calc(const int32_t *buf,int numsamples)
     {
+      if (numsamples<=0) return 0.0;
       std::vector <int>counts;
       std::vector<int32_t> e(numsamples);
       int imax=0;
@@ -64,6 +65,7 @@ class CostEntropyO0 : public CostFunction {
         e[i]=MathUtils::S2U(buf[i]);
         if (e[i]>imax) imax=e[i];
       }
+
       counts.resize(imax+1);
       for (int i=0;i<numsamples;i++) {
         counts[e[i]]++;

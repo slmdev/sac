@@ -16,6 +16,7 @@ const char SACHelp[] =
 "  --list           list info about input.sac\n"
 "  --listfull       verbose info about input\n\n"
 "  advanced options (automatically set)\n"
+"   --reset-opt     reset opt params at frame boundaries\n"
 "   --optimize=#    frame-based optimization\n"
 "     #=fast|normal|high|veryhigh|insane\n"
 "   --sparse-pcm    enable pcm modelling\n";

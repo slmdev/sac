@@ -17,23 +17,29 @@ class Predictor {
       double lambda0,lambda1,ols_nu0,ols_nu1,mu_mix0,mu_mix1,mu_mix_beta0,mu_mix_beta1;
       double beta_sum0,beta_pow0,beta_add0;
       double mix_nu0,mix_nu1;
-      int bias_rescale;
-      double bias_mu;
+      double bias_mu0,bias_mu1;
+      int bias_scale0,bias_scale1;
     };
     Predictor(const tparam &p);
+    double Predict_stage0_ch0();
+    void Update_stage0_ch0(double val);
+
+    double Predict_stage0_ch1(const int32_t *ch_master,int nsample,int numsamples);
+    void Update_stage0_ch1(double val);
+
     double PredictMaster();
     double PredictSlave(const int32_t *ch_master,int nsample,int numsamples);
     void UpdateMaster(double val);
     void UpdateSlave(double val);
-  private:
+
     void FillSlaveHist(const int32_t *ch_master,int nsample,int numsamples,vec1D &buf);
     tparam p;
     int nA,nB,nS0,nS1;
     OLS<double>ols0,ols1;
     LMSCascade lms0,lms1;
-    BiasEstimator be0,be1;
+    BiasEstimator be[2];
     vec1D hist0,hist1; //,tbuf;
-    double p_lpc0,p_lpc1,p_lms0,p_lms1,p_be0,p_be1;
+    double p_lpc0,p_lpc1,p_lms0,p_lms1;
 };
 
 #endif // PRED_H

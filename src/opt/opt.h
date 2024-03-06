@@ -16,7 +16,7 @@ class Opt {
       double xmin,xmax;
     };
     typedef std::pair<double,vec1D> opt_ret;
-    typedef std::vector <tboxconst> param_const;
+    typedef std::vector <tboxconst> param_box;
     typedef std::function<double(const vec1D &param)> tfunc;
   protected:
     // reflect xnew at boundaries

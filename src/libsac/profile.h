@@ -51,4 +51,7 @@ class SacProfile {
       std::vector <coef> coefs;
 };
 
+void LoadProfileNormal(SacProfile &profile);
+void LoadProfileHigh(SacProfile &profile);
+
 #endif // PROFILE_H

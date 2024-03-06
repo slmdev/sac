@@ -120,14 +120,16 @@ int CmdLine::Parse(int argc,char *argv[])
     StrUtils::StrUpper(uparam);
     std::string key,val;
     Split(uparam,key,val);
-    if (param.length()>1 && (param[0]=='-' && param[1]=='-')) {
+
+    if (param.length()>1 && (param[0]=='-' && param[1]=='-'))
+    {
        if (key=="--ENCODE") mode=ENCODE;
        else if (key=="--DECODE") mode=DECODE;
        else if (key=="--LIST") mode=LIST;
        else if (key=="--LISTFULL") mode=LISTFULL;
        else if (key=="--VERBOSE") {
           if (val.length()) opt.verbose_level=stoi(val);
-          else opt.verbose_level=0;
+          else opt.verbose_level=1;
        }
        else if (key=="--NORMAL") opt.profile=0;
        else if (key=="--HIGH")
@@ -146,9 +148,12 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.optimize=1;
          opt.optimize_mode=3;
          opt.sparse_pcm=1;
+       }  else if (key=="--RESET-OPT") {
+         opt.reset_profile=1;
        } else if (key=="--OPTIMIZE") {
          opt.optimize=1;
-         if (val=="FAST") {
+         if (val=="NONE") opt.optimize=0;
+         else if (val=="FAST") {
            opt.optimize_mode=0;
          } else if (val=="NORMAL") {
            opt.optimize_mode=1;
@@ -217,8 +222,8 @@ int CmdLine::Process()
          if (mySac.OpenWrite(soutputfile)==0) {
            std::cout << "ok\n";
            std::cout << "  Profile: ";
-           if (opt.profile==0) std::cout << "Normal";
-           else if (opt.profile==1) std::cout << "High";
+           if (opt.profile==0) std::cout << "normal";
+           else if (opt.profile==1) std::cout << "high";
            if (opt.optimize) {
             switch (opt.optimize_mode) {
               case 0: std::cout << " (optimize fast)";break;
@@ -229,6 +234,7 @@ int CmdLine::Process()
               default: std::cout << " (unknown profile)";break;
             }
            }
+           if (opt.sparse_pcm) std::cout << ", sparse-pcm";
            std::cout << std::endl;
            Codec myCodec;
 

@@ -14,7 +14,7 @@ class DDS : public Opt {
       defparam.resize(n);
       for (int i=0;i<n;i++) {defparam[i].xmin=0;defparam[i].xmax=1;};
     }
-    DDS(const param_const &defparam)
+    DDS(const param_box &defparam)
     :n(defparam.size()),defparam(defparam)
     {
 
@@ -61,7 +61,7 @@ class DDS : public Opt {
       return Reflect(xnew,xmin,xmax);
     }
     int n;
-    param_const defparam;
+    param_box defparam;
 };
 
 #endif // DDS_H
