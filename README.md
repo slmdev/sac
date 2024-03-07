@@ -13,30 +13,30 @@ Matt Mahoney, Dmitry Shkarin, Eugene D. Shelwien, Florin Ghido
 ## Benchmark
 |Program|Parameters|Source|
 |:-|:-|:-|
-|SAC v0.6.7|--veryhigh|open|
+|SAC v0.6.9|--veryhigh|open|
 |OFR v5.100|--preset max|closed|
-|paq8px_v181fix1|-6|open|
+|paq8px_v208fix1|-6|open|
 |MAC v10.44|--insane|open|
 
 Numbers are bits per sample (smaller is better)
 
 | Name  | SAC | OFR | paq8px | MAC |
 |:---|---:|---:|---:|---:|
-|ATrain|7.044|7.156|7.376|7,269|
-|BeautySlept|7.463|7.790|7.846|8,464|
-|chanchan|9.698|9.778|9.740|9,951|
-|death2|5.089|5.465|5.224|6,213|
-|experiencia|10.872|10.915|10.985|11,005|
-|female_speech|4.387|4.498|4.691|5,190|
-|FloorEssence|9.117|9.409|9.506|9,537|
-|ItCouldBeSweet|8.201|8.310|8.362|8,531|
-|Layla|9.551|9.571|9.742|9,783|
-|LifeShatters|10.771|10.808|10.890|10,838|
-|macabre|9.001|9.026|9.266|9,172|
-|male_speech|4.289|4.256|4.532|5,255|
-|SinceAlways|10.345|10.409|10.479|10,522|
-|thear1|11.386|11.400|11.496|11,451|
-|TomsDiner|6.999|7.108|7.087|7,432|
-|velvet|9.810|9.990|10.059|10,461|
-|*Mean*|**8.377**|8.493|8.580|8,817|
+|ATrain|7.038|7.156|7.353|7,269|
+|BeautySlept|7.450|7.790|7.826|8,464|
+|chanchan|9.695|9.778|9.723|9,951|
+|death2|5.085|5.465|5.215|6,213|
+|experiencia|10.871|10.915|10.963|11,005|
+|female_speech|4.383|4.498|4.708|5,190|
+|FloorEssence|9.110|9.409|9.488|9,537|
+|ItCouldBeSweet|8.196|8.310|8.330|8,531|
+|Layla|9.542|9.571|9.725|9,783|
+|LifeShatters|10.771|10.808|10.868|10,838|
+|macabre|9.001|9.026|9.249|9,172|
+|male_speech|4.292|4.256|4.509|5,255|
+|SinceAlways|10.344|10.409|10.455|10,522|
+|thear1|11.383|11.400|11.474|11,451|
+|TomsDiner|6.997|7.108|7.057|7,432|
+|velvet|9.768|9.990|10.030|10,461|
+|*Mean*|**8.370**|8.493|8.561|8,817|
 
