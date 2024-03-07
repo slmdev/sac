@@ -2,7 +2,6 @@
 #define LMS_CASCADE_H
 
 #include "lms.h"
-#include "nnp.h"
 
 class LMSCascade {
   public:
