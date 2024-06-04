@@ -46,6 +46,7 @@ class RollBuffer {
       else if (idx<0) idx+=n;
       return idx;
     }
+    const std::vector<T> &getbuf() {return buf;};
   private:
     int n,pos;
     std::vector <T> buf;

@@ -14,7 +14,7 @@ class NLMS_ROLL {
   }
   public:
     NLMS_ROLL(int n,double mu,double mu_decay=1.0,double pow_decay=0.8)
-    :n(n),x(n),w(n),dw(n),mutab(n),powtab(n),mu(mu)
+    :n(n),x(n),w(n),mutab(n),powtab(n),mu(mu)
     {
       sum_powtab=0;
       for (int i=0;i<n;i++) {
@@ -36,8 +36,7 @@ class NLMS_ROLL {
       }
       const double wgrad=(val-pred)*sum_powtab/(eps_pow+spow);
       for (int i=0;i<n;i++) {
-        dw[i]=(mu*mutab[i]*wgrad*x[i]); //+mom*dw[i];
-        w[i]+=dw[i];
+        w[i]+=mu*mutab[i]*(wgrad*x[i]);
       }
       x.PushBack(val);
     };
@@ -45,7 +44,7 @@ class NLMS_ROLL {
   protected:
     int n;
     RollBuffer <double>x;
-    vec1D w,dw,mutab,powtab;
+    vec1D w,mutab,powtab;
     double pred,sum_powtab;
     double mu;
 };

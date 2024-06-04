@@ -168,6 +168,8 @@ int CmdLine::Parse(int argc,char *argv[])
        else if (key=="--SPARSE-PCM") {
           if (val.length()) opt.sparse_pcm=stoi(val);
           else opt.sparse_pcm=1;
+       } else if (key=="--STEREO-MS") {
+        opt.stereo_ms=1;
        } else std::cout << "warning: unknown option '" << param << "'\n";
     } else {
        if (first) {sinputfile=param;first=false;}

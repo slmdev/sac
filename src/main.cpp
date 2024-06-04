@@ -1,6 +1,8 @@
 #include "cmdline.h"
 
-#define SAC_VERSION "0.6.9"
+#define SAC_VERSION "0.7.2"
+
+
 
 int main(int argc,char *argv[])
 {

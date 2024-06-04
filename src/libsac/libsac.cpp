@@ -1,9 +1,8 @@
+#include <algorithm>
 #include "libsac.h"
 #include "pred.h"
-#include "../opt/dds.h"
 #include "../common/timer.h"
-
-
+#include "../opt/dds.h"
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 :pr_stages(numchannels, framesize),numchannels_(numchannels),framesize_(framesize),opt(opt)
@@ -100,8 +99,9 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
   param.lambda0=param.lambda1=profile.Get(0);
   param.ols_nu0=param.ols_nu1=profile.Get(1);
   param.mix_nu0=param.mix_nu1=1.0;
-  param.bias_scale0=param.bias_scale1=32;
+  param.bias_scale=32;
   param.bias_mu0 = param.bias_mu1 = 0.0015;
+  //param.lpc_scale=0.0;
 
   if (profile.type==0) {
     //param.vn={256,32,4};
@@ -125,29 +125,30 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
     param.nS0=round(profile.Get(28));
     param.nS1=round(profile.Get(29));
 
-    param.beta_sum0=profile.Get(30);
-    param.beta_pow0=profile.Get(31);
-    param.beta_add0=profile.Get(32);
+    param.beta_sum0=param.beta_sum1=profile.Get(30);
+    param.beta_pow0=param.beta_pow1=profile.Get(31);
+    param.beta_add0=param.beta_add1=profile.Get(32);
 
-    param.bias_scale0=param.bias_scale1=round(profile.Get(33));
+    param.bias_scale=profile.Get(33);
 
     param.mix_nu0=param.mix_nu1=profile.Get(34);
+
   } else if (profile.type==1) {
     param.vn0={(int)round(profile.Get(28)),(int)round(profile.Get(29)),(int)round(profile.Get(30)),(int)round(profile.Get(37))};
     param.vn1={(int)round(profile.Get(31)),(int)round(profile.Get(32)),(int)round(profile.Get(33)),(int)round(profile.Get(38))};
     //param.vn1={(int)round(profile.Get(28)),(int)round(profile.Get(29)),(int)round(profile.Get(30)),(int)round(profile.Get(37))};
 
     param.vmu0={profile.Get(2)/double(param.vn0[0]),profile.Get(3)/double(param.vn0[1]),profile.Get(4)/double(param.vn0[2]),profile.Get(5)/double(param.vn0[3])};
-    param.vmudecay0={profile.Get(6),profile.Get(39),profile.Get(39),profile.Get(39)};
-    param.vpowdecay0={profile.Get(7),profile.Get(8),profile.Get(9),profile.Get(9)};
+    param.vmudecay0={profile.Get(6),profile.Get(39),profile.Get(46),profile.Get(47)};
+    param.vpowdecay0={profile.Get(7),profile.Get(8),profile.Get(50),profile.Get(51)};
     param.mu_mix0=profile.Get(10);
     param.mu_mix_beta0=profile.Get(11);
 
     param.lambda1=profile.Get(12);
     param.ols_nu1=profile.Get(13);
     param.vmu1={profile.Get(14)/double(param.vn1[0]),profile.Get(15)/double(param.vn1[1]),profile.Get(16)/double(param.vn1[2]),profile.Get(17)/double(param.vn1[3])};
-    param.vmudecay1={profile.Get(18),profile.Get(40),profile.Get(40),profile.Get(40)};
-    param.vpowdecay1={profile.Get(19),profile.Get(20),profile.Get(21),profile.Get(21)};
+    param.vmudecay1={profile.Get(18),profile.Get(40),profile.Get(48),profile.Get(49)};
+    param.vpowdecay1={profile.Get(19),profile.Get(20),profile.Get(21),profile.Get(52)};
     param.mu_mix1=profile.Get(22);
     param.mu_mix_beta1=profile.Get(23);
 
@@ -160,11 +161,17 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
     param.beta_pow0=profile.Get(35);
     param.beta_add0=profile.Get(36);
 
+    param.beta_sum1=profile.Get(34);
+    param.beta_pow1=profile.Get(35);
+    param.beta_add1=profile.Get(36);
+
     param.mix_nu0=profile.Get(41);
     param.mix_nu1=profile.Get(42);
 
     param.bias_mu0=profile.Get(43);
     param.bias_mu1=profile.Get(44);
+
+    param.bias_scale=round(profile.Get(45));
   }
 }
 
@@ -183,7 +190,7 @@ void FrameCoder::RemapError(int ch, int numsamples)
     framestats[ch].maxbpn_map=MathUtils::iLog2(emax_map);
 }
 
-double Cost_L1(const vec1D &src_e, int numsamples)
+/*double Cost_L1(const vec1D &src_e, int numsamples)
 {
   double sum=0.0;
   if (numsamples) {
@@ -194,7 +201,7 @@ double Cost_L1(const vec1D &src_e, int numsamples)
     sum /= double(numsamples);
   }
   return sum;
-}
+}*/
 
 void FrameCoder::PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int from,int numsamples,bool optimize)
 {
@@ -406,13 +413,15 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
     RemapError(1,numsamples);
     int size_normal=EncodeMonoFrame_Normal(ch,numsamples,enc_temp1[ch]);
     int size_mapped=EncodeMonoFrame_Mapped(ch,numsamples,enc_temp2[ch]);
+    if (opt.verbose_level>0) {
+      std::cout << "block " << size_normal << ",map " << size_mapped << '\n';
+    }
     if (size_normal<size_mapped)
     {
       //std::cout << "block: normal\n";
       framestats[ch].enc_mapped=false;
       encoded[ch]=enc_temp1[ch];
     } else {
-      //std::cout << "block: sparse\n";
       framestats[ch].enc_mapped=true;
       encoded[ch]=enc_temp2[ch];
     }
@@ -455,24 +464,36 @@ void PrintProfile(int iprofile, SacProfile &profile)
     Predictor::tparam param;
     SetParam(param,profile);
 
-    if (iprofile==1) {
-    std::cout << '\n';
-    std::cout << "lpc ";
-    for (int i=24;i<=27;i++) std::cout << std::round(profile.Get(i)) << ' ';
-    std::cout << '\n';
-    std::cout << "lms0 ";
-    for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
-    std::cout << std::round(profile.Get(37));
-    std::cout << '\n';
-    std::cout << "lms1 ";
-    for (int i=31;i<=33;i++) std::cout << std::round(profile.Get(i)) << ' ';
-    std::cout << std::round(profile.Get(38));
-    std::cout << '\n';
+    if (iprofile==0) {
+      std::cout << "lpc ";
+      std::cout << "nA " << std::round(profile.Get(26)) << ' ' << "nB " << std::round(profile.Get(27)) << ' ';
+      std::cout << "nS0 " << std::round(profile.Get(28)) << ' ' << "nS1 " << std::round(profile.Get(29)) << '\n';
+    } else if (iprofile==1) {
+      std::cout << '\n';
+      std::cout << "lpc ";
+      std::cout << "nA " << std::round(profile.Get(24)) << ' ' << "nB " << std::round(profile.Get(25)) << ' ';
+      std::cout << "nS0 " << std::round(profile.Get(26)) << ' ' << "nS1 " << std::round(profile.Get(27)) << '\n';
+      std::cout << "lms0 ";
+      for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
+      std::cout << std::round(profile.Get(37));
+      std::cout << '\n';
+      std::cout << "lms1 ";
+      for (int i=31;i<=33;i++) std::cout << std::round(profile.Get(i)) << ' ';
+      std::cout << std::round(profile.Get(38));
+      std::cout << '\n';
+      std::cout << "mu_decay ";
+      for (auto &x : param.vmudecay0)
+        std::cout << x << ' ';
+      std::cout << '\n';
+      std::cout << "pow_decay ";
+      for (auto &x : param.vpowdecay0)
+        std::cout << x << ' ';
+      std::cout << '\n';
     }
     std::cout << "mu-nu " << param.mix_nu0 << ", " << param.mix_nu1 << "\n";
-    std::cout << "bias\n";
-    std::cout << "scale0=" << param.bias_scale0 << ",scale1=" << param.bias_scale1 << '\n';
-    std::cout << "mu0=" << param.bias_mu0 << ",mu1=" << param.bias_mu1 << "\n";
+    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << ", scale " << param.bias_scale << "\n";
+    std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
+    std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
 }
 
 void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize)
@@ -497,22 +518,31 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 
   if (opt.optimize_search==opt.SearchMethod::DDS) {
     const int ndim=params_to_optimize.size();
-    vec1D param(ndim); // starting vector
-    Opt::param_box box_param(ndim); // set constraints
+    vec1D xstart(ndim); // starting vector
+    Opt::box_const pb(ndim); // set constraints
     for (int i=0;i<ndim;i++) {
-      box_param[i].xmin=profile.coefs[params_to_optimize[i]].vmin;
-      box_param[i].xmax=profile.coefs[params_to_optimize[i]].vmax;
-      param[i]=profile.coefs[params_to_optimize[i]].vdef;
+      pb[i].xmin=profile.coefs[params_to_optimize[i]].vmin;
+      pb[i].xmax=profile.coefs[params_to_optimize[i]].vmax;
+      xstart[i]=profile.coefs[params_to_optimize[i]].vdef;
+      //std::cout << pb[i].xmin << ' ' << pb[i].xmax << ' ' << xstart[i] << '\n';
     }
 
-    auto f=[&](const vec1D &x) {
+    auto cost_func=[&](const vec1D &x) {
       for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x[i];
       return GetCost(profile,CostFunc,start_pos,samples_to_optimize);
     };
 
-    DDS dds(box_param);
-    Opt::opt_ret opt_ret=dds.Run(0.15,opt.optimize_maxnfunc,param,f);
-    for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=opt_ret.second[i]; // save optimal vector
+
+    //Opt::opt_ret ret;
+
+    DDS dds(pb);
+
+    if (opt.verbose_level>0) std::cout << "\nDDS " << opt.optimize_maxnfunc << "= ";
+    auto ret = dds.run(cost_func,xstart,opt.optimize_maxnfunc,opt.dds_search_radius);
+    if (opt.verbose_level>0) std::cout << ret.first << "\n";
+
+    const vec1D x_p = ret.second;
+    for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
   }
 
   if (opt.verbose_level>0) {
@@ -525,26 +555,59 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 void Codec::SetOptimizeParam(FrameCoder::coder_ctx &opt)
 {
   opt.optimize_fraction=0.25;
+  opt.dds_search_radius=0.15;
   opt.optimize_cost=opt.SearchCost::Entropy;
   opt.optimize_search=opt.SearchMethod::DDS;
+
   if (opt.optimize_mode==0) {
-    opt.optimize_maxnfunc=100;
-    opt.optimize_fraction=0.25;
+    opt.optimize_maxnfunc=150;
+    opt.optimize_fraction=0.20;
   } else if (opt.optimize_mode==1) {
-    opt.optimize_maxnfunc=250;
-    opt.optimize_fraction=0.3;
+    opt.optimize_maxnfunc=500;
+    opt.optimize_fraction=0.20;
   } else if (opt.optimize_mode==2) {
-    opt.optimize_maxnfunc=600;
-    opt.optimize_fraction=0.5;
-  } else if (opt.optimize_mode==3) {
     opt.optimize_maxnfunc=1000;
-    opt.optimize_fraction=0.7;
+    opt.optimize_fraction=0.50;
+  } else if (opt.optimize_mode==3) {
+    opt.optimize_maxnfunc=1500;
+    opt.optimize_fraction=0.70;
   } else if (opt.optimize_mode==4) { // insane
     opt.optimize_cost=opt.SearchCost::Bitplane;
     opt.optimize_maxnfunc=2000;
     opt.optimize_fraction=1.0;
   } else if (opt.optimize_mode==5) { // bias-param
     opt.optimize_maxnfunc=100;
+  }
+}
+
+double FrameCoder::AnalyseStereoChannel(int ch0, int ch1, int numsamples)
+{
+  int32_t *src0=&(samples[ch0][0]);
+  int32_t *src1=&(samples[ch1][0]);
+  int64_t sum0=0,sum1=0,sum_m=0,sum_s=0;
+  for (int i=0;i<numsamples;i++) {
+    sum0+=fabs(src0[i]);
+    sum1+=fabs(src1[i]);
+    int32_t m=(src0[i]+src1[i]) / 2;
+    int32_t s=(src0[i]-src1[i]);
+
+    sum_m+=fabs(m);
+    sum_s+=fabs(s);
+  }
+  int64_t c0 = sum0+sum1;
+  int64_t c1 = sum_m+sum_s;
+  return double(c0) / double(c1);
+}
+
+void FrameCoder::ApplyMs(int ch0, int ch1, int numsamples)
+{
+  int32_t *src0=&(samples[ch0][0]);
+  int32_t *src1=&(samples[ch1][0]);
+  for (int i=0;i<numsamples;i++) {
+    int32_t m=(src0[i]+src1[i]) / 2;
+    int32_t s=(src0[i]-src1[i]);
+    src0[i]=m;
+    src1[i]=s;
   }
 }
 
@@ -573,6 +636,9 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
   }
 }
 
+
+
+
 void FrameCoder::Predict()
 {
   for (int ch=0;ch<numchannels_;ch++)
@@ -581,6 +647,16 @@ void FrameCoder::Predict()
     AnalyseMonoChannel(ch,numsamples_);
     framestats[ch].mymap.Reset();
     framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
+  }
+
+  if (opt.stereo_ms==1 && numchannels_==2) {
+     double r=AnalyseStereoChannel(0,1,numsamples_);
+     if (opt.verbose_level>0) {
+       std::cout << "ms-r " << r << '\n';
+     }
+     if (r > 1.5) {
+       ApplyMs(0,1,numsamples_);
+     }
   }
 
   if (opt.optimize)
@@ -592,22 +668,13 @@ void FrameCoder::Predict()
       else if (opt.profile==1) LoadProfileHigh(base_profile);
     }
     if (opt.profile==0) {
-       std::vector<int>lparam{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,34};
-       Optimize(base_profile,lparam);
-    } else if (opt.profile==1) {
-
-       std::vector<int>lparam(base_profile.coefs.size()); //{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+       std::vector<int>lparam(base_profile.coefs.size());
        std::iota(std::begin(lparam),std::end(lparam),0);
        Optimize(base_profile,lparam);
-       #if 0
-       int mode = opt.optimize_mode;
-       opt.optimize_mode = 5;
-       Codec::SetOptimizeParam(opt);
-       lparam = {39,44,45};
-       Optimize(baseprofile,lparam);
-       opt.optimize_mode = mode;
-       Codec::SetOptimizeParam(opt);
-       #endif // 1
+    } else if (opt.profile==1) {
+       std::vector<int>lparam(base_profile.coefs.size());
+       std::iota(std::begin(lparam),std::end(lparam),0);
+       Optimize(base_profile,lparam);
      }
   }
   if (numchannels_==2) {
@@ -814,7 +881,6 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
   std::cout << std::dec << '\n';
 
   std::streampos eofpos = mySac.file.tellg();
-  //std::cout << eofpos << '\n';
   mySac.file.seekg(hdrpos);
   mySac.WriteMD5(myWav.md5ctx.digest);
   mySac.file.seekg(eofpos);

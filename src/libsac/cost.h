@@ -52,6 +52,7 @@ class CostGolomb : public CostFunction {
     RunExp mean_err;
 };
 
+// entropy using order-0 markov model
 class CostEntropyO0 : public CostFunction {
   public:
     CostEntropyO0(){};
@@ -65,7 +66,6 @@ class CostEntropyO0 : public CostFunction {
         e[i]=MathUtils::S2U(buf[i]);
         if (e[i]>imax) imax=e[i];
       }
-
       counts.resize(imax+1);
       for (int i=0;i<numsamples;i++) {
         counts[e[i]]++;
@@ -73,6 +73,7 @@ class CostEntropyO0 : public CostFunction {
       double entropy=0.0;
       for (int i=0;i<numsamples;i++) {
         double p=counts[e[i]]/double(numsamples);
+
         entropy+=p*log(p);
       }
       return entropy;

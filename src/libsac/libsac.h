@@ -38,7 +38,7 @@ class FrameCoder {
   public:
     struct coder_ctx {
       enum SearchCost {L1,Entropy,Golomb,Bitplane};
-      enum SearchMethod {DDS};
+      enum SearchMethod {CMA,DDS};
       int profile=0;
       int optimize=0;
       int sparse_pcm=0;
@@ -46,9 +46,11 @@ class FrameCoder {
       int optimize_mode=0;
       int verbose_level=0;
       int reset_profile=0;
+      int stereo_ms=0;
       SearchMethod optimize_search=DDS;
       SearchCost optimize_cost=L1;
       double optimize_fraction=0;
+      double dds_search_radius=0;
       SacProfile profiledata;
     };
     FrameCoder(int numchannels,int framesize,const coder_ctx &opt);
@@ -71,6 +73,8 @@ class FrameCoder {
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
     void DecodeProfile(SacProfile &profile,const std::vector <uint8_t>&buf);
     void AnalyseMonoChannel(int ch, int numsamples);
+    double AnalyseStereoChannel(int ch0, int ch1, int numsamples);
+    void ApplyMs(int ch0, int ch1, int numsamples);
     //void InterChannel(int ch0,int ch1,int numsamples);
     int EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf);
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);

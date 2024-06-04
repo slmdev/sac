@@ -33,7 +33,6 @@ class OLS {
       T err=val-pred;
       esum.Update(fabs(err));
       double c0=pow(esum.Get()+beta_add,-beta_pow);
-      //double c0=1.0-lambda;
 
       for (int j=0;j<n;j++) {
         for (int i=0;i<n;i++) mcov[j][i]=lambda*mcov[j][i]+c0*(x[j]*x[i]);
@@ -50,24 +49,19 @@ class OLS {
   //private:
     int Factor(const vec2D &mcov)
     {
+      //std::cout << t << ' ' << nu << '\n';
       mchol=mcov; // copy the matrix
       for (int i=0;i<n;i++) mchol[i][i]+=nu;
-      /*for (int j=0;j<n;j++)
-        for (int i=0;i<n;i++) {
-          mchol[j][i]=beta_pow*mchol[j][i];
-          if (j==i) mchol[i][i]+=(1.0-beta_pow);
-      }*/
 
       #if 1
       for (int i=0;i<n;i++) {
         for (int j=0;j<=i;j++) {
           T sum=mchol[i][j];
           for (int k=0;k<j;k++) sum-=(mchol[i][k]*mchol[j][k]);
-          if (i>j) mchol[i][j]=sum/mchol[j][j];
-          else {
+          if (i==j) {
             if (sum>ftol) mchol[i][i]=sqrt(sum);
             else return 1;
-          }
+          } else mchol[i][j]=sum/mchol[j][j];
         }
       }
       #else
@@ -80,7 +74,7 @@ class OLS {
         T sum=mchol[i][i];
         for (int k=0;k<i;k++) sum-=(mchol[i][k]*mchol[i][k]);
         if (sum>ftol) mchol[i][i]=sqrt(sum);
-        else return 1; // matrix indefinit
+        else return 1;
       }
       #endif
       return 0;

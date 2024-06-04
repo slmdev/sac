@@ -19,7 +19,7 @@ void LoadProfileNormal(SacProfile &profile)
     profile.Set(12,0.8,0.9999,0.95); //mu-mix-beta
 
     profile.Set(13,0.99,0.9999,0.998); // ols-lambda
-    profile.Set(14,0.001,2.0,0.001);//ols-nu
+    profile.Set(14,0.001,10.0,0.001);//ols-nu
     profile.Set(15,0.00001,0.008,0.0008);//mu0
     profile.Set(16,0.00008,0.008,0.002);//mu1
     profile.Set(17,0.0001,0.05,0.008);//mu2
@@ -41,7 +41,7 @@ void LoadProfileNormal(SacProfile &profile)
     profile.Set(31,0.8,2,0.8);//ols-order
     profile.Set(32,0,10,2);//ols-order
 
-    profile.Set(33,16,64,32);//bias-scale
+    profile.Set(33,32,64,32);//bias_scale
 
     profile.Set(34,0.1,1.0,1.0);//mix_nu
 }
@@ -50,10 +50,10 @@ void LoadProfileHigh(SacProfile &profile)
 {
     const int mo_lpc=32; // maximum ols order
 
-    profile.Init(45,1);
+    profile.Init(53,1);
 
     profile.Set(0,0.99,0.9999,0.998);
-    profile.Set(1,0.001,2.0,0.001);
+    profile.Set(1,0.001,10.0,0.001);
 
     profile.Set(2,0.001,1.0,0.1);//mu0
     profile.Set(3,0.001,1.0,0.12);//mu1
@@ -68,7 +68,7 @@ void LoadProfileHigh(SacProfile &profile)
     profile.Set(11,0.8,0.9999,0.95);//mu-mix-beta
 
     profile.Set(12,0.99,0.9999,0.998);
-    profile.Set(13,0.001,2.0,0.001);
+    profile.Set(13,0.001,10.0,0.001);
 
     profile.Set(14,0.001,1.0,0.1);//mu0
     profile.Set(15,0.001,1.0,0.12);//mu1
@@ -84,8 +84,8 @@ void LoadProfileHigh(SacProfile &profile)
 
     profile.Set(24,4,mo_lpc,16);//ols-order
     profile.Set(25,4,mo_lpc,16);//ols-order
-    profile.Set(26,4,mo_lpc,8);//ols-order
-    profile.Set(27,4,mo_lpc,8);//ols-order
+    profile.Set(26,0,mo_lpc,8);//ols-order
+    profile.Set(27,0,mo_lpc,8);//ols-order
 
     profile.Set(28,256,4096,1280);
     profile.Set(29,32,512,256);
@@ -108,6 +108,17 @@ void LoadProfileHigh(SacProfile &profile)
     profile.Set(41,0.1,1.0,1.0); // nu-mix0
     profile.Set(42,0.1,1.0,1.0); // nu-mix1
 
-    profile.Set(43,0.001,0.005,0.0015);//bias-mu0
-    profile.Set(44,0.001,0.005,0.0015);//bias-mu1
+    profile.Set(43,0.001,0.005,0.0015);//bc-mu0
+    profile.Set(44,0.001,0.005,0.0015);//bc-mu1
+
+    profile.Set(45,32,64,32);//bias scale
+
+    profile.Set(46,0.98,1,1.0); // mu_decay
+    profile.Set(47,0.98,1,1.0); // mu_decay
+    profile.Set(48,0.98,1,1.0); // mu_decay
+    profile.Set(49,0.98,1,1.0); // mu_decay
+
+    profile.Set(50,0.0,1.0,0.8); //pow_decay
+    profile.Set(51,0.0,1.0,0.8); //pow_decay
+    profile.Set(52,0.0,1.0,0.8); //pow_decay
 }

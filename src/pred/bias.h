@@ -71,12 +71,13 @@ class BiasEstimator {
   }
 
   public:
-    BiasEstimator(double mu=0.003,int cnt_scale=32,double nd_sigma=1.5,double nd_lambda=0.998)
+    BiasEstimator(double lms_mu=0.003,int cnt_scale=32,double nd_sigma=1.5,double nd_lambda=0.998)
     :
-    mix_ada(32,SSLMS(3,mu)),
+    mix_ada(32,SSLMS(4,lms_mu)),
     hist_input(8),hist_delta(8),
     bias(1<<20),
-    cnt_freq(1<<20,cnt_scale),sigma(nd_sigma),lambda(nd_lambda)
+    cnt_freq(1<<20,cnt_scale), //,f0(1,cnt_scale),
+    sigma(nd_sigma),lambda(nd_lambda)
     //sp(2,0.001)
     //nn(2,1)
     {
@@ -102,10 +103,10 @@ class BiasEstimator {
       int b11=3*hist_input[0]-3*hist_input[1]+hist_input[2]>p?0:1;
 
       double t=(fabs(hist_delta[0])+fabs(hist_delta[1])+fabs(hist_delta[2])+fabs(hist_delta[3])+fabs(hist_delta[4]))/5.;
+
       mix_ctx=0;
       if (t>512) mix_ctx=2;
       else if (t>32) mix_ctx=1;
-      else mix_ctx=0;
 
       //int c0=fabs(hist_delta[0])>t?1:0;
       //int c1=fabs(hist_delta[1])>t?1:0;
@@ -159,13 +160,16 @@ class BiasEstimator {
       miscUtils::RollBack(hist_input,val);
       miscUtils::RollBack(hist_delta,delta);
 
-      const double lb=mean_est-sigma*sqrt(var_est);
-      const double ub=mean_est+sigma*sqrt(var_est);
+      const double q=sigma*sqrt(var_est);
+      const double lb=mean_est-q;
+      const double ub=mean_est+q;
 
       if ( (delta>lb) && (delta<ub)) {
         cnt_freq.UpdateBias(ctx0,delta);
         cnt_freq.UpdateBias(ctx1,delta);
         cnt_freq.UpdateBias(ctx2,delta);
+
+        //f0.UpdateBias(0,delta);
       }
 
       mix_ada[mix_ctx].Update(delta);
@@ -184,6 +188,7 @@ class BiasEstimator {
     //double alpha,p,bias0,bias1,bias2;
     vec1D bias;
     CntAvg cnt_freq;
+    //CntAvg f0;
     double mean_est,var_est,sigma,lambda;
     //LAD_ADA sp;
     //MLP_VEC nn;
