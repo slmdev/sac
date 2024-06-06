@@ -13,7 +13,7 @@ CmdLine::CmdLine()
   opt.optimize_mode=0;
 }
 
-void CmdLine::PrintInfo(const AudioFile &myWav)
+void CmdLine::PrintWav(const AudioFile &myWav)
 {
   std::cout << "  WAVE  Codec: PCM (" << myWav.getKBPS() << " kbps)\n";
   std::cout << "  " << myWav.getSampleRate() << "Hz " << myWav.getBitsPerSample() << " Bit  ";
@@ -23,6 +23,26 @@ void CmdLine::PrintInfo(const AudioFile &myWav)
   std::cout << "\n";
   std::cout << "  " << myWav.getNumSamples() << " Samples [" << miscUtils::getTimeStrFromSamples(myWav.getNumSamples(),myWav.getSampleRate()) << "]\n";
 }
+
+void CmdLine::PrintMode()
+{
+  std::cout << "  Profile: ";
+  if (opt.profile==0) std::cout << "normal";
+  else if (opt.profile==1) std::cout << "high";
+  if (opt.optimize) {
+    switch (opt.optimize_mode) {
+      case 0: std::cout << " (optimize fast)";break;
+      case 1: std::cout << " (optimize normal)";break;
+      case 2: std::cout << " (optimize high)";break;
+      case 3: std::cout << " (optimize very high)";break;
+      case 4: std::cout << " (optimize insane)";break;
+      default: std::cout << " (unknown profile)";break;
+    }
+  }
+  if (opt.sparse_pcm) std::cout << ", sparse-pcm";
+  std::cout << std::endl;
+}
+
 
 void CmdLine::Split(const std::string &str,std::string &key,std::string &val,const char splitval)
 {
@@ -180,64 +200,32 @@ int CmdLine::Parse(int argc,char *argv[])
   return 0;
 }
 
-/*#include "common/md5.h"
-void MD5Test()
-{
-  MD5::MD5Context ctx;
-  MD5::Init(&ctx);
-  //md5 '123'=202cb962ac59075b964b07152d234b70
-  std::vector<uint8_t> x={'1','2','3'};
-  MD5::Update(&ctx,&x[0],3);
-  std::vector <uint8_t> out(16);
-  MD5::Finalize(&ctx);
-  for (auto x : ctx.digest) std::cout << std::hex << (int)x;
-  std::cout << '\n';
-}*/
-
 int CmdLine::Process()
 {
   Timer myTimer;
   myTimer.start();
 
-  /*std::string fname_cfg="sac.cfg";
-  if (ReadConfig(fname_cfg)>0) {
-    std::cerr << "could not open: " << fname_cfg << '\n';
-    return 1;
-  } else {
-    return 0;
-  }*/
-
   if (mode==ENCODE) {
-    Wav myWav(false);
+    Wav myWav(opt.verbose_level>0);
     std::cout << "Open: '" << sinputfile << "': ";
     if (myWav.OpenRead(sinputfile)==0) {
       std::cout << "ok (" << myWav.getFileSize() << " Bytes)\n";
       if (myWav.ReadHeader()==0) {
-         if (myWav.getBitsPerSample()!=16 || myWav.getNumChannels()!=2) {
-            std::cout << "Unsupported input format." << std::endl;
+         PrintWav(myWav);
+
+         bool fsupp=(myWav.getBitsPerSample()<=16) && ( (myWav.getNumChannels()==2) || (myWav.getNumChannels()==1));
+         if (!fsupp)
+         {
+            std::cerr << "unsupported input format" << std::endl;
+            std::cerr << "must be 1-16 bit, mono/stereo, PCM" << std::endl;
             myWav.Close();
             return 1;
          }
-         PrintInfo(myWav);
          Sac mySac(myWav);
          std::cout << "Create: '" << soutputfile << "': ";
          if (mySac.OpenWrite(soutputfile)==0) {
            std::cout << "ok\n";
-           std::cout << "  Profile: ";
-           if (opt.profile==0) std::cout << "normal";
-           else if (opt.profile==1) std::cout << "high";
-           if (opt.optimize) {
-            switch (opt.optimize_mode) {
-              case 0: std::cout << " (optimize fast)";break;
-              case 1: std::cout << " (optimize normal)";break;
-              case 2: std::cout << " (optimize high)";break;
-              case 3: std::cout << " (optimize very high)";break;
-              case 4: std::cout << " (optimize insane)";break;
-              default: std::cout << " (unknown profile)";break;
-            }
-           }
-           if (opt.sparse_pcm) std::cout << ", sparse-pcm";
-           std::cout << std::endl;
+           PrintMode();
            Codec myCodec;
 
            myCodec.EncodeFile(myWav,mySac,opt);
@@ -267,7 +255,7 @@ int CmdLine::Process()
         double bps=(static_cast<double>(FileSizeSAC)*8.0)/static_cast<double>(mySac.getNumSamples()*mySac.getNumChannels());
         int kbps=round((mySac.getSampleRate()*mySac.getNumChannels()*bps)/1000);
         mySac.setKBPS(kbps);
-        PrintInfo(mySac);
+        PrintWav(mySac);
         std::cout << "  Profile: ";
         switch (mySac.GetProfile()) {
           case 0:std::cout << "Normal";break;

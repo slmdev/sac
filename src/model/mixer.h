@@ -66,7 +66,7 @@ class NMixLogistic
   uint8_t n;
   public:
     NMixLogistic(int n)
-    :x(n),w(n),n(n)
+    :x(n),w(n),pd(0),n(n)
      {
        Init(0);
      };

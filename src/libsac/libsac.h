@@ -81,9 +81,9 @@ class FrameCoder {
     void Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize);
     double GetCost(SacProfile &profile,CostFunction *func,int start_sample,int samples_to_optimize);
     void AnalyseChannel(int ch,int numsamples);
-    void PredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int from,int numsamples,bool optimize=false);
-    void UnpredictStereoFrame(const SacProfile &profile,int ch0,int ch1,int numsamples);
-    void RemapError(int ch, int numsamples);
+    void PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize=false);
+    void UnpredictFrame(const SacProfile &profile,int numsamples);
+    void CalcRemapError(int ch, int numsamples);
     void EncodeMonoFrame(int ch,int numsamples);
     void DecodeMonoFrame(int ch,int numsamples);
     int numchannels_,framesize_,numsamples_;
