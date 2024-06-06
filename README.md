@@ -9,7 +9,7 @@ Matt Mahoney, Dmitry Shkarin, Eugene D. Shelwien, Florin Ghido, Grzegorz Ulacha
 
 ## Technical Features
 * Input: wav file with 1-16 bit sample size, mono/stereo, PCM
-* Output: Sac file including all input metadata
+* Output: sac file including all input metadata
 * Decoded wav file is bit for bit identical to input wav file
 * MD5 of raw PCM values
  
