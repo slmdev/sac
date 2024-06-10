@@ -194,18 +194,27 @@ int Wav::ReadHeader()
 
           }
           kbps=(samplerate*numchannels*bitspersample)/1000;
-
           if (audioformat!=1) {std::cerr << "warning: only PCM Format supported\n";return 1;};
         }
       } else if (chunkid==0x61746164) { // 'data' chunk
         myChunks.Append(chunkid,chunksize,NULL,0);
         datapos=file.tellg();
+
         numsamples=chunksize/blockalign;
         samplesleft=numsamples;
 
         endofdata=datapos+(std::streampos)(word_align(chunksize));
-        if (endofdata==filesize) {seektodatapos=false;break;} // if data chunk is last chunk, break
-        else {
+        //std::cout << endofdata << ' ' << filesize << '\n';
+        if (endofdata>=filesize) { // if data chunk is last chunk, break
+            if (endofdata>filesize) {
+              numsamples = (filesize-datapos) / blockalign;
+              samplesleft = numsamples;
+              std::cerr << "  warning: endofdata>filesize\n";
+              std::cerr << "  numsamples: " << numsamples << '\n';
+            }
+            seektodatapos=false;
+            break;
+        } else {
           int64_t pos=file.tellg();
           file.seekg(pos+chunksize);
         }
