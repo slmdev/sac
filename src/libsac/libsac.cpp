@@ -178,12 +178,11 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
 void FrameCoder::CalcRemapError(int ch, int numsamples)
 {
     int32_t emax_map=0;
-
     for (int i=0;i<numsamples;i++) {
       int32_t map_e=framestats[ch].mymap.Map(pred[ch][i],error[ch][i]);
-      int32_t map_es=MathUtils::S2U(map_e);
-      s2u_error_map[ch][i]=map_es;
-      if (map_es>emax_map) emax_map=map_es;
+      int32_t map_ue=MathUtils::S2U(map_e);
+      s2u_error_map[ch][i]=map_ue;
+      if (map_ue>emax_map) emax_map=map_ue;
     }
     framestats[ch].maxbpn_map=MathUtils::iLog2(emax_map);
 }
@@ -196,27 +195,29 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
   Predictor pr(param);
 
   // predict master channel
+  const auto *src0=&samples[0][from];
   for (int i=0;i<numsamples;i++) {
     double pd=pr.PredictMaster();
 
     int32_t p=clamp((int)std::round(pd),framestats[0].minval,framestats[0].maxval);
     pred[0][i]=p;
-    error[0][i]=samples[0][i]-p;
+    error[0][i]=src0[i]-p;
 
-    pr.UpdateMaster(samples[0][i]);
+    pr.UpdateMaster(src0[i]);
   }
 
   // predict slave channel
   if (numchannels_==2)
   {
+    const auto *src1=&samples[1][from];
     for (int i=0;i<numsamples;i++) {
-      double pd=pr.PredictSlave(&samples[0][0],i,numsamples);
+      double pd=pr.PredictSlave(src0,i,numsamples);
 
       int32_t p=clamp((int)std::round(pd),framestats[1].minval,framestats[1].maxval);
       pred[1][i]=p;
-      error[1][i]=samples[1][i]-p;
+      error[1][i]=src1[i]-p;
 
-      pr.UpdateSlave(samples[1][i]);
+      pr.UpdateSlave(src1[i]);
     }
   }
 
@@ -237,11 +238,6 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
   Predictor::tparam param;
   SetParam(param,profile,false);
   Predictor pr(param);
-
-  //const int32_t *src0=&(error[ch0][0]);
-  //const int32_t *src1=&(error[ch1][0]);
-  //int32_t *dst0=&(samples[ch0][0]);
-  //int32_t *dst1=&(samples[ch1][0]);
 
   // unpredict master
   for (int i=0;i<numsamples;i++) {
