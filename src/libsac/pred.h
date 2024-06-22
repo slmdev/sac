@@ -22,11 +22,6 @@ class Predictor {
       int bias_scale;
     };
     Predictor(const tparam &p);
-    double Predict_stage0_ch0();
-    void Update_stage0_ch0(double val);
-
-    double Predict_stage0_ch1(const int32_t *ch_master,int nsample,int numsamples);
-    void Update_stage0_ch1(double val);
 
     double PredictMaster();
     double PredictSlave(const int32_t *ch_master,int nsample,int numsamples);

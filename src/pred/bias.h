@@ -168,8 +168,6 @@ class BiasEstimator {
         cnt_freq.UpdateBias(ctx0,delta);
         cnt_freq.UpdateBias(ctx1,delta);
         cnt_freq.UpdateBias(ctx2,delta);
-
-        //f0.UpdateBias(0,delta);
       }
 
       mix_ada[mix_ctx].Update(delta);
@@ -188,10 +186,7 @@ class BiasEstimator {
     //double alpha,p,bias0,bias1,bias2;
     vec1D bias;
     CntAvg cnt_freq;
-    //CntAvg f0;
     double mean_est,var_est,sigma,lambda;
-    //LAD_ADA sp;
-    //MLP_VEC nn;
 };
 
 

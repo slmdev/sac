@@ -10,7 +10,11 @@ CmdLine::CmdLine()
   opt.profile=0;
   opt.optimize=0;
   opt.sparse_pcm=0;
-  opt.optimize_mode=0;
+  opt.reset_profile=0;
+
+  opt.dds_search_radius=0.15;
+  opt.optimize_cost=opt.SearchCost::Entropy;
+  opt.optimize_search=opt.SearchMethod::DDS;
 }
 
 void CmdLine::PrintWav(const AudioFile &myWav)
@@ -30,14 +34,8 @@ void CmdLine::PrintMode()
   if (opt.profile==0) std::cout << "normal";
   else if (opt.profile==1) std::cout << "high";
   if (opt.optimize) {
-    switch (opt.optimize_mode) {
-      case 0: std::cout << " (optimize fast)";break;
-      case 1: std::cout << " (optimize normal)";break;
-      case 2: std::cout << " (optimize high)";break;
-      case 3: std::cout << " (optimize very high)";break;
-      case 4: std::cout << " (optimize insane)";break;
-      default: std::cout << " (unknown profile)";break;
-    }
+      std::cout << " (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
+      std::cout << ",n=" << opt.optimize_maxnfunc<<")";
   }
   if (opt.sparse_pcm) std::cout << ", sparse-pcm";
   std::cout << std::endl;
@@ -54,8 +52,6 @@ void CmdLine::Split(const std::string &str,std::string &key,std::string &val,con
   } else {
     key=str;
   }
-  //std::cout << "'" << key << "':'" << val << "'\n";
-  //system("Pause");
 }
 
 
@@ -152,38 +148,37 @@ int CmdLine::Parse(int argc,char *argv[])
           else opt.verbose_level=1;
        }
        else if (key=="--NORMAL") opt.profile=0;
-       else if (key=="--HIGH")
-       {
+       else if (key=="--HIGH") {
          opt.profile=1;
          opt.optimize=1;
-         opt.optimize_mode=0;
+         opt.optimize_fraction=0.20;
+         opt.optimize_maxnfunc=150;
          opt.sparse_pcm=0;
        } else if (key=="--VERYHIGH") {
          opt.profile=1;
          opt.optimize=1;
-         opt.optimize_mode=2;
+         opt.optimize_fraction=0.50;
+         opt.optimize_maxnfunc=1000;
          opt.sparse_pcm=1;
        } else if (key=="--BEST") {
          opt.profile=1;
          opt.optimize=1;
-         opt.optimize_mode=3;
+         opt.optimize_maxnfunc=1500;
+         opt.optimize_fraction=0.70;
          opt.sparse_pcm=1;
-       }  else if (key=="--RESET-OPT") {
+       } else if (key=="--RESET-OPT") {
          opt.reset_profile=1;
        } else if (key=="--OPTIMIZE") {
-         opt.optimize=1;
          if (val=="NONE") opt.optimize=0;
-         else if (val=="FAST") {
-           opt.optimize_mode=0;
-         } else if (val=="NORMAL") {
-           opt.optimize_mode=1;
-         } else if (val=="HIGH") {
-           opt.optimize_mode=2;
-         } else if (val=="VERYHIGH") {
-           opt.optimize_mode=3;
-         } else if (val=="INSANE") {
-           opt.optimize_mode=4;
-         } else std::cout << "warning: unknown optimize mode '" << val << "'\n";
+         else {
+          std::vector<std::string>vs;
+          StrUtils::SplitToken(val,vs,",");
+          if (vs.size()>=2)  {
+            opt.optimize_fraction=std::clamp(std::stod(vs[0]),0.,1.);
+            opt.optimize_maxnfunc=std::clamp(std::stoi(vs[1]),0,10000);
+            if (opt.optimize_fraction>0. && opt.optimize_maxnfunc>0) opt.optimize=1;
+          } else std::cerr << "unknown option: " << val << '\n';
+         }
        }
        else if (key=="--SPARSE-PCM") {
           if (val.length()) opt.sparse_pcm=stoi(val);
@@ -228,7 +223,11 @@ int CmdLine::Process()
            PrintMode();
            Codec myCodec;
 
+           Timer time;
+           time.start();
            myCodec.EncodeFile(myWav,mySac,opt);
+           time.stop();
+
            uint64_t infilesize=myWav.getFileSize();
            uint64_t outfilesize=mySac.readFileSize();
            double r=0.,bps=0.;
@@ -236,7 +235,13 @@ int CmdLine::Process()
              r=outfilesize*100.0/infilesize;
              bps=(outfilesize*8.)/static_cast<double>(myWav.getNumSamples()*myWav.getNumChannels());
            }
-           std::cout << std::endl << "  " << infilesize << "->" << outfilesize<< "=" <<miscUtils::ConvertFixed(r,1) << "% (" << miscUtils::ConvertFixed(bps,3)<<" bps)"<<std::endl;
+           double xrate=0.0;
+           if (time.elapsedS() > 0.0)
+            xrate=(myWav.getNumSamples()/double(myWav.getSampleRate()))/time.elapsedS();
+
+           std::cout << "\n  " << infilesize << "->" << outfilesize<< "=";
+           std::cout << std::format("{:.1f}",r) << "% (" << std::format("{:.3f}",bps) <<" bps)";
+           std::cout << "  " << std::format("{:.3f}x",xrate) << '\n';
            mySac.Close();
          } else std::cout << "could not create\n";
       } else std::cout << "warning: input is not a valid .wav file\n";
@@ -297,6 +302,6 @@ int CmdLine::Process()
   } else std::cout << "could not open\n";
 
   myTimer.stop();
-  std::cout << "\nTotal time: [" << miscUtils::getTimeStrFromSeconds(round(myTimer.elapsedS())) << "]" << std::endl;
+  std::cout << "\n  Time:    [" << miscUtils::getTimeStrFromSeconds(round(myTimer.elapsedS())) << "]" << std::endl;
   return 0;
 }

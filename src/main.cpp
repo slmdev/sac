@@ -1,6 +1,6 @@
 #include "cmdline.h"
 
-#define SAC_VERSION "0.7.4"
+#define SAC_VERSION "0.7.5"
 
 int main(int argc,char *argv[])
 {
@@ -20,5 +20,4 @@ int main(int argc,char *argv[])
   CmdLine cmdline;
   int error=cmdline.Parse(argc,argv);
   if (error==0) error=cmdline.Process();
-  return error;
 }

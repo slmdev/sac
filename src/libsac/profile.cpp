@@ -88,12 +88,12 @@ void LoadProfileHigh(SacProfile &profile)
     profile.Set(27,0,mo_lpc,8);//ols-order
 
     profile.Set(28,256,4096,1280);
-    profile.Set(29,32,512,256);
-    profile.Set(30,4,64,32);
+    profile.Set(29,32,1024,256);
+    profile.Set(30,4,256,32);
 
     profile.Set(31,256,4096,1280);
-    profile.Set(32,32,512,256);
-    profile.Set(33,4,64,32);
+    profile.Set(32,32,1024,256);
+    profile.Set(33,4,256,32);
 
     profile.Set(34,0,1,0.6);
     profile.Set(35,0.1,2,0.8);

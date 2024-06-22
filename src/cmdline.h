@@ -7,20 +7,20 @@
 
 const char SACHelp[] =
 "usage: sac [--options] input output\n\n"
-"  --encode         encode input.wav to output.sac (default)\n"
-"    --normal       normal compression (default)\n"
-"    --high         high compression, slow\n"
-"    --veryhigh     very high compression, really slow\n"
-"    --best         you asked for it\n"
-"  --decode         decode input.sac to output.wav\n"
-"  --list           list info about input.sac\n"
-"  --listfull       verbose info about input\n\n"
-"  supported types: 1-16 bit, mono/stereo PCM\n"
-"  advanced options (automatically set)\n"
-"   --reset-opt     reset opt params at frame boundaries\n"
-"   --optimize=#    frame-based optimization\n"
-"     #=fast|normal|high|veryhigh|insane\n"
-"   --sparse-pcm    enable PCM modelling\n";
+"  --encode            encode input.wav to output.sac (default)\n"
+"    --normal          normal compression (default)\n"
+"    --high            high compression, slow\n"
+"    --veryhigh        very high compression, really slow\n"
+"    --best            you asked for it\n"
+"  --decode            decode input.sac to output.wav\n"
+"  --list              list info about input.sac\n"
+"  --listfull          verbose info about input\n\n"
+"  supported types: 1-16 bit, mono/stereo pcm\n"
+"  advanced options    (automatically set)\n"
+"   --reset-opt        reset opt params at frame boundaries\n"
+"   --optimize=#       frame-based optimization\n"
+"     none|s,n         s=[0,1],n=[0,10000]\n"
+"   --sparse-pcm       enable pcm modelling\n";
 
 class CmdLine {
   enum CMODE {ENCODE,DECODE,LIST,LISTFULL};

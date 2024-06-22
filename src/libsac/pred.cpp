@@ -13,33 +13,6 @@ hist0(nA),hist1(nB)
   p_lpc0=p_lpc1=p_lms0=p_lms1=0.;
 }
 
-double Predictor::Predict_stage0_ch0()
-{
-  for (int i=0;i<nA;i++) ols0.x[i]=hist0[i];
-  p_lpc0=ols0.Predict();
-  return p_lpc0;
-}
-
-void Predictor::Update_stage0_ch0(double val)
-{
-  ols0.Update(val);
-  miscUtils::RollBack(hist0,val);
-}
-
-
-double Predictor::Predict_stage0_ch1(const int32_t *ch_master,int nsample,int numsamples)
-{
-  FillSlaveHist(ch_master,nsample,numsamples,ols1.x);
-  p_lpc1=ols1.Predict();
-  return p_lpc1;
-}
-
-void Predictor::Update_stage0_ch1(double val)
-{
-  ols1.Update(val);
-  miscUtils::RollBack(hist1,val);
-}
-
 double Predictor::PredictMaster()
 {
   for (int i=0;i<nA;i++) ols0.x[i]=hist0[i];

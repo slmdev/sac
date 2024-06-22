@@ -5,7 +5,7 @@
 #include "../opt/dds.h"
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
-:pr_stages(numchannels, framesize),numchannels_(numchannels),framesize_(framesize),opt(opt)
+:numchannels_(numchannels),framesize_(framesize),opt(opt)
 {
   if (opt.profile==0) LoadProfileNormal(base_profile);
   else if (opt.profile==1) LoadProfileHigh(base_profile);
@@ -441,34 +441,6 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 }
 
 
-void Codec::SetOptimizeParam(FrameCoder::coder_ctx &opt)
-{
-  opt.optimize_fraction=0.25;
-  opt.dds_search_radius=0.15;
-  opt.optimize_cost=opt.SearchCost::Entropy;
-  opt.optimize_search=opt.SearchMethod::DDS;
-
-  if (opt.optimize_mode==0) {
-    opt.optimize_maxnfunc=150;
-    opt.optimize_fraction=0.20;
-  } else if (opt.optimize_mode==1) {
-    opt.optimize_maxnfunc=500;
-    opt.optimize_fraction=0.20;
-  } else if (opt.optimize_mode==2) {
-    opt.optimize_maxnfunc=1000;
-    opt.optimize_fraction=0.50;
-  } else if (opt.optimize_mode==3) {
-    opt.optimize_maxnfunc=1500;
-    opt.optimize_fraction=0.70;
-  } else if (opt.optimize_mode==4) { // insane
-    opt.optimize_cost=opt.SearchCost::Bitplane;
-    opt.optimize_maxnfunc=2000;
-    opt.optimize_fraction=1.0;
-  } else if (opt.optimize_mode==5) { // bias-param
-    opt.optimize_maxnfunc=100;
-  }
-}
-
 double FrameCoder::AnalyseStereoChannel(int ch0, int ch1, int numsamples)
 {
   int32_t *src0=&(samples[ch0][0]);
@@ -723,7 +695,6 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
   const int numchannels=myWav.getNumChannels();
   framesize=8*myWav.getSampleRate();
 
-  SetOptimizeParam(opt);
   FrameCoder myFrame(numchannels,framesize,opt);
 
   mySac.SetProfile(opt.profile);
@@ -756,11 +727,11 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
   if (time_total>0.)   {
      double rprd=time_prd*100./time_total;
      double renc=time_enc*100./time_total;
-     std::cout << "  Timing: pred " << miscUtils::ConvertFixed(rprd,2) << "%, ";
+     std::cout << "  Timing:  pred " << miscUtils::ConvertFixed(rprd,2) << "%, ";
      std::cout << "enc " << miscUtils::ConvertFixed(renc,2) << "%, ";
      std::cout << "misc " << miscUtils::ConvertFixed(100.-rprd-renc,2) << "%" << std::endl;
   }
-  std::cout << "\n  Audio MD5: ";
+  std::cout << "  MD5:     ";
   for (auto x : myWav.md5ctx.digest) std::cout << std::hex << (int)x;
   std::cout << std::dec << '\n';
 

@@ -6,34 +6,6 @@
 #include "cost.h"
 #include "profile.h"
 
-// encapsulate frame predictions
-class PredictorStages
-{
-  public:
-    PredictorStages(int numchannels, int framesize)
-    :num_stages(3)
-    {
-      pr_stage.resize(numchannels);
-      for (int j=0;j<numchannels;j++) {
-        pr_stage[j].resize(num_stages);
-        for (int i=0;i<num_stages;i++) {
-          pr_stage[j][i].resize(framesize);
-        }
-      }
-
-      int_error.resize(numchannels);
-      s2u_error.resize(numchannels);
-      for (int i=0;i<numchannels;i++) {
-        int_error[i].resize(framesize);
-        s2u_error[i].resize(framesize);
-      }
-    }
-    std::vector<std::vector<std::vector<double>>> pr_stage;
-    std::vector<std::vector<int32_t>> int_error;
-    std::vector<std::vector<int32_t>> s2u_error;
-    int num_stages;
-};
-
 class FrameCoder {
   public:
     struct coder_ctx {
@@ -43,7 +15,6 @@ class FrameCoder {
       int optimize=0;
       int sparse_pcm=0;
       int optimize_maxnfunc=0;
-      int optimize_mode=0;
       int verbose_level=0;
       int reset_profile=0;
       int stereo_ms=0;
@@ -65,7 +36,6 @@ class FrameCoder {
     std::vector <std::vector<int32_t>>samples,err0,err1,error,s2u_error,s2u_error_map,pred;
     std::vector <BufIO> encoded,enc_temp1,enc_temp2;
     std::vector <SacProfile::FrameStats> framestats;
-    PredictorStages pr_stages;
 
     static int WriteBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
     static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
@@ -99,7 +69,6 @@ class Codec {
     //void EncodeFile(Wav &myWav,Sac &mySac,int profile,int optimize,int sparse_pcm);
     void DecodeFile(Sac &mySac,Wav &myWav);
     void ScanFrames(Sac &mySac);
-    static void SetOptimizeParam(FrameCoder::coder_ctx &opt);
   private:
     void PrintProgress(int samplesprocessed,int totalsamples);
     int framesize;
