@@ -2,7 +2,59 @@
 #define PROFILE_H
 
 #include <vector>
+#include <variant>
 #include "map.h"
+#include "pred.h"
+
+class SACProfile {
+  public:
+    struct FrameStats {
+      int maxbpn,maxbpn_map;
+      bool enc_mapped;
+      int32_t blocksize,minval,maxval,mean;
+      Remap mymap;
+    };
+    struct elem {
+      float vmin,vmax;
+      std::variant<float,uint16_t>val;
+    };
+    void add_float(float vmin,float vmax,float val) {
+      vparam.push_back(elem{vmin,vmax,val});
+    }
+    float get_float()
+    {
+      float val = get<float>(vparam[index].val);
+      index++;
+      return val;
+    }
+    void add_ols() {
+      add_float(0.99,0.9999,0.998); // lambda
+      add_float(0.001,10.0,0.001); // ols-nu
+      add_float(4,32,16); //
+    }
+    void get_ols(Predictor::tparam &param)
+    {
+      param.lambda0 = get_float();
+      param.ols_nu0 = get_float();
+      param.nA = get_float();
+    }
+
+    void set_profile()
+    {
+      add_ols();
+    }
+    void get_profile(Predictor::tparam &param,bool optimize=false)
+    {
+      index = 0;
+      get_ols(param);
+    }
+    SACProfile()
+    {
+    }
+    std::vector<elem> vparam;
+  protected:
+    int index;
+};
 
 class SacProfile {
   public:

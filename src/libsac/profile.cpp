@@ -41,7 +41,7 @@ void LoadProfileNormal(SacProfile &profile)
     profile.Set(31,0.8,2,0.8);//ols-order
     profile.Set(32,0,10,2);//ols-order
 
-    profile.Set(33,32,64,32);//bias_scale
+    profile.Set(33,1,8,5);//bias_scale
 
     profile.Set(34,0.1,1.0,1.0);//mix_nu
 }
@@ -105,13 +105,13 @@ void LoadProfileHigh(SacProfile &profile)
     profile.Set(39,0.98,1,1.0); // mu-decay
     profile.Set(40,0.98,1,1.0); // mu-decay
 
-    profile.Set(41,0.1,1.0,1.0); // nu-mix0
-    profile.Set(42,0.1,1.0,1.0); // nu-mix1
+    profile.Set(41,0,1.0,1.0); // nu-mix0
+    profile.Set(42,0,1.0,1.0); // nu-mix1
 
     profile.Set(43,0.001,0.005,0.0015);//bc-mu0
     profile.Set(44,0.001,0.005,0.0015);//bc-mu1
 
-    profile.Set(45,32,64,32);//bias scale
+    profile.Set(45,4,10,5);//bias scale in bits
 
     profile.Set(46,0.98,1,1.0); // mu_decay
     profile.Set(47,0.98,1,1.0); // mu_decay
@@ -121,4 +121,5 @@ void LoadProfileHigh(SacProfile &profile)
     profile.Set(50,0.0,1.0,0.8); //pow_decay
     profile.Set(51,0.0,1.0,0.8); //pow_decay
     profile.Set(52,0.0,1.0,0.8); //pow_decay
+
 }

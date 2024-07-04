@@ -20,26 +20,26 @@ class BiasEstimator {
       double val;
     };
     public:
-      CntAvg(int isize,int scale=32,int freq0=4)
-      :scale_(scale),freq0(freq0),bias(isize)
+      CntAvg(int ctx_size,int nb_scale=5,int freq0=4)
+      :nb_scale(nb_scale),freq0(freq0),bias(ctx_size)
       {
-        for (auto &x:bias) {x.cnt=0;x.val=0.0;};
+        for (auto &x:bias) {x.cnt=freq0;x.val=0.0;};
       }
       double GetBias(int ctx)
       {
-        double x=bias[ctx].val/double(bias[ctx].cnt+freq0);
+        double x=bias[ctx].val/double(bias[ctx].cnt);
         return x;
       }
       void UpdateBias(int ctx,double delta) {
         bias[ctx].val+=delta;
         bias[ctx].cnt++;
-        if (bias[ctx].cnt>scale_) {
+        if (bias[ctx].cnt>=(1<<nb_scale)) {
           bias[ctx].val/=2.0;
-          bias[ctx].cnt/=2;
+          bias[ctx].cnt>>=1;
         }
       }
     private:
-      int scale_,freq0;
+      int nb_scale,freq0;
       std::vector <bias_cnt>bias;
   };
 

@@ -11,23 +11,27 @@ struct tFrameHeader {
 class Sac : public AudioFile
 {
   public:
-    Sac():AudioFile(),metadatasize(0),profile(0){};
+    struct sac_cfg
+    {
+      uint8_t profile=0;
+      uint8_t max_framelen=0;
+
+      uint32_t max_framesize=0;
+      uint32_t metadatasize=0;
+    } mcfg;
+    Sac():AudioFile(){};
     Sac(Wav &file)
-    :AudioFile(file),metadatasize(0)
+    :AudioFile(file)
     {
 
     }
-    void SetProfile(int val){profile=val;};
-    int GetProfile(){return profile;};
     void WriteFrameHeader(tFrameHeader &hdr);
-    int WriteHeader(Wav &myWav);
+    int WriteSACHeader(Wav &myWav);
     std::streamsize WriteMD5(uint8_t digest[16]);
     std::streamsize ReadMD5(uint8_t digest[16]);
-    int ReadHeader();
+    int ReadSACHeader();
     int UnpackMetaData(Wav &myWav);
     std::vector <uint8_t>metadata;
-  private:
-     uint32_t metadatasize,profile;
 };
 
 

@@ -16,10 +16,12 @@ const char SACHelp[] =
 "  --list              list info about input.sac\n"
 "  --listfull          verbose info about input\n\n"
 "  supported types: 1-16 bit, mono/stereo pcm\n"
-"  advanced options    (automatically set)\n"
+"  advanced options    (automatically set per profile)\n"
 "   --reset-opt        reset opt params at frame boundaries\n"
 "   --optimize=#       frame-based optimization\n"
-"     none|s,n         s=[0,1],n=[0,10000]\n"
+"     no|s,n           s=[0,1.0],n=[0,10000]\n"
+"   --zero-mean        zero-mean input\n"
+"   --framelen=n       default=8 (seconds)\n"
 "   --sparse-pcm       enable pcm modelling\n";
 
 class CmdLine {

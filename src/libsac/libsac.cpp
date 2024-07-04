@@ -35,58 +35,6 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
   numsamples_=0;
 }
 
-void FrameCoder::AnalyseChannel(int ch,int numsamples)
-{
-  if (numsamples) {
-    int nbits=16;
-    int minval=(1<<(nbits-1))-1,maxval=-(1<<(nbits-1));
-    int64_t mean=0;
-    int32_t *src=&(samples[ch][0]);
-
-    uint32_t ordata=0,xordata=0,anddata=~0;
-
-    for (int i=0;i<numsamples;i++) {
-      if (src[i]<minval) minval=src[i];
-      if (src[i]>maxval) maxval=src[i];
-
-      xordata |= src[i] ^ -(src[i] & 1);
-      anddata &= src[i];
-      ordata |= src[i];
-
-      mean+=src[i];
-    }
-    int tshift=0;
-    if (!(ordata&1)) {
-        while (!(ordata&1)) {
-            tshift++;
-            ordata>>=1;
-        }
-    } else if (anddata&1) {
-        while (anddata&1) {
-            tshift++;
-            anddata>>=1;
-        }
-    } else if (!(xordata&2)) {
-        while (!(xordata&2)) {
-            tshift++;
-            xordata>>=1;
-        }
-    }
-    if (tshift) std::cout << "total shift: " << tshift << std::endl;
-
-    mean=mean/static_cast<int64_t>(numsamples);
-    std::cout << "mean: " << mean << '\n';
-    if (mean) {
-       minval-=mean;
-       maxval-=mean;
-       for (int i=0;i<numsamples;i++) src[i]-=mean;
-    }
-    framestats[ch].minval=minval;
-    framestats[ch].maxval=maxval;
-    framestats[ch].mean=mean;
-    //std::cout << "mean: " << mean << ", min: " << minval << " ,max: " << maxval << std::endl;
-  }
-}
 
 
 void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=false)
@@ -99,7 +47,7 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
   param.lambda0=param.lambda1=profile.Get(0);
   param.ols_nu0=param.ols_nu1=profile.Get(1);
   param.mix_nu0=param.mix_nu1=1.0;
-  param.bias_scale=32;
+  param.bias_scale=5;
   param.bias_mu0 = param.bias_mu1 = 0.0015;
   //param.lpc_scale=0.0;
 
@@ -129,7 +77,7 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
     param.beta_pow0=param.beta_pow1=profile.Get(31);
     param.beta_add0=param.beta_add1=profile.Get(32);
 
-    param.bias_scale=profile.Get(33);
+    param.bias_scale=std::round(profile.Get(33));
 
     param.mix_nu0=param.mix_nu1=profile.Get(34);
 
@@ -171,7 +119,7 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
     param.bias_mu0=profile.Get(43);
     param.bias_mu1=profile.Get(44);
 
-    param.bias_scale=round(profile.Get(45));
+    param.bias_scale=std::round(profile.Get(45));
   }
 }
 
@@ -200,7 +148,7 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
     double pd=pr.PredictMaster();
 
     int32_t p=clamp((int)std::round(pd),framestats[0].minval,framestats[0].maxval);
-    pred[0][i]=p;
+    pred[0][i]=p+framestats[0].mean;
     error[0][i]=src0[i]-p;
 
     pr.UpdateMaster(src0[i]);
@@ -214,7 +162,7 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
       double pd=pr.PredictSlave(src0,i,numsamples);
 
       int32_t p=clamp((int)std::round(pd),framestats[1].minval,framestats[1].maxval);
-      pred[1][i]=p;
+      pred[1][i]=p+framestats[1].mean;
       error[1][i]=src1[i]-p;
 
       pr.UpdateSlave(src1[i]);
@@ -244,7 +192,7 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
     double pd=pr.PredictMaster();
     int32_t p=clamp((int)round(pd),framestats[0].minval,framestats[0].maxval);
 
-    if (framestats[0].enc_mapped) samples[0][i]=p+framestats[0].mymap.Unmap(p,error[0][i]);
+    if (framestats[0].enc_mapped) samples[0][i]=p+framestats[0].mymap.Unmap(p+framestats[0].mean,error[0][i]);
     else samples[0][i]=p+error[0][i];
 
     pr.UpdateMaster(samples[0][i]);
@@ -256,12 +204,15 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
       double pd=pr.PredictSlave(&samples[0][0],i,numsamples);
       int32_t p=clamp((int)round(pd),framestats[1].minval,framestats[1].maxval);
 
-      if (framestats[1].enc_mapped) samples[1][i]=p+framestats[1].mymap.Unmap(p,error[1][i]);
+      if (framestats[1].enc_mapped) samples[1][i]=p+framestats[1].mymap.Unmap(p+framestats[1].mean,error[1][i]);
       else samples[1][i]=p+error[1][i];
 
       pr.UpdateSlave(samples[1][i]);
     }
   }
+
+  for (int ch=0;ch<numchannels_;ch++)
+    for (int i=0;i<numsamples;i++) samples[ch][i]+=framestats[ch].mean;
 }
 
 int FrameCoder::EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf)
@@ -304,14 +255,14 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
     CalcRemapError(ch,numsamples);
     int size_normal=EncodeMonoFrame_Normal(ch,numsamples,enc_temp1[ch]);
     int size_mapped=EncodeMonoFrame_Mapped(ch,numsamples,enc_temp2[ch]);
-    if (opt.verbose_level>0) {
-      std::cout << "block " << size_normal << ",map " << size_mapped << '\n';
-    }
     if (size_normal<size_mapped)
     {
       framestats[ch].enc_mapped=false;
       encoded[ch]=enc_temp1[ch];
     } else {
+      if (opt.verbose_level>0) {
+        std::cout << "sparse frame " << size_normal << " -> " << size_mapped << '\n';
+      }
       framestats[ch].enc_mapped=true;
       encoded[ch]=enc_temp2[ch];
     }
@@ -380,7 +331,7 @@ void PrintProfile(int iprofile, SacProfile &profile)
       std::cout << '\n';
     }
     std::cout << "mu-nu " << param.mix_nu0 << ", " << param.mix_nu1 << "\n";
-    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << ", scale " << param.bias_scale << "\n";
+    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << ", scale " << (1<<param.bias_scale) << '\n';
     std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
     std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
 }
@@ -475,13 +426,13 @@ void FrameCoder::ApplyMs(int ch0, int ch1, int numsamples)
 void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
 {
   int32_t *src=&(samples[ch][0]);
-  int64_t sum=0;
 
   if (numsamples) {
+    int64_t sum=0;
     for (int i=0;i<numsamples;i++) {
         sum += src[i];
     }
-    framestats[ch].mean = (sum) / numsamples;
+    framestats[ch].mean = (int)std::floor(sum / (double)numsamples);
 
     int32_t minval = std::numeric_limits<int32_t>::max();
     int32_t maxval = std::numeric_limits<int32_t>::min();
@@ -492,32 +443,59 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
     }
     framestats[ch].minval = minval;
     framestats[ch].maxval = maxval;
-    //std::cout << "stats: " << numsamples << '\n';
-    //std::cout << "mean:" << framestats[ch].mean << " min:" << framestats[ch].minval << " max:" << framestats[ch].maxval << "\n";
+    if (opt.verbose_level>0) {
+      std::cout << "  ch" << ch << " samples=" << numsamples;
+      std::cout << ",mean=" << framestats[ch].mean << ",min=" << framestats[ch].minval << ",max=" << framestats[ch].maxval << "\n";
+    }
   }
 }
 
+void FrameCoder::AnalyseShift(int ch,int numsamples)
+{
+  if (numsamples) {
+    int32_t *src=&(samples[ch][0]);
+    uint32_t ordata=0,xordata=0,anddata=~0;
 
+    for (int i=0;i<numsamples;i++) {
+      xordata |= src[i] ^ -(src[i] & 1);
+      anddata &= src[i];
+      ordata |= src[i];
+    }
+    int tshift=0;
+    if (!(ordata&1)) {
+        while (!(ordata&1)) {
+            tshift++;
+            ordata>>=1;
+        }
+    } else if (anddata&1) {
+        while (anddata&1) {
+            tshift++;
+            anddata>>=1;
+        }
+    } else if (!(xordata&2)) {
+        while (!(xordata&2)) {
+            tshift++;
+            xordata>>=1;
+        }
+    }
+    if (tshift) std::cout << "total shift: " << tshift << std::endl;
+  }
+}
 
 
 void FrameCoder::Predict()
 {
   for (int ch=0;ch<numchannels_;ch++)
   {
-    //AnalyseChannel(ch,numsamples_);
+    //AnalyseShift(ch,numsamples_);
     AnalyseMonoChannel(ch,numsamples_);
     framestats[ch].mymap.Reset();
     framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
-  }
-
-  if (opt.stereo_ms==1 && numchannels_==2) {
-     double r=AnalyseStereoChannel(0,1,numsamples_);
-     if (opt.verbose_level>0) {
-       std::cout << "ms-r " << r << '\n';
-     }
-     if (r > 1.5) {
-       ApplyMs(0,1,numsamples_);
-     }
+    if (opt.zero_mean==0) {
+      framestats[ch].mean = 0;
+    } else {
+      for (int i=0;i<numsamples_;i++) samples[ch][i] -= framestats[ch].mean;
+    }
   }
 
   if (opt.optimize)
@@ -528,7 +506,11 @@ void FrameCoder::Predict()
       if (opt.profile==0) LoadProfileNormal(base_profile);
       else if (opt.profile==1) LoadProfileHigh(base_profile);
     }
-    if (opt.profile==0) {
+    std::vector<int>lparam(base_profile.coefs.size());
+    std::iota(std::begin(lparam),std::end(lparam),0);
+    Optimize(base_profile,lparam);
+
+    /*if (opt.profile==0) {
        std::vector<int>lparam(base_profile.coefs.size());
        std::iota(std::begin(lparam),std::end(lparam),0);
        Optimize(base_profile,lparam);
@@ -536,7 +518,7 @@ void FrameCoder::Predict()
        std::vector<int>lparam(base_profile.coefs.size());
        std::iota(std::begin(lparam),std::end(lparam),0);
        Optimize(base_profile,lparam);
-     }
+     }*/
   }
   PredictFrame(base_profile,0,numsamples_,false);
 }
@@ -656,7 +638,7 @@ void Codec::ScanFrames(Sac &mySac)
   std::streampos fsize=mySac.getFileSize();
 
   SacProfile profile_tmp; //create dummy profile
-  switch (mySac.GetProfile())
+  switch (mySac.mcfg.profile)
   {
     case 0:LoadProfileNormal(profile_tmp);break;
     case 1:LoadProfileHigh(profile_tmp);break;
@@ -692,16 +674,18 @@ void Codec::ScanFrames(Sac &mySac)
 
 void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
 {
+  uint32_t max_framesize=static_cast<uint32_t>(opt.max_framelen)*myWav.getSampleRate();
+
   const int numchannels=myWav.getNumChannels();
-  framesize=8*myWav.getSampleRate();
+  FrameCoder myFrame(numchannels,max_framesize,opt);
 
-  FrameCoder myFrame(numchannels,framesize,opt);
+  mySac.mcfg.profile = opt.profile;
+  mySac.mcfg.max_framelen = opt.max_framelen;
 
-  mySac.SetProfile(opt.profile);
-  mySac.WriteHeader(myWav);
+  mySac.WriteSACHeader(myWav);
   std::streampos hdrpos = mySac.file.tellg();
   mySac.WriteMD5(myWav.md5ctx.digest);
-  myWav.InitFileBuf(framesize);
+  myWav.InitFileBuf(max_framesize);
 
   Timer gtimer,ltimer;
   double time_prd=0,time_enc=0;
@@ -710,7 +694,7 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
   int samplescoded=0;
   int samplestocode=myWav.getNumSamples();
   while (samplestocode>0) {
-    int samplesread=myWav.ReadSamples(myFrame.samples,framesize);
+    int samplesread=myWav.ReadSamples(myFrame.samples,max_framesize);
     myFrame.SetNumSamples(samplesread);
 
     ltimer.start();myFrame.Predict();ltimer.stop();time_prd+=ltimer.elapsedS();
@@ -743,20 +727,19 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
 
 void Codec::DecodeFile(Sac &mySac,Wav &myWav)
 {
-  const int numchannels=mySac.getNumChannels();
-  framesize=8*mySac.getSampleRate();
-
-  int samplestodecode=mySac.getNumSamples();
-  int samplesdecoded=0;
-
-  myWav.InitFileBuf(framesize);
+  const Sac::sac_cfg &cfg=mySac.mcfg;
+  myWav.InitFileBuf(cfg.max_framesize);
   mySac.UnpackMetaData(myWav);
   myWav.WriteHeader();
 
   FrameCoder::coder_ctx opt;
-  opt.profile=mySac.GetProfile();
-  FrameCoder myFrame(numchannels,framesize,opt);
+  opt.profile=cfg.profile;
+  opt.max_framelen=cfg.max_framelen;
+  FrameCoder myFrame(mySac.getNumChannels(),cfg.max_framesize,opt);
+
   int64_t data_nbytes=0;
+  int samplestodecode=mySac.getNumSamples();
+  int samplesdecoded=0;
   while (samplestodecode>0) {
     myFrame.ReadEncoded(mySac);
     myFrame.Decode();

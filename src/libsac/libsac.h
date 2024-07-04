@@ -17,7 +17,9 @@ class FrameCoder {
       int optimize_maxnfunc=0;
       int verbose_level=0;
       int reset_profile=0;
+      int zero_mean=0;
       int stereo_ms=0;
+      int max_framelen=0;
       SearchMethod optimize_search=DDS;
       SearchCost optimize_cost=L1;
       double optimize_fraction=0;
@@ -43,6 +45,7 @@ class FrameCoder {
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
     void DecodeProfile(SacProfile &profile,const std::vector <uint8_t>&buf);
     void AnalyseMonoChannel(int ch, int numsamples);
+    void AnalyseShift(int ch,int numsamples);
     double AnalyseStereoChannel(int ch0, int ch1, int numsamples);
     void ApplyMs(int ch0, int ch1, int numsamples);
     //void InterChannel(int ch0,int ch1,int numsamples);
@@ -50,7 +53,7 @@ class FrameCoder {
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
     void Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize);
     double GetCost(SacProfile &profile,CostFunction *func,int start_sample,int samples_to_optimize);
-    void AnalyseChannel(int ch,int numsamples);
+
     void PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize=false);
     void UnpredictFrame(const SacProfile &profile,int numsamples);
     void CalcRemapError(int ch, int numsamples);
@@ -64,14 +67,14 @@ class FrameCoder {
 
 class Codec {
   public:
-    Codec():framesize(0){};
+    Codec(){};
     void EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt);
     //void EncodeFile(Wav &myWav,Sac &mySac,int profile,int optimize,int sparse_pcm);
     void DecodeFile(Sac &mySac,Wav &myWav);
     void ScanFrames(Sac &mySac);
   private:
     void PrintProgress(int samplesprocessed,int totalsamples);
-    int framesize;
+    //int framesize;
 };
 
 #endif

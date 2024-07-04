@@ -25,7 +25,7 @@ double Predictor::PredictMaster()
 void Predictor::UpdateMaster(double val)
 {
   ols0.Update(val);
-  lms0.Update(val-p_lpc0);
+  lms0.Update(val,p_lpc0);
   miscUtils::RollBack(hist0,val);
   //nn0.Update(val-p_lpc0-p_lms0);
   be[0].Update(val);
@@ -45,7 +45,7 @@ double Predictor::PredictSlave(const int32_t *ch_master,int nsample,int numsampl
 void Predictor::UpdateSlave(double val)
 {
   ols1.Update(val);
-  lms1.Update(val-p_lpc1);
+  lms1.Update(val,p_lpc1);
   miscUtils::RollBack(hist1,val);
   //nn1.Update(val-p_lpc1-p_lms1);
   be[1].Update(val);

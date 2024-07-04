@@ -20,6 +20,7 @@ class Predictor {
       double mix_nu0,mix_nu1;
       double bias_mu0,bias_mu1;
       int bias_scale;
+
     };
     Predictor(const tparam &p);
 

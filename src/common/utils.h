@@ -106,6 +106,12 @@ class MathUtils {
            return sqrt(sum);
          }
       }
+      static double linear_map_n(int n0,int n1,double y0,double y1,int idx)
+      {
+        double dx = n1-n0;
+        double dy = y1-y0;
+        return idx*(dy/dx)+y0;
+      }
       /*static double L2Dist2(const std::vector<double> &vec1,const std::vector<double> &vec2)
       {
          if (vec1.size()!=vec2.size()) return -1;

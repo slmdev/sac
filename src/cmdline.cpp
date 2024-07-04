@@ -11,6 +11,8 @@ CmdLine::CmdLine()
   opt.optimize=0;
   opt.sparse_pcm=0;
   opt.reset_profile=0;
+  opt.zero_mean=1;
+  opt.max_framelen=8;
 
   opt.dds_search_radius=0.15;
   opt.optimize_cost=opt.SearchCost::Entropy;
@@ -33,11 +35,13 @@ void CmdLine::PrintMode()
   std::cout << "  Profile: ";
   if (opt.profile==0) std::cout << "normal";
   else if (opt.profile==1) std::cout << "high";
+  std::cout << " " << opt.max_framelen << "s";
+  if (opt.zero_mean) std::cout << " zero-mean";
+  if (opt.sparse_pcm) std::cout << " sparse-pcm";
   if (opt.optimize) {
-      std::cout << " (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
-      std::cout << ",n=" << opt.optimize_maxnfunc<<")";
+      std::cout << " opt (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
+      std::cout << ",n=" << opt.optimize_maxnfunc << ")";
   }
-  if (opt.sparse_pcm) std::cout << ", sparse-pcm";
   std::cout << std::endl;
 }
 
@@ -164,12 +168,12 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.profile=1;
          opt.optimize=1;
          opt.optimize_maxnfunc=1500;
-         opt.optimize_fraction=0.70;
+         opt.optimize_fraction=0.80;
          opt.sparse_pcm=1;
        } else if (key=="--RESET-OPT") {
          opt.reset_profile=1;
        } else if (key=="--OPTIMIZE") {
-         if (val=="NONE") opt.optimize=0;
+         if (val=="NO" || val=="0") opt.optimize=0;
          else {
           std::vector<std::string>vs;
           StrUtils::SplitToken(val,vs,",");
@@ -180,11 +184,17 @@ int CmdLine::Parse(int argc,char *argv[])
           } else std::cerr << "unknown option: " << val << '\n';
          }
        }
+       else if (key=="--FRAMELEN") {
+         if (val.length()) opt.max_framelen=stoi(val);
+       }
        else if (key=="--SPARSE-PCM") {
           if (val.length()) opt.sparse_pcm=stoi(val);
           else opt.sparse_pcm=1;
        } else if (key=="--STEREO-MS") {
-        opt.stereo_ms=1;
+         opt.stereo_ms=1;
+       } else if (key=="--ZERO-MEAN") {
+         if (val.length()==0) opt.zero_mean=1;
+         else if (val=="NO" || val=="0") opt.zero_mean=0;
        } else std::cout << "warning: unknown option '" << param << "'\n";
     } else {
        if (first) {sinputfile=param;first=false;}
@@ -212,7 +222,7 @@ int CmdLine::Process()
          if (!fsupp)
          {
             std::cerr << "unsupported input format" << std::endl;
-            std::cerr << "must be 1-16 bit, mono/stereo, PCM" << std::endl;
+            std::cerr << "must be 1-16 bit, mono/stereo, pcm" << std::endl;
             myWav.Close();
             return 1;
          }
@@ -253,19 +263,19 @@ int CmdLine::Process()
     if (mySac.OpenRead(sinputfile)==0) {
       std::streampos FileSizeSAC = mySac.getFileSize();
       std::cout << "ok (" << FileSizeSAC << " Bytes)\n";
-      if (mySac.ReadHeader()==0) {
+      if (mySac.ReadSACHeader()==0) {
         uint8_t md5digest[16];
         mySac.ReadMD5(md5digest);
-
         double bps=(static_cast<double>(FileSizeSAC)*8.0)/static_cast<double>(mySac.getNumSamples()*mySac.getNumChannels());
         int kbps=round((mySac.getSampleRate()*mySac.getNumChannels()*bps)/1000);
         mySac.setKBPS(kbps);
         PrintWav(mySac);
         std::cout << "  Profile: ";
-        switch (mySac.GetProfile()) {
+        switch (mySac.mcfg.profile) {
           case 0:std::cout << "Normal";break;
           case 1:std::cout << "High";break;
         }
+        std::cout << " " << static_cast<int>(mySac.mcfg.max_framelen) << "s";
         std::cout << std::endl;
         std::cout << "  Ratio:   " << std::fixed << std::setprecision(3) << bps << " bits per sample\n\n";
         std::cout << "  Audio MD5: ";
