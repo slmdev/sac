@@ -11,7 +11,6 @@ class FrameCoder {
     struct coder_ctx {
       enum SearchCost {L1,Entropy,Golomb,Bitplane};
       enum SearchMethod {CMA,DDS};
-      int profile=0;
       int optimize=0;
       int sparse_pcm=0;
       int optimize_maxnfunc=0;
@@ -23,7 +22,6 @@ class FrameCoder {
       SearchMethod optimize_search=DDS;
       SearchCost optimize_cost=L1;
       double optimize_fraction=0;
-      double dds_search_radius=0;
       SacProfile profiledata;
     };
     FrameCoder(int numchannels,int framesize,const coder_ctx &opt);
@@ -39,7 +37,7 @@ class FrameCoder {
     std::vector <BufIO> encoded,enc_temp1,enc_temp2;
     std::vector <SacProfile::FrameStats> framestats;
 
-    static int WriteBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
+    static int WriteBlockHeader(std::fstream &file, const std::vector<SacProfile::FrameStats> &framestats, int ch);
     static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
   private:
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
@@ -56,7 +54,7 @@ class FrameCoder {
 
     void PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize=false);
     void UnpredictFrame(const SacProfile &profile,int numsamples);
-    void CalcRemapError(int ch, int numsamples);
+    double CalcRemapError(int ch, int numsamples);
     void EncodeMonoFrame(int ch,int numsamples);
     void DecodeMonoFrame(int ch,int numsamples);
     int numchannels_,framesize_,numsamples_;

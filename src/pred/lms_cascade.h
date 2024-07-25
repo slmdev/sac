@@ -23,13 +23,13 @@ class LMSCascade {
     }
     void Update(double input, double ols_pred)
     {
-      double pr=input-ols_pred;
+      double target=input-ols_pred;
+      lms_mix.Update(target);
+
       for (int i=0;i<n; i++) {
-        clms[i]->Update(pr);
-        pr-=nu*p[i];
-        //pr*=nu;
+        clms[i]->Update(target);
+        target-=nu*p[i];
       }
-      lms_mix.Update(input-ols_pred);
     }
     ~LMSCascade()
     {

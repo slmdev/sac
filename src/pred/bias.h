@@ -71,7 +71,7 @@ class BiasEstimator {
   }
 
   public:
-    BiasEstimator(double lms_mu=0.003,int cnt_scale=32,double nd_sigma=1.5,double nd_lambda=0.998)
+    BiasEstimator(double lms_mu=0.003,int cnt_scale=5,double nd_sigma=1.5,double nd_lambda=0.998)
     :
     mix_ada(32,SSLMS(4,lms_mu)),
     hist_input(8),hist_delta(8),

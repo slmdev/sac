@@ -7,14 +7,12 @@
 CmdLine::CmdLine()
 :mode(ENCODE)
 {
-  opt.profile=0;
   opt.optimize=0;
-  opt.sparse_pcm=0;
+  opt.sparse_pcm=1;
   opt.reset_profile=0;
   opt.zero_mean=1;
   opt.max_framelen=8;
 
-  opt.dds_search_radius=0.15;
   opt.optimize_cost=opt.SearchCost::Entropy;
   opt.optimize_search=opt.SearchMethod::DDS;
 }
@@ -33,8 +31,6 @@ void CmdLine::PrintWav(const AudioFile &myWav)
 void CmdLine::PrintMode()
 {
   std::cout << "  Profile: ";
-  if (opt.profile==0) std::cout << "normal";
-  else if (opt.profile==1) std::cout << "high";
   std::cout << " " << opt.max_framelen << "s";
   if (opt.zero_mean) std::cout << " zero-mean";
   if (opt.sparse_pcm) std::cout << " sparse-pcm";
@@ -58,72 +54,6 @@ void CmdLine::Split(const std::string &str,std::string &key,std::string &val,con
   }
 }
 
-
-int CmdLine::ReadConfig(const std::string &fname)
-{
-  struct profile {
-    std::vector <float> ols_lambda;
-    std::vector <float> ols_nu;
-    std::vector <float> lms_mu0;
-    std::vector <float> lms_mu1;
-    std::vector <float> lms_mu2;
-    std::vector <float> lms_mu_decay;
-    std::vector <float> lms_pow_decay;
-    std::vector <float> lms_mu_mix;
-  } myprofile;
-  const std::string whites=" \t\n";
-  std::ifstream ifile(fname);
-
-  if (ifile.is_open()) {
-     std::string line,s;
-     while (std::getline(ifile,line)) {
-       s=line;
-       auto firstPos = s.find_first_of("#"); // remove comment
-       if (firstPos!=std::string::npos) {
-         s=s.substr(0,firstPos);
-       }
-       StrUtils::RemoveWhite(s,whites);
-       if (s.length()) {
-
-          StrUtils::StrUpper(s);
-          auto splitPos=s.find_first_of("=");
-          if (splitPos!=std::string::npos) {
-            //process key=val pair
-            std::string key,val;
-            key=s.substr(0,splitPos);
-            val=s.substr(splitPos+1);
-            StrUtils::RemoveWhite(val,whites);
-            StrUtils::RemoveWhite(key,whites);
-            if (key=="OLS_LAMBDA") StrUtils::SplitFloat(val,myprofile.ols_lambda);
-            else if (key=="OLS_NU") StrUtils::SplitFloat(val,myprofile.ols_nu);
-            else if (key=="LMS_MU0") StrUtils::SplitFloat(val,myprofile.lms_mu0);
-            else if (key=="LMS_MU1") StrUtils::SplitFloat(val,myprofile.lms_mu1);
-            else if (key=="LMS_MU2") StrUtils::SplitFloat(val,myprofile.lms_mu2);
-            else if (key=="LMS_MU_DECAY") StrUtils::SplitFloat(val,myprofile.lms_mu_decay);
-            else if (key=="LMS_POW_DECAY") StrUtils::SplitFloat(val,myprofile.lms_pow_decay);
-            else if (key=="LMS_MU_MIX") StrUtils::SplitFloat(val,myprofile.lms_mu_mix);
-            else std::cerr << "  warning: unknown option: '" << line << "'\n";
-            //std::cout << "'" << s << "'\n";
-          } else std::cerr << "  warning: unknown option: '" << line << "'\n";
-       }
-     }
-    for (auto &x:myprofile.ols_lambda) std::cout << x << ' ';
-
-    opt.profiledata.Init(12,0);
-    if (myprofile.ols_lambda.size()) opt.profiledata.Set(0,myprofile.ols_lambda);
-    if (myprofile.ols_nu.size()) opt.profiledata.Set(1,myprofile.ols_nu);
-
-    std::cout << '\n';for (auto &x:myprofile.ols_nu) std::cout << x << ' ';
-    std::cout << '\n';for (auto &x:myprofile.lms_mu0) std::cout << x << ' ';
-    std::cout << '\n';for (auto &x:myprofile.lms_mu1) std::cout << x << ' ';
-    std::cout << '\n';for (auto &x:myprofile.lms_mu2) std::cout << x << ' ';
-    std::cout << '\n';for (auto &x:myprofile.lms_mu_decay) std::cout << x << ' ';
-    std::cout << '\n';for (auto &x:myprofile.lms_pow_decay) std::cout << x << ' ';
-    std::cout << '\n';for (auto &x:myprofile.lms_mu_mix) std::cout << x << ' ';
-              //std::cout << "'" << val << "' '" << key << "'\n";
-    return 0;
-  } else return 1;
-}
 
 int CmdLine::Parse(int argc,char *argv[])
 {
@@ -151,25 +81,20 @@ int CmdLine::Parse(int argc,char *argv[])
           if (val.length()) opt.verbose_level=stoi(val);
           else opt.verbose_level=1;
        }
-       else if (key=="--NORMAL") opt.profile=0;
-       else if (key=="--HIGH") {
-         opt.profile=1;
+       else if (key=="--NORMAL") {
+         opt.optimize=0;
+       } else if (key=="--HIGH") {
+         opt.optimize=1;
+         opt.optimize_fraction=0.05;
+         opt.optimize_maxnfunc=100;
+       } else if (key=="--VERYHIGH") {
          opt.optimize=1;
          opt.optimize_fraction=0.20;
-         opt.optimize_maxnfunc=150;
-         opt.sparse_pcm=0;
-       } else if (key=="--VERYHIGH") {
-         opt.profile=1;
+         opt.optimize_maxnfunc=250;
+       } else if (key=="--BEST") {
          opt.optimize=1;
          opt.optimize_fraction=0.50;
          opt.optimize_maxnfunc=1000;
-         opt.sparse_pcm=1;
-       } else if (key=="--BEST") {
-         opt.profile=1;
-         opt.optimize=1;
-         opt.optimize_maxnfunc=1500;
-         opt.optimize_fraction=0.80;
-         opt.sparse_pcm=1;
        } else if (key=="--RESET-OPT") {
          opt.reset_profile=1;
        } else if (key=="--OPTIMIZE") {
@@ -188,13 +113,13 @@ int CmdLine::Parse(int argc,char *argv[])
          if (val.length()) opt.max_framelen=stoi(val);
        }
        else if (key=="--SPARSE-PCM") {
-          if (val.length()) opt.sparse_pcm=stoi(val);
+          if (val=="NO" || val=="0") opt.sparse_pcm=0;
           else opt.sparse_pcm=1;
        } else if (key=="--STEREO-MS") {
          opt.stereo_ms=1;
        } else if (key=="--ZERO-MEAN") {
-         if (val.length()==0) opt.zero_mean=1;
-         else if (val=="NO" || val=="0") opt.zero_mean=0;
+         if (val=="NO" || val=="0") opt.zero_mean=0;
+         else opt.zero_mean=1;
        } else std::cout << "warning: unknown option '" << param << "'\n";
     } else {
        if (first) {sinputfile=param;first=false;}
@@ -271,10 +196,6 @@ int CmdLine::Process()
         mySac.setKBPS(kbps);
         PrintWav(mySac);
         std::cout << "  Profile: ";
-        switch (mySac.mcfg.profile) {
-          case 0:std::cout << "Normal";break;
-          case 1:std::cout << "High";break;
-        }
         std::cout << " " << static_cast<int>(mySac.mcfg.max_framelen) << "s";
         std::cout << std::endl;
         std::cout << "  Ratio:   " << std::fixed << std::setprecision(3) << bps << " bits per sample\n\n";

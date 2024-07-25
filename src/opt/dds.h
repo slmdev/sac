@@ -19,7 +19,7 @@ class DDS : public Opt {
         double dy = rmin-rmax;
         return n*(dy/dx)+rmax;
     }
-    opt_ret run(opt_func func,const vec1D &xstart,int nfunc_max,double radius=0.1)
+    opt_ret run(opt_func func,const vec1D &xstart,int nfunc_max)
     {
       assert(pb.size()==xstart.size());
 

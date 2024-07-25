@@ -13,7 +13,6 @@ class Sac : public AudioFile
   public:
     struct sac_cfg
     {
-      uint8_t profile=0;
       uint8_t max_framelen=0;
 
       uint32_t max_framesize=0;

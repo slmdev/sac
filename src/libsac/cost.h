@@ -80,6 +80,38 @@ class CostEntropyO0 : public CostFunction {
     }
 };
 
+// entropy using order-0 markov model
+class CostEntropyO0b : public CostFunction {
+  public:
+    CostEntropyO0b(){};
+    double Calc(const int32_t *buf,int numsamples)
+    {
+      if (numsamples<=0) return 0.0;
+      int32_t minval = std::numeric_limits<int32_t>::max();
+      int32_t maxval = std::numeric_limits<int32_t>::min();
+      for (int i=0;i<numsamples;i++) {
+        const int32_t val=buf[i];
+        if (val>maxval) maxval=val;
+        if (val<minval) minval=val;
+      }
+      std::vector<int> counts(maxval-minval+1);
+
+      for (int i=0;i<numsamples;i++) {
+        int32_t idx=buf[i]-minval;
+        counts[idx]++;
+      }
+      double entropy=0.0;
+      for (int i=0;i<numsamples;i++) {
+        int32_t idx=buf[i]-minval;
+        double p=counts[idx]/double(numsamples);
+
+        entropy+=p*log(p);
+      }
+      return entropy;
+    }
+};
+
+
 class CostBitplane : public CostFunction {
  public:
   CostBitplane() {

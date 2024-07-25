@@ -27,8 +27,8 @@ int Sac::WriteSACHeader(Wav &myWav)
   BitUtils::put32LH(buf+6,samplerate);
   BitUtils::put16LH(buf+10,bitspersample);
   BitUtils::put32LH(buf+12,numsamples);
-  buf[16] = mcfg.profile;
-  buf[17] = mcfg.max_framelen;
+  buf[16] = mcfg.max_framelen;
+  buf[17] = 0;
 
   // write wav meta data
   const uint32_t metadatasize=myChunks.GetMetaDataSize();
@@ -55,8 +55,7 @@ int Sac::ReadSACHeader()
     samplerate=BitUtils::get32LH(buf+6);
     bitspersample=BitUtils::get16LH(buf+10);
     numsamples=BitUtils::get32LH(buf+12);
-    mcfg.profile=buf[16];
-    mcfg.max_framelen=buf[17];
+    mcfg.max_framelen=buf[16];
     mcfg.metadatasize=BitUtils::get32LH(buf+18);
     ReadData(metadata,mcfg.metadatasize);
     mcfg.max_framesize=samplerate*static_cast<uint32_t>(mcfg.max_framelen);

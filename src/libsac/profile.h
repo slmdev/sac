@@ -64,17 +64,18 @@ class SacProfile {
       int32_t blocksize,minval,maxval,mean;
       Remap mymap;
     };
+
     struct coef {
       float vmin,vmax,vdef;
     };
-      SacProfile():type(0){};
-      void Init(int numcoefs,int ptype)
+
+      SacProfile(){};
+      void Init(int numcoefs)
       {
          coefs.resize(numcoefs);
-         type=ptype;
       }
-      SacProfile(int numcoefs,int type)
-      :type(type),coefs(numcoefs)
+      SacProfile(int numcoefs)
+      :coefs(numcoefs)
       {
 
       }
@@ -99,11 +100,9 @@ class SacProfile {
             return coefs[num].vdef;
         } else return 0.;
       }
-      int type;
       std::vector <coef> coefs;
 };
 
-void LoadProfileNormal(SacProfile &profile);
-void LoadProfileHigh(SacProfile &profile);
+int LoadProfileHigh(SacProfile &profile);
 
 #endif // PROFILE_H

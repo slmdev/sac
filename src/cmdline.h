@@ -29,7 +29,6 @@ class CmdLine {
   public:
     CmdLine();
     int Parse(int argc,char *argv[]);
-    int ReadConfig(const std::string &fname);
     int Process();
   private:
     void PrintMode();
