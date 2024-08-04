@@ -7,11 +7,6 @@
 
 class NLMS_ROLL {
   const double eps_pow=1.0;
-  double sgn(double x) {
-    if (x>0) return 1.;
-    if (x<0) return -1.;
-    return 0;
-  }
   public:
     NLMS_ROLL(int n,double mu,double mu_decay=1.0,double pow_decay=0.8)
     :n(n),x(n),w(n),mutab(n),powtab(n),mu(mu)
@@ -20,7 +15,7 @@ class NLMS_ROLL {
       for (int i=0;i<n;i++) {
          powtab[i]=1.0/(pow(1+i,pow_decay));
          sum_powtab+=powtab[i];
-         mutab[i]=pow(mu_decay,i);
+         mutab[i]=mu*pow(mu_decay,i);
       }
     }
     double Predict()
@@ -36,7 +31,7 @@ class NLMS_ROLL {
       }
       const double wgrad=(val-pred)*sum_powtab/(eps_pow+spow);
       for (int i=0;i<n;i++) {
-        w[i]+=mu*mutab[i]*(wgrad*x[i]);
+        w[i]+=mutab[i]*(wgrad*x[i]);
       }
       x.PushBack(val);
     };
