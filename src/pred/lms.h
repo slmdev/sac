@@ -15,7 +15,7 @@ class NLMS_ROLL {
       for (int i=0;i<n;i++) {
          powtab[i]=1.0/(pow(1+i,pow_decay));
          sum_powtab+=powtab[i];
-         mutab[i]=mu*pow(mu_decay,i);
+         mutab[i]=pow(mu_decay,i);
       }
     }
     double Predict()
@@ -29,7 +29,7 @@ class NLMS_ROLL {
       for (int i=0;i<n;i++) {
         spow+=powtab[i]*(x[i]*x[i]);
       }
-      const double wgrad=(val-pred)*sum_powtab/(eps_pow+spow);
+      const double wgrad=mu*(val-pred)*sum_powtab/(eps_pow+spow);
       for (int i=0;i<n;i++) {
         w[i]+=mutab[i]*(wgrad*x[i]);
       }
