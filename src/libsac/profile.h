@@ -45,6 +45,8 @@ class SACProfile {
     }
     void get_profile(Predictor::tparam &param,bool optimize=false)
     {
+      if (optimize) param.k=4;
+      else param.k=1;
       index = 0;
       get_ols(param);
     }

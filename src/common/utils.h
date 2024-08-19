@@ -35,13 +35,12 @@ class RunWeight {
     double alpha,sum;
 };
 
-class StrUtils {
-  public:
-      static void StrUpper(std::string &str)
+namespace StrUtils {
+      inline void StrUpper(std::string &str)
       {
         std::transform(str.begin(), str.end(),str.begin(), ::toupper);
       }
-      static void SplitToken(const std::string& str,std::vector<std::string>& tokens,const std::string& delimiters)
+      inline void SplitToken(const std::string& str,std::vector<std::string>& tokens,const std::string& delimiters)
       {
         auto lastPos = str.find_first_not_of(delimiters, 0); // Skip delimiters at beginning.
         auto pos     = str.find_first_of(delimiters, lastPos); // Find first "non-delimiter".
@@ -52,7 +51,7 @@ class StrUtils {
           pos = str.find_first_of(delimiters, lastPos); // Find next "non-delimiter"
         }
       }
-      static void RemoveWhite(std::string &str,const std::string &whites)
+      inline void RemoveWhite(std::string &str,const std::string &whites)
       {
         auto firstPos = str.find_first_not_of(whites);
 
@@ -61,7 +60,7 @@ class StrUtils {
           str=str.substr(firstPos,lastPos-firstPos+1);
         } else str="";
       }
-      static void SplitFloat(const std::string &str,std::vector<float>&x)
+      inline void SplitFloat(const std::string &str,std::vector<float>&x)
       {
         std::vector <std::string> tokens;
         SplitToken(str,tokens,",");
@@ -69,14 +68,13 @@ class StrUtils {
       }
 };
 
-class MathUtils {
-  public:
-      static int iLog2(int val) {
+namespace MathUtils {
+      inline int iLog2(int val) {
         int nbits=0;
         while (val>>=1) nbits++;
         return nbits;
       }
-      static double SumDiff(const std::vector<double> &v1,const std::vector<double> &v2)
+      inline double SumDiff(const std::vector<double> &v1,const std::vector<double> &v2)
       {
          if (v1.size()!=v2.size()) return -1;
          else {
@@ -85,19 +83,19 @@ class MathUtils {
            return sum;
          }
       }
-      static int32_t S2U(int32_t val)
+      inline int32_t S2U(int32_t val)
       {
         if (val<0) val=2*(-val);
         else if (val>0) val=(2*val)-1;
         return val;
       }
-      static int32_t U2S(int32_t val)
+      inline int32_t U2S(int32_t val)
       {
         if (val&1) val=((val+1)>>1);
         else val=-(val>>1);
         return val;
       }
-      static double L2Dist(const std::vector<double> &vec1,const std::vector<double> &vec2)
+      inline double L2Dist(const std::vector<double> &vec1,const std::vector<double> &vec2)
       {
          if (vec1.size()!=vec2.size()) return -1;
          else {
@@ -106,26 +104,21 @@ class MathUtils {
            return sqrt(sum);
          }
       }
-      static double linear_map_n(int n0,int n1,double y0,double y1,int idx)
+      inline double linear_map_n(int n0,int n1,double y0,double y1,int idx)
       {
         double dx = n1-n0;
         double dy = y1-y0;
         return idx*(dy/dx)+y0;
       }
-      /*static double L2Dist2(const std::vector<double> &vec1,const std::vector<double> &vec2)
-      {
-         if (vec1.size()!=vec2.size()) return -1;
-         else {
-           double sum=0.;
-           for (size_t i=0;i<vec1.size();i++) {double t=vec1[i]-vec2[i];sum+=t*t;};
-           return sum;
-         }
-      }*/
+    inline double sgn(double x) {
+      if (x>0) return 1.;
+      if (x<0) return -1;
+      return 0;
+    }
 };
 
-class miscUtils {
-  public:
-  // retrieve time string
+namespace miscUtils {
+
 /*static float rsqrt(float __x)
 {
     float reciprocal;
@@ -139,7 +132,7 @@ class miscUtils {
     );
   return reciprocal;
 }*/
-  static void RollBack(vec1D &data,double input)
+  inline void RollBack(vec1D &data,double input)
   {
     if (data.size()) {
       for (int i=(int)(data.size()-1);i>0;i--)
@@ -147,7 +140,7 @@ class miscUtils {
       data[0]=input;
     }
   }
-  static std::string getTimeStrFromSamples(int numsamples,int samplerate)
+  inline std::string getTimeStrFromSamples(int numsamples,int samplerate)
   {
    std::ostringstream ss;
    int h,m,s,ms;
@@ -161,7 +154,7 @@ class miscUtils {
    ss << std::setfill('0') << std::setw(2) << h << ":" << std::setw(2) << m << ":" << std::setw(2) << s << "." << ms;
    return ss.str();
  }
- static std::string getTimeStrFromSeconds(int seconds)
+ inline std::string getTimeStrFromSeconds(int seconds)
  {
    std::ostringstream ss;
    int h,m,s;
@@ -174,7 +167,7 @@ class miscUtils {
    ss << std::setfill('0') << std::setw(2) << h << ":" << std::setw(2) << m << ":" << std::setw(2) << s;
    return ss.str();
  }
- static std::string ConvertFixed(double val,int digits)
+ inline std::string ConvertFixed(double val,int digits)
  {
    std::ostringstream ss;
    ss << std::fixed << std::setprecision(digits) << val;
