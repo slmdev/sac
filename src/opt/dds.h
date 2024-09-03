@@ -19,7 +19,7 @@ class DDS : public Opt {
         double dy = rmin-rmax;
         return n*(dy/dx)+rmax;
     }
-    opt_ret run(opt_func func,const vec1D &xstart,int nfunc_max)
+    opt_ret run(opt_func func,const vec1D &xstart,int nfunc_max,std::function<double(int)>sigma_func)
     {
       assert(pb.size()==xstart.size());
 
@@ -43,7 +43,7 @@ class DDS : public Opt {
         // perturb decision variables
         vec1D xtest=xbest;
         for (auto k:J) {
-          xtest[k]=GenerateCandidate(xtest[k],pb[k].xmin,pb[k].xmax,cradius(0.05,0.20,nfunc,nfunc_max));
+          xtest[k]=GenerateCandidate(xtest[k],pb[k].xmin,pb[k].xmax,sigma_func(nfunc));
           assert(xtest[k]>pb[k].xmin && xtest[k]<pb[k].xmax);
         }
         double ftest=func(xtest);

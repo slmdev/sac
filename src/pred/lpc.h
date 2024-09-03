@@ -32,7 +32,7 @@ class OLS {
     {
       T err=val-pred;
       esum.Update(fabs(err));
-      double c0=pow(esum.Get()+beta_add,-beta_pow);
+      double c0=pow(esum.sum+beta_add,-beta_pow);
 
       for (int j=0;j<n;j++) {
         for (int i=0;i<n;i++) mcov[j][i]=lambda*mcov[j][i]+c0*(x[j]*x[i]);

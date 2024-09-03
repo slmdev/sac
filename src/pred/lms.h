@@ -100,7 +100,7 @@ class LAD_ADA : public LMS
       const double serr=MathUtils::sgn(val-pred); // prediction error
       for (int i=0;i<n;i++) {
         double const grad=serr*x[i];
-        eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
+        eg[i]=beta*eg[i]+(1.0-beta)*(grad*grad); //accumulate gradients
         double g=grad*1.0/(sqrt(eg[i])+1E-5);// update weights
         w[i]+=mu*g;
       }

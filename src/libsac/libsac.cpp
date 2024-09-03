@@ -310,6 +310,7 @@ void PrintProfile(SacProfile &profile)
       std::cout << x << ' ';
     std::cout << '\n';
 
+    std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
     std::cout << "mu-nu " << param.mix_nu0 << ", " << param.mix_nu1 << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << ", scale " << (1<<param.bias_scale) << '\n';
     std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
@@ -352,13 +353,16 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
       return GetCost(profile,CostFunc,start_pos,samples_to_optimize);
     };
 
+    auto sigma_func=[&](int idx) {
+      return MathUtils::linear_map_n(0,opt.optimize_maxnfunc,0.25,0.05,idx);
+    };
 
     //Opt::opt_ret ret;
 
     DDS dds(pb);
 
     if (opt.verbose_level>0) std::cout << "\nDDS " << opt.optimize_maxnfunc << "= ";
-    auto ret = dds.run(cost_func,xstart,opt.optimize_maxnfunc);
+    auto ret = dds.run(cost_func,xstart,opt.optimize_maxnfunc,sigma_func);
     if (opt.verbose_level>0) std::cout << ret.first << "\n";
 
     const vec1D x_p = ret.second;

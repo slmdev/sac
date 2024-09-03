@@ -13,26 +13,27 @@
 // sum=alpha*sum+(1.0-alpha)*val, where 1/(1-alpha) is the mean number of samples considered
 class RunExp {
   public:
-      RunExp(double alpha):alpha(alpha){sum=0;};
-      RunExp(double alpha,double sum):alpha(alpha),sum(sum){};
+      RunExp(double alpha):sum(0.0),alpha(alpha){};
+      RunExp(double alpha,double sum):sum(sum),alpha(alpha){};
       inline double Get(){return sum;};
       inline void Update(double val) {
         sum=alpha*sum+(1.-alpha)*val;
       }
+    double sum;
   private:
-    double alpha,sum;
+    double alpha;
 };
 
 // running weighted sum: sum_{i=0}^n alpha^(n-i) val
 class RunWeight {
   public:
-      RunWeight(double alpha):alpha(alpha){sum=0;};
-      inline double Get(){return sum;};
+      RunWeight(double alpha):sum(0.0),alpha(alpha){};
       inline void Update(double val) {
         sum=alpha*sum+val;
       }
+    double sum;
   private:
-    double alpha,sum;
+    double alpha;
 };
 
 namespace StrUtils {

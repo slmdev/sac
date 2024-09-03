@@ -85,7 +85,7 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.optimize=0;
        } else if (key=="--HIGH") {
          opt.optimize=1;
-         opt.optimize_fraction=0.05;
+         opt.optimize_fraction=0.06;
          opt.optimize_maxnfunc=100;
        } else if (key=="--VERYHIGH") {
          opt.optimize=1;
