@@ -68,6 +68,7 @@ void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=f
   param.nB=round(profile.Get(25));
   param.nS0=round(profile.Get(26));
   param.nS1=round(profile.Get(27));
+  param.nM0=round(profile.Get(9));
 
   param.beta_sum0=profile.Get(34);
   param.beta_pow0=profile.Get(35);
@@ -93,47 +94,54 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
   SetParam(param,profile,optimize);
   Predictor pr(param);
 
-  // predict master channel
-  const auto *src0=&samples[0][from];
-  int32_t minval = framestats[0].minval;
-  int32_t maxval = framestats[0].maxval;
-  for (int i=0;i<numsamples;i++) {
-    double pd=pr.PredictMaster();
+  auto eprocess=[&](int ch,int32_t val,int idx) {
+      const double pd=pr.predict(ch);
 
-    int32_t p=clamp((int)std::round(pd),minval,maxval);
-    pred[0][i]=p+framestats[0].mean;
-    error[0][i]=src0[i]-p;
+      const int32_t pi=clamp((int32_t)std::round(pd),framestats[ch].minval,framestats[ch].maxval);
+      pred[ch][idx]=pi+framestats[ch].mean;
+      error[ch][idx]=val-pi; // needed for cost-function within optimize
 
-    pr.UpdateMaster(src0[i]);
-  }
+      pr.update(ch,val);
+  };
 
-  // predict slave channel
-  if (numchannels_==2)
-  {
+
+  if (numchannels_==1) {
+    const auto *src=&samples[0][from];
+    for (int idx=0;idx<numsamples;idx++)
+    {
+      pr.fillbuf_ch0(src,idx,src,idx);
+      eprocess(0,src[idx],idx);
+    }
+  } else if (numchannels_==2) {
+    const auto *src0=&samples[0][from];
     const auto *src1=&samples[1][from];
-    minval = framestats[1].minval;
-    maxval = framestats[1].maxval;
-    for (int i=0;i<numsamples;i++) {
-      double pd=pr.PredictSlave(src0,i,numsamples);
 
-      int32_t p=clamp((int)std::round(pd),minval,maxval);
-      pred[1][i]=p+framestats[1].mean;
-      error[1][i]=src1[i]-p;
-
-      pr.UpdateSlave(src1[i]);
+    int idx0=0,idx1=0;
+    while (idx0<numsamples || idx1<numsamples)
+    {
+      if (idx0<numsamples) {
+        pr.fillbuf_ch0(src0,idx0,src1,idx1);
+        eprocess(0,src0[idx0],idx0);
+        idx0++;
+      }
+      if (idx0>=param.nS1) {
+        pr.fillbuf_ch1(src0,src1,idx1,numsamples);
+        eprocess(1,src1[idx1],idx1);
+        idx1++;
+      }
     }
   }
 
-  for (int ch=0;ch<numchannels_;ch++)
-  {
-    int32_t emax=0;
-    for (int i=0;i<numsamples;i++) {
-      const int32_t e_s2u=MathUtils::S2U(error[ch][i]);
-      if (e_s2u>emax) emax=e_s2u;
-      s2u_error[ch][i]=e_s2u;
+    for (int ch=0;ch<numchannels_;ch++)
+    {
+      int32_t emax=0;
+      for (int i=0;i<numsamples;i++) {
+        const int32_t e_s2u=MathUtils::S2U(error[ch][i]);
+        if (e_s2u>emax) emax=e_s2u;
+        s2u_error[ch][i]=e_s2u;
+      }
+      framestats[ch].maxbpn=MathUtils::iLog2(emax);
     }
-    framestats[ch].maxbpn=MathUtils::iLog2(emax);
-  }
 }
 
 void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
@@ -142,30 +150,45 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
   SetParam(param,profile,false);
   Predictor pr(param);
 
-  // unpredict master
-  for (int i=0;i<numsamples;i++) {
-    double pd=pr.PredictMaster();
-    int32_t p=clamp((int)round(pd),framestats[0].minval,framestats[0].maxval);
+  auto dprocess=[&](int ch,int32_t *dst,int idx) {
+    const double pd=pr.predict(ch);
+    const int32_t pi=clamp((int32_t)round(pd),framestats[ch].minval,framestats[ch].maxval);
 
-    if (framestats[0].enc_mapped) samples[0][i]=p+framestats[0].mymap.Unmap(p+framestats[0].mean,error[0][i]);
-    else samples[0][i]=p+error[0][i];
+    if (framestats[ch].enc_mapped)
+      dst[idx]=pi+framestats[ch].mymap.Unmap(pi+framestats[ch].mean,error[ch][idx]);
+    else
+      dst[idx]=pi+error[ch][idx];
 
-    pr.UpdateMaster(samples[0][i]);
-  }
+    pr.update(ch,dst[idx]);
+  };
 
-  // unpredict slave
-  if (numchannels_==2) {
-    for (int i=0;i<numsamples;i++) {
-      double pd=pr.PredictSlave(&samples[0][0],i,numsamples);
-      int32_t p=clamp((int)round(pd),framestats[1].minval,framestats[1].maxval);
-
-      if (framestats[1].enc_mapped) samples[1][i]=p+framestats[1].mymap.Unmap(p+framestats[1].mean,error[1][i]);
-      else samples[1][i]=p+error[1][i];
-
-      pr.UpdateSlave(samples[1][i]);
+  if (numchannels_==1) {
+    auto *dst=&samples[0][0];
+    for (int idx=0;idx<numsamples;idx++)
+    {
+      pr.fillbuf_ch0(dst,idx,dst,idx);
+      dprocess(0,dst,idx);
+    }
+  } else if (numchannels_==2) {
+    auto *dst0=&samples[0][0];
+    auto *dst1=&samples[1][0];
+    int idx0=0,idx1=0;
+    while (idx0<numsamples || idx1<numsamples)
+    {
+      if (idx0<numsamples) {
+        pr.fillbuf_ch0(dst0,idx0,dst1,idx1);
+        dprocess(0,dst0,idx0);
+        idx0++;
+      }
+      if (idx0>=param.nS1) {
+        pr.fillbuf_ch1(dst0,dst1,idx1,numsamples);
+        dprocess(1,dst1,idx1);
+        idx1++;
+      }
     }
   }
 
+  // add mean
   for (int ch=0;ch<numchannels_;ch++) {
     if (framestats[ch].mean!=0)
       for (int i=0;i<numsamples;i++) samples[ch][i]+=framestats[ch].mean;
@@ -286,9 +309,8 @@ void PrintProfile(SacProfile &profile)
     SetParam(param,profile);
 
     std::cout << '\n';
-    std::cout << "lpc ";
-    std::cout << "nA " << std::round(profile.Get(24)) << ' ' << "nB " << std::round(profile.Get(25)) << ' ';
-    std::cout << "nS0 " << std::round(profile.Get(26)) << ' ' << "nS1 " << std::round(profile.Get(27)) << '\n';
+    std::cout << "lpc (nA " << std::round(profile.Get(24)) << " nM0 " << std::round(profile.Get(9));
+    std::cout << ") (nB " << std::round(profile.Get(25)) << " nS0 " << std::round(profile.Get(26)) << " nS1 " << std::round(profile.Get(27)) << ")\n";
     std::cout << "lms0 ";
     for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
     std::cout << std::round(profile.Get(37));

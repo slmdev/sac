@@ -1,7 +1,7 @@
 #include "cmdline.h"
 #include <variant>
 
-#define SAC_VERSION "0.7.7c"
+#define SAC_VERSION "0.7.8"
 
 int main(int argc,char *argv[])
 {
@@ -18,16 +18,6 @@ int main(int argc,char *argv[])
     std::cout << " gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << "\n";
   #endif
   std::cout << "\n";
-
-  /*SACProfile profile;
-  Predictor::tparam param;
-
-  profile.set_profile();
-  profile.get_profile(param);
-  std::cout << param.lambda0 << '\n';*/
-  /*double f = LMSCascade::map_n0(1.0,0.97,4,4);
-  std::cout << f << '\n';
-  return 0;*/
 
   CmdLine cmdline;
   int error=cmdline.Parse(argc,argv);
