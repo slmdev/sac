@@ -4,7 +4,7 @@
 #include "lms.h"
 #include "../common/utils.h"
 
-#define LMS_DECAY_EXP
+#define LMS_DECAY 2
 //#define LMS_ADA
 
 class LMSCascade {
@@ -14,10 +14,12 @@ class LMSCascade {
     lms_mix(n,mu_mix,mu_mix_beta),pnu(n)
     {
       for (int i=0;i<n;i++) {
-        #ifdef LMS_DECAY_EXP
+        #if LMS_DECAY == 0
+          pnu[i] = 1.0
+        #elif LMS_DECAY == 1
+          pnu[i] = mix_nu;
+        #elif LMS_DECAY == 2
           pnu[i]=exp(-(1.0-mix_nu)*i);
-        #else
-          pnu[i]=mix_nu;
         #endif
       }
       #ifdef LMS_ADA
