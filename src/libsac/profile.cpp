@@ -1,5 +1,7 @@
 #include "profile.h"
 
+//#define LMS_ADA
+
 int LoadProfileHigh(SacProfile &profile)
 {
     const int mo_lpc=32; // maximum ols order
@@ -68,12 +70,26 @@ int LoadProfileHigh(SacProfile &profile)
 
     profile.Set(45,4,10,5);//bias scale in bits
     profile.Set(46,0.98,1,1.0); // mu_decay
-    profile.Set(47,0.98,1,1.0); // mu_decay
+    //profile.Set(47,0.98,1,1.0); // mu_decay
     profile.Set(48,0.98,1,1.0); // mu_decay
-    profile.Set(49,0.98,1,1.0); // mu_decay
+    //profile.Set(49,0.98,1,1.0); // mu_decay
     profile.Set(50,0.0,1.0,0.8); //pow_decay
-    profile.Set(51,0.0,1.0,0.8); //pow_decay
-    profile.Set(52,0.0,1.0,0.8); //pow_decay
+    //profile.Set(51,0.0,1.0,0.8); //pow_decay
+    //profile.Set(52,0.0,1.0,0.8); //pow_decay
+
+    #ifdef LMS_ADA
+      profile.Set(47,0.95,0.99,0.97); // beta
+      profile.Set(49,0.95,0.99,0.97); // beta
+
+      profile.Set(51,0.0,0.03,0.001); //nu
+      profile.Set(52,0.0,0.03,0.001); //nu
+    #else
+      profile.Set(47,0.98,1,1.0); // mu_decay
+      profile.Set(49,0.98,1,1.0); // mu_decay
+
+      profile.Set(51,0.0,1.0,0.8); //pow_decay
+      profile.Set(52,0.0,1.0,0.8); //pow_decay
+    #endif
 
     return profile.coefs.size();
     //profile.Set(53,0.0,1.0,1.0);
