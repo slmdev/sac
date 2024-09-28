@@ -94,7 +94,7 @@ class Golomb {
       if (val<0) val=2*(-val);
       else if (val>0) val=(2*val)-1;
 
-      int m=(std::max)(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.sum),1);
       int q=val/m;
       int r=val-q*m;
 
@@ -142,7 +142,7 @@ class Golomb {
       int q=0;
       while (rc.DecodeBitOne(PSCALEh)!=0) q++;
 
-      int m=(std::max)(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.sum),1);
       int r=0;
 
       if (m>1)
@@ -180,7 +180,7 @@ class GolombRC {
       if (val<0) val=2*(-val);
       else if (val>0) val=(2*val)-1;
 
-      int m=(std::max)(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.sum),1);
       int q=val/m;
       int r=val-q*m;
 
@@ -195,7 +195,7 @@ class GolombRC {
       int q=0;
       while (rc.DecodeBitOne(PSCALEh)!=0) q++;
 
-      int m=(std::max)(static_cast<int>(msum.Get()),1);
+      int m=(std::max)(static_cast<int>(msum.sum),1);
 
       int r=rc.DecProb(m);
       rc.DecodeSymbol(r,1);

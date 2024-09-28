@@ -12,44 +12,61 @@ class CostFunction {
       virtual ~CostFunction(){};
 };
 
-class CostMeanRMS : public CostFunction {
+class CostL1 : public CostFunction {
   public:
       double Calc(const int32_t *buf,int numsamples)
       {
         if (numsamples) {
-          double pow=0.0;
-          for (int i=0;i<numsamples;i++) pow+=std::fabs(buf[i]);
-          return pow/static_cast<double>(numsamples);
+          int64_t sum=0;
+          for (int i=0;i<numsamples;i++) sum+=std::fabs(buf[i]);
+          return sum/static_cast<double>(numsamples);
         } else return 0.;
       }
 };
 
-// estimate number of needed bits with a simple golomb model
-class CostGolomb : public CostFunction {
+class CostRMS : public CostFunction {
   public:
-      CostGolomb():mean_err(0.98){};
       double Calc(const int32_t *buf,int numsamples)
       {
-        const double log2=log(2.0);
-        double nbits=0;
+        if (numsamples) {
+          int64_t sum=0.0;
+          for (int i=0;i<numsamples;i++) sum+=buf[i]*buf[i];
+          return sqrt(sum/static_cast<double>(numsamples));
+        } else return 0.;
+      }
+};
+
+
+// estimate number of needed bytes with a simple golomb model
+// alpha paramater is critical
+class CostGolomb : public CostFunction {
+  const double alpha=0.97;
+  const double log2=log(2.0);
+  public:
+      CostGolomb()
+      :rm(alpha) {};
+      double Calc(const int32_t *buf,int numsamples)
+      {
+        int64_t nbits=0;
         if (numsamples) {
           for (int i=0;i<numsamples;i++) {
             int32_t val=MathUtils::S2U(buf[i]);
-            int m=(std::max)(static_cast<int>(mean_err.Get()),1);
+            int m=std::max(static_cast<int>(rm.sum),1);
+
             int q=val/m;
             //int r=val-q*m;
             nbits+=(q+1);
             if (m>1) {
-              int b=ceil(log(m)/log2);
+              int b=std::ceil(log(m)/log2);
               nbits+=b;
-            }
-            mean_err.Update(val);
+            };
+            rm.Update(val);
           }
-          return nbits/(double)numsamples;
+          return nbits/static_cast<double>(8*numsamples);
         } else return 0;
       }
   private:
-    RunExp mean_err;
+    RunWeight rm;
 };
 
 // entropy using order-0 markov model
@@ -135,4 +152,4 @@ class CostBitplane : public CostFunction {
   }
 };
 
-#endif // COST_H
+#endif

@@ -32,7 +32,7 @@ class Predictor {
     tparam p;
     int nA,nB,nM0,nS0,nS1;
 
-    OLS<double>ols[2];
+    OLS ols[2];
     LMSCascade lms[2];
     BiasEstimator be[2];
     double p_lpc[2],p_lms[2];

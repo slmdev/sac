@@ -36,7 +36,18 @@ void CmdLine::PrintMode()
   if (opt.sparse_pcm) std::cout << " sparse-pcm";
   if (opt.optimize) {
       std::cout << " opt (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
-      std::cout << ",n=" << opt.optimize_maxnfunc << ")";
+      std::cout << ",n=" << opt.optimize_maxnfunc << ",";
+
+      std::string cost_str;
+      switch (opt.optimize_cost) {
+        case opt.SearchCost::L1:cost_str="L1";break;
+        case opt.SearchCost::RMS:cost_str="rms";break;
+        case opt.SearchCost::Golomb:cost_str="glb";break;
+        case opt.SearchCost::Entropy:cost_str="ent";break;
+        case opt.SearchCost::Bitplane:cost_str="bpn";break;
+        default:break;
+      }
+      std::cout << cost_str << ")\n";
   }
   std::cout << std::endl;
 }
@@ -66,8 +77,8 @@ int CmdLine::Parse(int argc,char *argv[])
   std::string param,uparam;
   int k=1;
   while (k<argc) {
-    param=uparam=argv[k];
-    StrUtils::StrUpper(uparam);
+    param=argv[k];
+    uparam=StrUtils::str_up(param);
     std::string key,val;
     Split(uparam,key,val);
 
@@ -107,7 +118,17 @@ int CmdLine::Parse(int argc,char *argv[])
           if (vs.size()>=2)  {
             opt.optimize_fraction=std::clamp(std::stod(vs[0]),0.,1.);
             opt.optimize_maxnfunc=std::clamp(std::stoi(vs[1]),0,10000);
+            if (vs.size()>=3) {
+              std::string cf=StrUtils::str_up(vs[2]);
+              if (cf=="L1") opt.optimize_cost = opt.SearchCost::L1;
+              else if (cf=="RMS") opt.optimize_cost = opt.SearchCost::RMS;
+              else if (cf=="GLB") opt.optimize_cost = opt.SearchCost::Golomb;
+              else if (cf=="ENT") opt.optimize_cost = opt.SearchCost::Entropy; //default
+              else if (cf=="BPN") opt.optimize_cost = opt.SearchCost::Bitplane;
+              else std::cerr << "warning: unknown cost function '" << vs[2] << "'\n";
+            }
             if (opt.optimize_fraction>0. && opt.optimize_maxnfunc>0) opt.optimize=1;
+            else opt.optimize=0;
           } else std::cerr << "unknown option: " << val << '\n';
          }
        }
@@ -122,7 +143,7 @@ int CmdLine::Parse(int argc,char *argv[])
        } else if (key=="--ZERO-MEAN") {
          if (val=="NO" || val=="0") opt.zero_mean=0;
          else opt.zero_mean=1;
-       } else std::cout << "warning: unknown option '" << param << "'\n";
+       } else std::cerr << "warning: unknown option '" << param << "'\n";
     } else {
        if (first) {sinputfile=param;first=false;}
        else soutputfile=param;

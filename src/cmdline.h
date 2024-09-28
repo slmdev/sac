@@ -7,8 +7,8 @@
 
 const char SACHelp[] =
 "usage: sac [--options] input output\n\n"
-"  --encode            encode input.wav to output.sac (default)\n"
-"    --normal          normal compression (default)\n"
+"  --encode            encode input.wav to output.sac (def)\n"
+"    --normal          normal compression (def)\n"
 "    --high            high compression, slow\n"
 "    --veryhigh        very high compression, really slow\n"
 "    --best            you asked for it\n"
@@ -19,9 +19,10 @@ const char SACHelp[] =
 "  advanced options    (automatically set per profile)\n"
 "   --reset-opt        reset opt params at frame boundaries\n"
 "   --optimize=#       frame-based optimization\n"
-"     no|s,n           s=[0,1.0],n=[0,10000]\n"
+"     no|s,n(,c)       s=[0,1.0],n=[0,10000]\n"
+"                      c=[l1,rms,glb,ent,bpn]\n"
 "   --zero-mean        zero-mean input\n"
-"   --framelen=n       default=8 (seconds)\n"
+"   --framelen=n       def=8 (seconds)\n"
 "   --sparse-pcm       enable pcm modelling\n";
 
 class CmdLine {

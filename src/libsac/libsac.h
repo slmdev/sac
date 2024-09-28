@@ -9,7 +9,7 @@
 class FrameCoder {
   public:
     struct coder_ctx {
-      enum SearchCost {L1,Entropy,Golomb,Bitplane};
+      enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
       enum SearchMethod {CMA,DDS};
       int optimize=0;
       int sparse_pcm=0;

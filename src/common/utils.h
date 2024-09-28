@@ -15,7 +15,6 @@ class RunExp {
   public:
       RunExp(double alpha):sum(0.0),alpha(alpha){};
       RunExp(double alpha,double sum):sum(sum),alpha(alpha){};
-      inline double Get(){return sum;};
       inline void Update(double val) {
         sum=alpha*sum+(1.-alpha)*val;
       }
@@ -40,6 +39,12 @@ namespace StrUtils {
       inline void StrUpper(std::string &str)
       {
         std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+      }
+      inline std::string str_up(const std::string &str)
+      {
+        std::string ts=str;
+        for (auto &c:ts) c=toupper(c);
+        return ts;
       }
       inline void SplitToken(const std::string& str,std::vector<std::string>& tokens,const std::string& delimiters)
       {

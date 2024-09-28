@@ -1,7 +1,7 @@
 #include "cmdline.h"
 #include <variant>
 
-#define SAC_VERSION "0.7.8"
+#define SAC_VERSION "0.7.8d"
 
 int main(int argc,char *argv[])
 {
@@ -18,7 +18,6 @@ int main(int argc,char *argv[])
     std::cout << " gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << "\n";
   #endif
   std::cout << "\n";
-
   CmdLine cmdline;
   int error=cmdline.Parse(argc,argv);
   if (error==0) error=cmdline.Process();
