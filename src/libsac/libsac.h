@@ -19,6 +19,7 @@ class FrameCoder {
       int zero_mean=0;
       int stereo_ms=0;
       int max_framelen=0;
+      int mt_mode=2;
       SearchMethod optimize_search=DDS;
       SearchCost optimize_cost=L1;
       double optimize_fraction=0;
@@ -40,17 +41,17 @@ class FrameCoder {
     static int WriteBlockHeader(std::fstream &file, const std::vector<SacProfile::FrameStats> &framestats, int ch);
     static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
   private:
+
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
     void DecodeProfile(SacProfile &profile,const std::vector <uint8_t>&buf);
     void AnalyseMonoChannel(int ch, int numsamples);
-    void AnalyseShift(int ch,int numsamples);
     double AnalyseStereoChannel(int ch0, int ch1, int numsamples);
     void ApplyMs(int ch0, int ch1, int numsamples);
     //void InterChannel(int ch0,int ch1,int numsamples);
     int EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf);
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
     void Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize);
-    double GetCost(SacProfile &profile,CostFunction *func,int start_sample,int samples_to_optimize);
+    double GetCost(const CostFunction *func,std::size_t samples_to_optimize);
 
     void PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize=false);
     void UnpredictFrame(const SacProfile &profile,int numsamples);
@@ -66,12 +67,16 @@ class FrameCoder {
 class Codec {
   public:
     Codec(){};
-    void EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt);
+    Codec(FrameCoder::coder_ctx &opt):opt_(opt) {};
+    void EncodeFile(Wav &myWav,Sac &mySac);
     //void EncodeFile(Wav &myWav,Sac &mySac,int profile,int optimize,int sparse_pcm);
     void DecodeFile(Sac &mySac,Wav &myWav);
     void ScanFrames(Sac &mySac);
   private:
+    void Analyse(const std::vector <std::vector<int32_t>>&samples,int blocksamples,int samples_read);
+    void AnalyseBlock(const int32_t *samples,int numsamples);
     void PrintProgress(int samplesprocessed,int totalsamples);
+    FrameCoder::coder_ctx opt_;
     //int framesize;
 };
 

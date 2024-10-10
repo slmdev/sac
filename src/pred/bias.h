@@ -9,9 +9,8 @@
 gives a tiny gain
 */
 
-#define h1y(v,k) (((v)>>k)^(v))
-
 #define BIAS_ROUND_PRED 1
+#define BIAS_MIX 0
 
 class BiasEstimator {
   class CntAvg {
@@ -23,12 +22,14 @@ class BiasEstimator {
       CntAvg(int ctx_size,int nb_scale=5,int freq0=4)
       :nb_scale(nb_scale),freq0(freq0),bias(ctx_size)
       {
-        for (auto &x:bias) {x.cnt=freq0;x.val=0.0;};
+        for (auto &x:bias) {
+          x.cnt=freq0;
+          x.val=0.0;
+        };
       }
       double GetBias(int ctx)
       {
-        double x=bias[ctx].val/double(bias[ctx].cnt);
-        return x;
+        return bias[ctx].val/double(bias[ctx].cnt);
       }
       void UpdateBias(int ctx,double delta) {
         bias[ctx].val+=delta;
@@ -43,24 +44,6 @@ class BiasEstimator {
       std::vector <bias_cnt>bias;
   };
 
-  class CntExp {
-    public:
-      CntExp(int isize,double alpha)
-      :bias(isize), alpha_(alpha)
-      {
-      }
-      double GetBias(int ctx)
-      {
-        return bias[ctx];
-      }
-      void UpdateBias(int ctx, double delta) {
-        bias[ctx] = alpha_ * bias[ctx] + (1.0-alpha_)*delta;
-      }
-    private:
-      vec1D bias;
-      double alpha_;
-  };
-
   double med3(double a,double b, double c) {
     if ((a<b && b<c) || (c<b && b<a)) {
       return b;
@@ -73,13 +56,17 @@ class BiasEstimator {
   public:
     BiasEstimator(double lms_mu=0.003,int cnt_scale=5,double nd_sigma=1.5,double nd_lambda=0.998)
     :
-    mix_ada(32,SSLMS(4,lms_mu)),
+    #if BIAS_MIX == 0
+      mix_ada(32,SSLMS(3,lms_mu)),
+    #elif BIAS_MIX == 1
+      mix_ada(32,LAD_ADA(3,lms_mu,0.96)),
+    #elif BIAS_MIX == 2
+      mix_ada(32,LMS_ADA(3,lms_mu,0.965,0.005)),
+    #endif
     hist_input(8),hist_delta(8),
     bias(1<<20),
-    cnt_freq(1<<20,cnt_scale), //,f0(1,cnt_scale),
+    cnt_freq(1<<20,cnt_scale),
     sigma(nd_sigma),lambda(nd_lambda)
-    //sp(2,0.001)
-    //nn(2,1)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
       p=0.0;
@@ -108,10 +95,6 @@ class BiasEstimator {
       if (t>512) mix_ctx=2;
       else if (t>32) mix_ctx=1;
 
-      //int c0=fabs(hist_delta[0])>t?1:0;
-      //int c1=fabs(hist_delta[1])>t?1:0;
-      //int c2=fabs(hist_delta[2])>t?1:0;
-
       ctx0=0;
       ctx0+=b0<<0;
       //ctx0+=b1<<1;
@@ -137,17 +120,14 @@ class BiasEstimator {
       p=pred;
       CalcContext();
 
-      //bias0=bias[ctx0];
-      //bias1=bias[ctx1];
-      //bias2=bias[ctx2];
+      const double bias0=cnt_freq.GetBias(ctx0);
+      const double bias1=cnt_freq.GetBias(ctx1);
+      const double bias2=cnt_freq.GetBias(ctx2);
+      //double bias_mean = (bias0+bias1+bias2)/3.0;
+      //double bias_med = med3(bias0,bias1,bias2);
 
-      const double bias0_a=cnt_freq.GetBias(ctx0);
-      const double bias1_a=cnt_freq.GetBias(ctx1);
-      const double bias2_a=cnt_freq.GetBias(ctx2);
-      //double bias_mean = (bias0_a+bias1_a+bias2_a)/3.0;
-      //double bias_med = med3(bias0_a,bias1_a,bias2_a);
-
-      const double pbias=mix_ada[mix_ctx].Predict({bias0_a,bias1_a,bias2_a});
+      //const double pbias=mix_ada[mix_ctx].Predict({bias0_a,bias1_a,bias2_a});
+      const double pbias=mix_ada[mix_ctx].Predict({bias0,bias1,bias2});
       //if (std::isnan(pbias)) std::cout << "nan";
       return pred+pbias;
     }
@@ -174,12 +154,15 @@ class BiasEstimator {
 
       mean_est=lambda*mean_est+(1.0-lambda)*delta;
       var_est=lambda*var_est+(1.0-lambda)*((delta-mean_est)*(delta-mean_est));
-
-      //sp.Update(delta);
-      //nn.Update(val);
     }
   private:
-    std::vector<SSLMS> mix_ada;
+    #if BIAS_MIX == 0
+      std::vector<SSLMS> mix_ada;
+    #elif BIAS_MIX == 1
+      std::vector<LAD_ADA> mix_ada;
+    #elif BIAS_MIX == 2
+      std::vector<LMS_ADA> mix_ada;
+    #endif
     vec1D hist_input,hist_delta;
     int ctx0,ctx1,ctx2,mix_ctx;
     double p;

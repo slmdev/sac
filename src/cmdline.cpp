@@ -31,9 +31,8 @@ void CmdLine::PrintWav(const AudioFile &myWav)
 void CmdLine::PrintMode()
 {
   std::cout << "  Profile: ";
+  std::cout << "mt" << opt.mt_mode;
   std::cout << " " << opt.max_framelen << "s";
-  if (opt.zero_mean) std::cout << " zero-mean";
-  if (opt.sparse_pcm) std::cout << " sparse-pcm";
   if (opt.optimize) {
       std::cout << " opt (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
       std::cout << ",n=" << opt.optimize_maxnfunc << ",";
@@ -47,8 +46,11 @@ void CmdLine::PrintMode()
         case opt.SearchCost::Bitplane:cost_str="bpn";break;
         default:break;
       }
-      std::cout << cost_str << ")\n";
+      std::cout << cost_str << ")";
   }
+  if (opt.zero_mean) std::cout << " zero-mean";
+  if (opt.sparse_pcm) std::cout << " sparse-pcm";
+  std::cout << '\n';
   std::cout << std::endl;
 }
 
@@ -65,6 +67,20 @@ void CmdLine::Split(const std::string &str,std::string &key,std::string &val,con
   }
 }
 
+double CmdLine::stod_safe(const std::string& str)
+{
+    double d;
+    try {
+        d = std::stod(str);
+    } catch (const std::invalid_argument&) {
+        std::cerr << "stod: argument is invalid\n";
+        throw;
+    } catch (const std::out_of_range&) {
+        std::cerr << "stod: argument is out of range for a double\n";
+        throw;
+    }
+    return d;
+}
 
 int CmdLine::Parse(int argc,char *argv[])
 {
@@ -89,7 +105,7 @@ int CmdLine::Parse(int argc,char *argv[])
        else if (key=="--LIST") mode=LIST;
        else if (key=="--LISTFULL") mode=LISTFULL;
        else if (key=="--VERBOSE") {
-          if (val.length()) opt.verbose_level=stoi(val);
+          if (val.length()) opt.verbose_level=std::max(0,stoi(val));
           else opt.verbose_level=1;
        }
        else if (key=="--NORMAL") {
@@ -116,7 +132,7 @@ int CmdLine::Parse(int argc,char *argv[])
           std::vector<std::string>vs;
           StrUtils::SplitToken(val,vs,",");
           if (vs.size()>=2)  {
-            opt.optimize_fraction=std::clamp(std::stod(vs[0]),0.,1.);
+            opt.optimize_fraction=std::clamp(stod_safe(vs[0]),0.,1.);
             opt.optimize_maxnfunc=std::clamp(std::stoi(vs[1]),0,10000);
             if (vs.size()>=3) {
               std::string cf=StrUtils::str_up(vs[2]);
@@ -133,7 +149,10 @@ int CmdLine::Parse(int argc,char *argv[])
          }
        }
        else if (key=="--FRAMELEN") {
-         if (val.length()) opt.max_framelen=stoi(val);
+         if (val.length()) opt.max_framelen=std::max(0,stoi(val));
+       }
+       else if (key=="--MT-MODE") {
+         if (val.length()) opt.mt_mode=std::max(0,stoi(val));
        }
        else if (key=="--SPARSE-PCM") {
           if (val=="NO" || val=="0") opt.sparse_pcm=0;
@@ -179,11 +198,11 @@ int CmdLine::Process()
          if (mySac.OpenWrite(soutputfile)==0) {
            std::cout << "ok\n";
            PrintMode();
-           Codec myCodec;
+           Codec myCodec(opt);
 
            Timer time;
            time.start();
-           myCodec.EncodeFile(myWav,mySac,opt);
+           myCodec.EncodeFile(myWav,mySac);
            time.stop();
 
            uint64_t infilesize=myWav.getFileSize();
@@ -219,9 +238,10 @@ int CmdLine::Process()
         mySac.setKBPS(kbps);
         PrintWav(mySac);
         std::cout << "  Profile: ";
+        std::cout << "mt" << opt.mt_mode;
         std::cout << " " << static_cast<int>(mySac.mcfg.max_framelen) << "s";
         std::cout << std::endl;
-        std::cout << "  Ratio:   " << std::fixed << std::setprecision(3) << bps << " bits per sample\n\n";
+        std::cout << "  Ratio:   " << std::fixed << std::setprecision(3) << bps << " bps\n\n";
         std::cout << "  Audio MD5: ";
         for (auto x : md5digest) std::cout << std::hex << (int)x;
         std::cout << std::dec << '\n';
@@ -236,12 +256,22 @@ int CmdLine::Process()
           std::cout << "Create: '" << soutputfile << "': ";
           if (myWav.OpenWrite(soutputfile)==0) {
             std::cout << "ok\n";
-            Codec myCodec;
+
+            Timer time;
+            time.start();
+
+            Codec myCodec(opt);
             myCodec.DecodeFile(mySac,myWav);
             MD5::Finalize(&myWav.md5ctx);
-            bool md5diff=std::memcmp(myWav.md5ctx.digest, md5digest, 16);
-            std::cout << '\n';
+            time.stop();
+
+            double xrate=0.0;
+            if (time.elapsedS() > 0.0)
+            xrate=(myWav.getNumSamples()/double(myWav.getSampleRate()))/time.elapsedS();
+            std::cout << "\n  Speed " << std::format("{:.3f}x",xrate) << '\n';
+
             std::cout << "  Audio MD5: ";
+            bool md5diff=std::memcmp(myWav.md5ctx.digest, md5digest, 16);
             if (!md5diff) std::cout << "ok\n";
             else {
               std::cout << "Error (";

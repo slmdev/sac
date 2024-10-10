@@ -1,7 +1,14 @@
 #include "cmdline.h"
 #include <variant>
 
-#define SAC_VERSION "0.7.8d"
+#define SAC_VERSION "0.7.9"
+
+#include <thread>
+#include <future>
+int test(int ch)
+{
+  return ch*2;
+}
 
 int main(int argc,char *argv[])
 {
@@ -18,6 +25,7 @@ int main(int argc,char *argv[])
     std::cout << " gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << "\n";
   #endif
   std::cout << "\n";
+
   CmdLine cmdline;
   int error=cmdline.Parse(argc,argv);
   if (error==0) error=cmdline.Process();

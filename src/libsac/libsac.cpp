@@ -1,4 +1,7 @@
 #include <algorithm>
+#include <thread>
+#include <future>
+
 #include "libsac.h"
 #include "pred.h"
 #include "../common/timer.h"
@@ -132,6 +135,7 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
     }
   }
 
+   if (!optimize)
     for (int ch=0;ch<numchannels_;ch++)
     {
       int32_t emax=0;
@@ -238,11 +242,12 @@ double FrameCoder::CalcRemapError(int ch, int numsamples)
     }
     framestats[ch].maxbpn_map=MathUtils::iLog2(emax_map);
 
-    CostEntropyO0b cost;
-    double ent1 = cost.Calc(&error[ch][0],numsamples);
-    double ent2 = cost.Calc(&emap[0],numsamples);
+    CostL1 cost;
+
+    double ent1 = cost.Calc(std::span{&error[ch][0],static_cast<unsigned>(numsamples)});
+    double ent2 = cost.Calc(std::span{&emap[0],static_cast<unsigned>(numsamples)});
     double r=1.0;
-    if (ent1!=0.0) r=ent2/ent1;
+    if (ent2!=0.0) r=ent1/ent2;
     if (opt.verbose_level>0) std::cout << "entropy: " << ent1 << ' ' << ent2 << ' ' << r << '\n';
     return r;
 }
@@ -259,12 +264,12 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
     framestats[ch].enc_mapped=false;
     encoded[ch]=enc_temp1[ch];
 
-    if (r > 1.01) {
+    if (r > 1.05) {
       int size_mapped=EncodeMonoFrame_Mapped(ch,numsamples,enc_temp2[ch]);
       if (size_mapped<size_normal)
       {
         if (opt.verbose_level>0) {
-          std::cout << "sparse frame " << size_normal << " -> " << size_mapped << '\n';
+          std::cout << "sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_normal-size_mapped) << ")\n";
         }
         framestats[ch].enc_mapped=true;
         encoded[ch]=enc_temp2[ch];
@@ -293,15 +298,6 @@ void FrameCoder::DecodeMonoFrame(int ch,int numsamples)
   rc.Stop();
 }
 
-double FrameCoder::GetCost(SacProfile &profile,CostFunction *func,int start_sample,int samples_to_optimize)
-{
-  PredictFrame(profile,start_sample,samples_to_optimize,true);
-  double cost=0.0;
-  for (int ch=0;ch<numchannels_;ch++) {
-    cost += func->Calc(&(error[ch][0]),samples_to_optimize);
-  }
-  return cost;
-}
 
 void PrintProfile(SacProfile &profile)
 {
@@ -334,10 +330,35 @@ void PrintProfile(SacProfile &profile)
 
     std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
     std::cout << "mu-nu " << param.mix_nu0 << ", " << param.mix_nu1 << "\n";
-    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << ", scale " << (1<<param.bias_scale) << '\n';
+    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale) << '\n';
     std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
     std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
 }
+
+double FrameCoder::GetCost(const CostFunction *func,std::size_t samples_to_optimize)
+{
+  // return a span over sample error
+  const auto span_ch = [=,this](int ch){
+    return std::span{&error[ch][0],samples_to_optimize};
+  };
+
+  double cost=0.0;
+  if (opt.mt_mode>1 && numchannels_>1) {
+
+    std::vector <std::future<double>> threads;
+    for (int ch=0;ch<numchannels_;ch++)
+        threads.emplace_back(std::async([=]{return func->Calc(span_ch(ch));}));
+
+    for (auto &thread : threads)
+      cost += thread.get();
+
+  } else {
+    for (int ch=0;ch<numchannels_;ch++)
+      cost += func->Calc(span_ch(ch));
+  }
+  return cost;
+}
+
 
 void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize)
 {
@@ -355,7 +376,7 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
     case opt.SearchCost::L1:CostFunc=new CostL1();break;
     case opt.SearchCost::RMS:CostFunc=new CostRMS();break;
     case opt.SearchCost::Golomb:CostFunc=new CostGolomb();break;
-    case opt.SearchCost::Entropy:CostFunc=new CostEntropyO0b();break;
+    case opt.SearchCost::Entropy:CostFunc=new CostEntropy();break;
     case opt.SearchCost::Bitplane:CostFunc=new CostBitplane();break;
     default:std::cerr << "  error: unknown FramerCoder::CostFunction\n";return;
   }
@@ -373,7 +394,8 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 
     auto cost_func=[&](const vec1D &x) {
       for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x[i];
-      return GetCost(profile,CostFunc,start_pos,samples_to_optimize);
+      PredictFrame(profile,start_pos,samples_to_optimize,true);
+      return GetCost(CostFunc,samples_to_optimize);
     };
 
     auto sigma_func=[&](int idx) {
@@ -454,50 +476,25 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
       std::cout << "  ch" << ch << " samples=" << numsamples;
       std::cout << ",mean=" << framestats[ch].mean << ",min=" << framestats[ch].minval << ",max=" << framestats[ch].maxval << "\n";
     }
+
+
   }
 }
 
-#include <bitset>
-
-void FrameCoder::AnalyseShift(int ch,int numsamples)
+int num0(uint32_t val,int valid_bits)
 {
-  if (numsamples) {
-    int32_t *src=&(samples[ch][0]);
-    uint32_t ordata=0,xordata=0,anddata=~0;
-
-    for (int i=0;i<numsamples;i++) {
-      //std::bitset<16>y(src[i]);
-      //std::cout << y << ' ';
-      xordata |= src[i] ^ -(src[i] & 1);
-      anddata &= src[i];
-      ordata |= src[i];
-    }
-    int tshift=0;
-    if (!(ordata&1)) {
-        while (!(ordata&1)) {
-            tshift++;
-            ordata>>=1;
-        }
-    } else if (anddata&1) {
-        while (anddata&1) {
-            tshift++;
-            anddata>>=1;
-        }
-    } else if (!(xordata&2)) {
-        while (!(xordata&2)) {
-            tshift++;
-            xordata>>=1;
-        }
-    }
-    if (tshift) std::cout << "total shift: " << tshift << std::endl;
+  int nb=0;
+  while (nb<valid_bits) {
+    if (val&1) break;
+    val>>=1;nb++;
   }
+  return nb;
 }
 
 void FrameCoder::Predict()
 {
   for (int ch=0;ch<numchannels_;ch++)
   {
-    //AnalyseShift(ch,numsamples_);
     AnalyseMonoChannel(ch,numsamples_);
     framestats[ch].mymap.Reset();
     framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
@@ -531,12 +528,23 @@ void FrameCoder::Unpredict()
 
 void FrameCoder::Encode()
 {
-  for (int ch=0;ch<numchannels_;ch++) EncodeMonoFrame(ch,numsamples_);
+  if (opt.mt_mode && numchannels_>1)  {
+    std::vector <std::jthread> threads;
+    for (int ch=0;ch<numchannels_;ch++)
+      threads.emplace_back(std::jthread(&FrameCoder::EncodeMonoFrame,this,ch,numsamples_));
+  } else
+    for (int ch=0;ch<numchannels_;ch++) EncodeMonoFrame(ch,numsamples_);
 }
 
 void FrameCoder::Decode()
 {
-  for (int ch=0;ch<numchannels_;ch++) DecodeMonoFrame(ch,numsamples_);
+  if (opt.mt_mode && numchannels_>1) {
+    std::vector <std::jthread> threads;
+    for (int ch=0;ch<numchannels_;ch++)
+      threads.emplace_back(std::jthread(&FrameCoder::DecodeMonoFrame,this,ch,numsamples_));
+  } else
+    for (int ch=0;ch<numchannels_;ch++)
+      DecodeMonoFrame(ch,numsamples_);
 }
 
 void FrameCoder::EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf)
@@ -669,14 +677,62 @@ void Codec::ScanFrames(Sac &mySac)
   std::cout << "Hdr_size " << (coef_hdr_size+block_hdr_size) << " (coefs " << coef_hdr_size << ",block " << block_hdr_size << ")\n";
 }
 
-void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
+class SparsePCM {
+  public:
+    SparsePCM()
+    :minval(0),maxval(0)
+    {
+    };
+    void Analyse(const int32_t *src,int numsamples)
+    {
+      minval = std::numeric_limits<int32_t>::max();
+      maxval = std::numeric_limits<int32_t>::min();
+      for (int i=0;i<numsamples;i++) {
+        const int32_t val=src[i];
+        if (val>maxval) maxval=val;
+        if (val<minval) minval=val;
+      }
+      used.resize(maxval-minval+1);
+    }
+  protected:
+    int32_t minval,maxval;
+    std::vector<int> used;
+};
+
+void Codec::AnalyseBlock(const int32_t *src,int numsamples)
 {
-  uint32_t max_framesize=static_cast<uint32_t>(opt.max_framelen)*myWav.getSampleRate();
+  std::cout << "analyse " << numsamples << '\n';
+  SparsePCM spcm;
+  spcm.Analyse(src,numsamples);
+}
+
+void Codec::Analyse(const std::vector <std::vector<int32_t>>&samples,int blocksamples,int samples_read)
+{
+  int samples_processed=0;
+  int nblock=0;
+  while (samples_processed < samples_read)
+  {
+    int samples_left = samples_read-samples_processed;
+    int samples_block = std::min(blocksamples,samples_left);
+    std::cout << nblock << " " << samples_block << '\n';
+    AnalyseBlock(&samples[0][samples_processed],samples_block);
+
+    samples_processed += samples_block;
+    nblock++;
+  }
+  if (samples_processed != samples_read)
+    std::cerr << "  warning: samples_processed != samples_read (" << samples_processed << "," << samples_read << ")\n";
+}
+
+void Codec::EncodeFile(Wav &myWav,Sac &mySac)
+{
+  uint32_t max_framesize=static_cast<uint32_t>(opt_.max_framelen)*myWav.getSampleRate();
 
   const int numchannels=myWav.getNumChannels();
-  FrameCoder myFrame(numchannels,max_framesize,opt);
 
-  mySac.mcfg.max_framelen = opt.max_framelen;
+  FrameCoder myFrame(numchannels,max_framesize,opt_);
+
+  mySac.mcfg.max_framelen = opt_.max_framelen;
 
   mySac.WriteSACHeader(myWav);
   std::streampos hdrpos = mySac.file.tellg();
@@ -693,6 +749,8 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
     int samplesread=myWav.ReadSamples(myFrame.samples,max_framesize);
     myFrame.SetNumSamples(samplesread);
 
+    //Analyse(myFrame.samples,myWav.getSampleRate()*4,samplesread);
+
     ltimer.start();myFrame.Predict();ltimer.stop();time_prd+=ltimer.elapsedS();
     ltimer.start();myFrame.Encode();ltimer.stop();time_enc+=ltimer.elapsedS();
     myFrame.WriteEncoded(mySac);
@@ -707,7 +765,7 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac,FrameCoder::coder_ctx &opt)
   if (time_total>0.)   {
      double rprd=time_prd*100./time_total;
      double renc=time_enc*100./time_total;
-     std::cout << "  Timing:  pred " << miscUtils::ConvertFixed(rprd,2) << "%, ";
+     std::cout << "\n  Timing:  pred " << miscUtils::ConvertFixed(rprd,2) << "%, ";
      std::cout << "enc " << miscUtils::ConvertFixed(renc,2) << "%, ";
      std::cout << "misc " << miscUtils::ConvertFixed(100.-rprd-renc,2) << "%" << std::endl;
   }
@@ -728,9 +786,8 @@ void Codec::DecodeFile(Sac &mySac,Wav &myWav)
   mySac.UnpackMetaData(myWav);
   myWav.WriteHeader();
 
-  FrameCoder::coder_ctx opt;
-  opt.max_framelen=cfg.max_framelen;
-  FrameCoder myFrame(mySac.getNumChannels(),cfg.max_framesize,opt);
+  opt_.max_framelen=cfg.max_framelen;
+  FrameCoder myFrame(mySac.getNumChannels(),cfg.max_framesize,opt_);
 
   int64_t data_nbytes=0;
   int samplestodecode=mySac.getNumSamples();
