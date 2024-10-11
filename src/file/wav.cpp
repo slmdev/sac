@@ -142,7 +142,7 @@ int Wav::WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrit
 int Wav::ReadHeader()
 {
   bool seektodatapos=true;
-  uint8_t buf[32];
+  uint8_t buf[40];
   std::vector <uint8_t> vbuf;
   uint32_t chunkid,chunksize;
 
@@ -187,9 +187,9 @@ int Wav::ReadHeader()
                  std::cout << ",channel mask=" << std::format("{:#x}",channel_mask);
                  std::cout << ",valid bps=" << valid_bitspersample;
                  std::cout << ",data format=" << data_fmt << '\n';
-                 bitspersample=valid_bitspersample;
-                 audioformat = data_fmt;
                }
+               bitspersample=valid_bitspersample;
+               audioformat = data_fmt;
              }
 
           }
