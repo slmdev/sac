@@ -16,16 +16,16 @@ const char SACHelp[] =
 "  --decode            decode input.sac to output.wav\n"
 "  --list              list info about input.sac\n"
 "  --listfull          verbose info about input\n"
-"  --verbose=n         verbosity level (def=0)\n\n"
+"  --verbose           verbose output\n\n"
 "  supported types: 1-16 bit, mono/stereo pcm\n"
 "  advanced options    (automatically set)\n"
 "   --reset-opt        reset opt params at frame boundaries\n"
 "   --optimize=#       frame-based optimization\n"
-"     no|s,n(,c)       s=[0,1.0],n=[0,10000]\n"
-"                      c=[l1,rms,glb,ent,bpn]\n"
+"     no|s,n,c,k       s=[0,1.0],n=[0,10000]\n"
+"                      c=[l1,rms,glb,ent,bpn] k=[1,32]\n"
 "   --mt-mode=n        multi-threading level n=[0-2]\n"
 "   --zero-mean        zero-mean input\n"
-"   --framelen=n       def=8 (seconds)\n"
+"   --framelen=n       def=8 seconds\n"
 "   --sparse-pcm       enable pcm modelling\n";
 
 class CmdLine {

@@ -12,17 +12,20 @@ class FrameCoder {
       enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
       enum SearchMethod {CMA,DDS};
       int optimize=0;
-      int sparse_pcm=0;
+      int sparse_pcm=1;
+      int zero_mean=1;
+      int max_framelen=8;
       int optimize_maxnfunc=0;
       int verbose_level=0;
       int reset_profile=0;
-      int zero_mean=0;
       int stereo_ms=0;
-      int max_framelen=0;
+      int optk=4;
       int mt_mode=2;
-      SearchMethod optimize_search=DDS;
-      SearchCost optimize_cost=L1;
+
+      SearchMethod optimize_search=SearchMethod::DDS;
+      SearchCost optimize_cost=SearchCost::Entropy;
       double optimize_fraction=0;
+
       SacProfile profiledata;
     };
     FrameCoder(int numchannels,int framesize,const coder_ctx &opt);
@@ -41,7 +44,8 @@ class FrameCoder {
     static int WriteBlockHeader(std::fstream &file, const std::vector<SacProfile::FrameStats> &framestats, int ch);
     static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
   private:
-
+    void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=false);
+    void PrintProfile(SacProfile &profile);
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
     void DecodeProfile(SacProfile &profile,const std::vector <uint8_t>&buf);
     void AnalyseMonoChannel(int ch, int numsamples);

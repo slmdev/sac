@@ -7,14 +7,14 @@
 CmdLine::CmdLine()
 :mode(ENCODE)
 {
-  opt.optimize=0;
+  /*opt.optimize=0;
   opt.sparse_pcm=1;
   opt.reset_profile=0;
   opt.zero_mean=1;
   opt.max_framelen=8;
 
   opt.optimize_cost=opt.SearchCost::Entropy;
-  opt.optimize_search=opt.SearchMethod::DDS;
+  opt.optimize_search=opt.SearchMethod::DDS;*/
 }
 
 void CmdLine::PrintWav(const AudioFile &myWav)
@@ -35,8 +35,6 @@ void CmdLine::PrintMode()
   std::cout << " " << opt.max_framelen << "s";
   if (opt.optimize) {
       std::cout << " opt (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
-      std::cout << ",n=" << opt.optimize_maxnfunc << ",";
-
       std::string cost_str;
       switch (opt.optimize_cost) {
         case opt.SearchCost::L1:cost_str="L1";break;
@@ -46,7 +44,9 @@ void CmdLine::PrintMode()
         case opt.SearchCost::Bitplane:cost_str="bpn";break;
         default:break;
       }
-      std::cout << cost_str << ")";
+      std::cout << cost_str;
+      std::cout << ",n=" << opt.optimize_maxnfunc << ",";
+      std::cout << ",k=" << opt.optk << ")";
   }
   if (opt.zero_mean) std::cout << " zero-mean";
   if (opt.sparse_pcm) std::cout << " sparse-pcm";
@@ -142,6 +142,9 @@ int CmdLine::Parse(int argc,char *argv[])
               else if (cf=="ENT") opt.optimize_cost = opt.SearchCost::Entropy; //default
               else if (cf=="BPN") opt.optimize_cost = opt.SearchCost::Bitplane;
               else std::cerr << "warning: unknown cost function '" << vs[2] << "'\n";
+            }
+            if (vs.size()>=4) {
+              opt.optk=std::clamp(stoi(vs[3]),1,32);
             }
             if (opt.optimize_fraction>0. && opt.optimize_maxnfunc>0) opt.optimize=1;
             else opt.optimize=0;

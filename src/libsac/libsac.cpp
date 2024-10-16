@@ -37,12 +37,12 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 
 
 
-void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=false)
+void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
   param.nA=16;
   //param.nS0=round(profile.Get(9));
   //param.nS1=round(profile.Get(10));
-  if (optimize) param.k=4;
+  if (optimize) param.k=opt.optk;
   else param.k=1;
   param.lambda0=param.lambda1=profile.Get(0);
   param.ols_nu0=param.ols_nu1=profile.Get(1);
@@ -299,7 +299,7 @@ void FrameCoder::DecodeMonoFrame(int ch,int numsamples)
 }
 
 
-void PrintProfile(SacProfile &profile)
+void FrameCoder::PrintProfile(SacProfile &profile)
 {
     Predictor::tparam param;
     SetParam(param,profile);
