@@ -44,8 +44,8 @@ void CmdLine::PrintMode()
         case opt.SearchCost::Bitplane:cost_str="bpn";break;
         default:break;
       }
-      std::cout << cost_str;
-      std::cout << ",n=" << opt.optimize_maxnfunc << ",";
+      std::cout << "," << cost_str;
+      std::cout << ",n=" << opt.optimize_maxnfunc;
       std::cout << ",k=" << opt.optk << ")";
   }
   if (opt.zero_mean) std::cout << " zero-mean";
@@ -53,6 +53,7 @@ void CmdLine::PrintMode()
   std::cout << '\n';
   std::cout << std::endl;
 }
+
 
 
 void CmdLine::Split(const std::string &str,std::string &key,std::string &val,const char splitval)

@@ -82,7 +82,7 @@ class CostEntropy : public CostFunction {
           if (val>maxval) maxval=val;
           if (val<minval) minval=val;
         }
-        auto vmap=[&](int32_t val) {return val-minval;};
+        const auto vmap=[&](int32_t val) {return val-minval;};
 
         std::vector<int> counts(maxval-minval+1);
         for (const auto val:buf)

@@ -248,7 +248,7 @@ double FrameCoder::CalcRemapError(int ch, int numsamples)
     double ent2 = cost.Calc(std::span{&emap[0],static_cast<unsigned>(numsamples)});
     double r=1.0;
     if (ent2!=0.0) r=ent1/ent2;
-    if (opt.verbose_level>0) std::cout << "entropy: " << ent1 << ' ' << ent2 << ' ' << r << '\n';
+    if (opt.verbose_level>0) std::cout << "  cost pcm-model: " << ent1 << ' ' << ent2 << ' ' << r << '\n';
     return r;
 }
 
@@ -269,7 +269,7 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
       if (size_mapped<size_normal)
       {
         if (opt.verbose_level>0) {
-          std::cout << "sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_normal-size_mapped) << ")\n";
+          std::cout << "  sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_normal-size_mapped) << ")\n";
         }
         framestats[ch].enc_mapped=true;
         encoded[ch]=enc_temp2[ch];

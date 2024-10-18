@@ -75,6 +75,18 @@ namespace StrUtils {
 };
 
 namespace MathUtils {
+
+      template <typename T>
+      T med3(T a,T b,T c)
+      {
+        if ((a<b && b<c) || (c<b && b<a)) {
+          return b;
+        } else if ((b < a && a < c) || (c < a && a < b)) {
+          return a;
+        } else
+          return c;
+      }
+
       inline int iLog2(int val) {
         int nbits=0;
         while (val>>=1) nbits++;
