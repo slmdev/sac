@@ -81,8 +81,8 @@ int LoadProfileHigh(SacProfile &profile)
       profile.Set(47,0.95,0.99,0.97); // beta
       profile.Set(49,0.95,0.99,0.97); // beta
 
-      profile.Set(51,0.0,0.03,0.001); //nu
-      profile.Set(52,0.0,0.03,0.001); //nu
+      profile.Set(51,0.0,0.025,0.001); //nu
+      profile.Set(52,0.0,0.025,0.001); //nu
     #else
       profile.Set(47,0.98,1,1.0); // mu_decay
       profile.Set(49,0.98,1,1.0); // mu_decay

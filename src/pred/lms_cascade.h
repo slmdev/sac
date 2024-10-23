@@ -25,7 +25,7 @@ class LMSCascade {
       #ifdef LMS_ADA
         for (int i=0;i<n-1;i++)
           clms[i]=new NLMS_Stream(vn[i],vmu[i],vmudecay[i],vpowdecay[i]);
-        clms[n-1]=new LMSADA_Stream(vn[n-1],vmu[n-1],0.97);
+        clms[n-1]=new LMSADA_Stream(vn[n-1],vmu[n-1],vmudecay[n-1],vpowdecay[n-1]);
       #else
         for (int i=0;i<n;i++)
           clms[i]=new NLMS_Stream(vn[i],vmu[i],vmudecay[i],vpowdecay[i]);
