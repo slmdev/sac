@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <chrono>
 #include <vector>
+#include <span>
 
 #define NDEBUG
 
@@ -23,6 +24,9 @@
 typedef std::vector<double> vec1D;
 typedef std::vector<std::vector<double>> vec2D;
 typedef std::vector <double*>ptr_vec1D;
+typedef std::span<int32_t> span_i32;
+typedef std::span<const int32_t> span_ci32;
+
 
 template <class T> T abs(T a){return ((a) < 0)?-(a):(a);}
 template <class T> T div_signed(T val,T s){return val<0?-(((-val)+(1<<(s-1)))>>s):(val+(1<<(s-1)))>>s;};

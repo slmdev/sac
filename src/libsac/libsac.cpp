@@ -4,6 +4,7 @@
 
 #include "libsac.h"
 #include "pred.h"
+#include "sparse.h"
 #include "../common/timer.h"
 #include "../opt/dds.h"
 
@@ -269,7 +270,7 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
       if (size_mapped<size_normal)
       {
         if (opt.verbose_level>0) {
-          std::cout << "  sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_normal-size_mapped) << ")\n";
+          std::cout << "  sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_mapped-size_normal) << ")\n";
         }
         framestats[ch].enc_mapped=true;
         encoded[ch]=enc_temp2[ch];
@@ -677,51 +678,91 @@ void Codec::ScanFrames(Sac &mySac)
   std::cout << "Hdr_size " << (coef_hdr_size+block_hdr_size) << " (coefs " << coef_hdr_size << ",block " << block_hdr_size << ")\n";
 }
 
-class SparsePCM {
-  public:
-    SparsePCM()
-    :minval(0),maxval(0)
-    {
-    };
-    void Analyse(const int32_t *src,int numsamples)
-    {
-      minval = std::numeric_limits<int32_t>::max();
-      maxval = std::numeric_limits<int32_t>::min();
-      for (int i=0;i<numsamples;i++) {
-        const int32_t val=src[i];
-        if (val>maxval) maxval=val;
-        if (val<minval) minval=val;
-      }
-      used.resize(maxval-minval+1);
-    }
-  protected:
-    int32_t minval,maxval;
-    std::vector<int> used;
-};
 
-void Codec::AnalyseBlock(const int32_t *src,int numsamples)
+std::pair<double,double> Codec::AnalyseSparse(std::span<const int32_t> buf)
 {
-  std::cout << "analyse " << numsamples << '\n';
   SparsePCM spcm;
-  spcm.Analyse(src,numsamples);
+  spcm.Analyse(buf);
+
+  return {spcm.fraction_used,spcm.fraction_cost};
 }
 
-void Codec::Analyse(const std::vector <std::vector<int32_t>>&samples,int blocksamples,int samples_read)
+void Codec::PushState(std::vector<Codec::tsub_frame> &sub_frames,Codec::tsub_frame &curframe,int min_frame_length,int block_state=-1,int samples_block=0)
 {
+  if (block_state==curframe.state)
+    curframe.length+=samples_block;
+  else {
+    if (curframe.length < min_frame_length && sub_frames.size()) // extend
+    {
+      sub_frames.back().length+=curframe.length;
+    } else {
+      if (opt_.verbose_level>1)
+        std::cout << "push subframe of length " << curframe.length << " samples\n";
+      sub_frames.push_back(curframe);
+
+      if (samples_block) {
+        curframe.state=block_state; // set new blockstate
+        curframe.start=curframe.length;
+        curframe.length=samples_block;
+      }
+    }
+  }
+}
+
+std::vector<Codec::tsub_frame> Codec::Analyse(const std::vector <std::vector<int32_t>>&samples,int blocksamples,int min_frame_length,int samples_read)
+{
+  std::vector<Codec::tsub_frame> sub_frames;
+
   int samples_processed=0;
   int nblock=0;
+
+  Codec::tsub_frame curframe;
+
   while (samples_processed < samples_read)
   {
     int samples_left = samples_read-samples_processed;
     int samples_block = std::min(blocksamples,samples_left);
-    std::cout << nblock << " " << samples_block << '\n';
-    AnalyseBlock(&samples[0][samples_processed],samples_block);
+    double avg_cost=0,avg_used=0;
+    for (unsigned ch=0;ch<samples.size();ch++)
+    {
+      auto [fused,fcost]=AnalyseSparse(std::span{&samples[ch][samples_processed],static_cast<unsigned>(samples_block)});
+      avg_cost+=fcost;
+      avg_used+=fused;
+    }
+    avg_cost /= (double)samples.size();
+    avg_used /= (double)samples.size();
+    int block_state=(avg_cost>1.35); // high threshold
+    if (opt_.verbose_level>1) {
+      std::cout << "  analyse block " << nblock << ' ' << samples_block << " sparse " << block_state << " (" << avg_cost << "," << avg_used << ")\n";
+    }
+
+    if (nblock==0)
+    {
+      curframe.state = block_state;
+      curframe.length=samples_block;
+      curframe.start=0;
+    } else
+      PushState(sub_frames,curframe,min_frame_length,block_state,samples_block);
 
     samples_processed += samples_block;
     nblock++;
   }
+
+  if (curframe.length)
+    PushState(sub_frames,curframe,min_frame_length);
+
   if (samples_processed != samples_read)
     std::cerr << "  warning: samples_processed != samples_read (" << samples_processed << "," << samples_read << ")\n";
+
+  if (opt_.verbose_level>1) std::cout << "sub_frames\n";
+  int64_t nlen=0;
+  for (auto &frame : sub_frames) {
+    if (opt_.verbose_level>1) std::cout << "  " << frame.start << ' ' << frame.length << ' ' << frame.state << '\n';
+    nlen+=frame.length;
+  }
+  if (nlen!=samples_read)
+    std::cerr << "  warning: nlen != samples_read\n";
+  return sub_frames;
 }
 
 void Codec::EncodeFile(Wav &myWav,Sac &mySac)
@@ -745,7 +786,34 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac)
   gtimer.start();
   int samplescoded=0;
   int samplestocode=myWav.getNumSamples();
+  std::vector<std::vector<int32_t>> csamples(myWav.getNumChannels(),std::vector<int32_t>(max_framesize));
   while (samplestocode>0) {
+    #if 1
+    int samplesread=myWav.ReadSamples(csamples,max_framesize);
+
+    int block_len=myWav.getSampleRate()*3;
+    int min_frame_len=myWav.getSampleRate()*3;
+    auto sub_frames=Analyse(csamples,block_len,min_frame_len,samplesread);
+
+    for (auto &subframe:sub_frames)
+    {
+      if (opt_.verbose_level)
+        std::cout << "frame " << subframe.start << " state " << subframe.state << " len " << subframe.length << '\n';
+
+      for (int ch=0;ch<myWav.getNumChannels();ch++)
+        std::copy_n(&csamples[ch][subframe.start],subframe.length,&myFrame.samples[ch][0]);
+
+      myFrame.SetNumSamples(subframe.length);
+
+      ltimer.start();myFrame.Predict();ltimer.stop();time_prd+=ltimer.elapsedS();
+      ltimer.start();myFrame.Encode();ltimer.stop();time_enc+=ltimer.elapsedS();
+      myFrame.WriteEncoded(mySac);
+
+      samplescoded+=subframe.length;
+      PrintProgress(samplescoded,myWav.getNumSamples());
+      samplestocode-=subframe.length;
+    }
+    #else
     int samplesread=myWav.ReadSamples(myFrame.samples,max_framesize);
     myFrame.SetNumSamples(samplesread);
 
@@ -758,6 +826,7 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac)
     samplescoded+=samplesread;
     PrintProgress(samplescoded,myWav.getNumSamples());
     samplestocode-=samplesread;
+    #endif
   }
   MD5::Finalize(&myWav.md5ctx);
   gtimer.stop();

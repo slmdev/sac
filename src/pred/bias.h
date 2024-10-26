@@ -99,6 +99,7 @@ class BiasEstimator {
       ctx1+=b2<<0;
       ctx1+=b3<<1;
       ctx1+=b4<<2;
+      //ctx1+=t<<3;
 
       ctx2=0;
       ctx2+=b5<<0;

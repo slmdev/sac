@@ -128,8 +128,9 @@ namespace MathUtils {
         double dy = y1-y0;
         return idx*(dy/dx)+y0;
       }
-    inline double sgn(double x) {
-      if (x>0) return 1.;
+    template <typename T>
+    T sgn(T x) {
+      if (x>0) return 1;
       if (x<0) return -1;
       return 0;
     }

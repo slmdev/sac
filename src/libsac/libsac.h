@@ -10,11 +10,11 @@ class FrameCoder {
   public:
     struct coder_ctx {
       enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
-      enum SearchMethod {CMA,DDS};
+      enum SearchMethod {DDS};
       int optimize=0;
       int sparse_pcm=1;
       int zero_mean=1;
-      int max_framelen=8;
+      int max_framelen=20;
       int optimize_maxnfunc=0;
       int verbose_level=0;
       int reset_profile=0;
@@ -69,6 +69,11 @@ class FrameCoder {
 };
 
 class Codec {
+  struct tsub_frame {
+    int state=-1;
+    int start=0;
+    int length=0;
+  };
   public:
     Codec(){};
     Codec(FrameCoder::coder_ctx &opt):opt_(opt) {};
@@ -77,8 +82,9 @@ class Codec {
     void DecodeFile(Sac &mySac,Wav &myWav);
     void ScanFrames(Sac &mySac);
   private:
-    void Analyse(const std::vector <std::vector<int32_t>>&samples,int blocksamples,int samples_read);
-    void AnalyseBlock(const int32_t *samples,int numsamples);
+    std::vector<Codec::tsub_frame> Analyse(const std::vector <std::vector<int32_t>>&samples,int blocksamples,int min_frame_length,int samples_read);
+    void PushState(std::vector<Codec::tsub_frame> &sub_frames,Codec::tsub_frame &curframe,int min_frame_length,int block_state,int samples_block);
+    std::pair<double,double> AnalyseSparse(std::span<const int32_t> buf);
     void PrintProgress(int samplesprocessed,int totalsamples);
     FrameCoder::coder_ctx opt_;
     //int framesize;

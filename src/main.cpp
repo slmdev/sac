@@ -1,7 +1,7 @@
 #include "cmdline.h"
 #include <variant>
 
-#define SAC_VERSION "0.7.9"
+#define SAC_VERSION "0.7.10"
 
 #include <thread>
 #include <future>

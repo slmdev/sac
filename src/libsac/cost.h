@@ -5,18 +5,16 @@
 #include "../common/utils.h"
 #include <cmath>
 
-typedef std::span<int32_t> span_i32;
-
 class CostFunction {
   public:
       CostFunction() {};
-      virtual double Calc(const span_i32 &buf) const =0;
+      virtual double Calc(span_ci32 buf) const =0;
       virtual ~CostFunction(){};
 };
 
 class CostL1 : public CostFunction {
   public:
-      double Calc(const span_i32 &buf) const
+      double Calc(span_ci32 buf) const
       {
         if (buf.size()) {
           int64_t sum=0;
@@ -29,7 +27,7 @@ class CostL1 : public CostFunction {
 
 class CostRMS : public CostFunction {
   public:
-      double Calc(const span_i32 &buf) const
+      double Calc(span_ci32 buf) const
       {
         if (buf.size()) {
           int64_t sum=0.0;
@@ -41,14 +39,13 @@ class CostRMS : public CostFunction {
 };
 
 
-// estimate number of needed bytes with a simple golomb model
-// alpha paramater is critical
+// estimate avg. bytes per sample with a simple golomb model
 class CostGolomb : public CostFunction {
-  const double alpha=0.97;
+  const double alpha=0.97; // critical
   const double log2=log(2.0);
   public:
       CostGolomb(){};
-      double Calc(const span_i32 &buf) const
+      double Calc(span_ci32 buf) const
       {
         RunWeight rm(alpha);
         int64_t nbits=0;
@@ -71,7 +68,7 @@ class CostGolomb : public CostFunction {
 class CostEntropy : public CostFunction {
   public:
     CostEntropy(){};
-    double Calc(const span_i32 &buf) const
+    double Calc(span_ci32 buf) const
     {
       double entropy=0.0;
       if (buf.size())
@@ -103,7 +100,7 @@ class CostBitplane : public CostFunction {
  public:
   CostBitplane() {
   }
-  double Calc(const span_i32 &buf) const
+  double Calc(span_ci32 buf) const
   {
     int numsamples=buf.size();
     std::vector<int32_t> ubuf(numsamples);
