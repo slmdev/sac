@@ -6,12 +6,18 @@
 
 #define LMS_DECAY 2
 //#define LMS_ADA
+//#define LMS_N0
 
 class LMSCascade {
   public:
     LMSCascade(const std::vector<int> &vn,const std::vector<double>&vmu,const std::vector<double>vmudecay,const std::vector<double> &vpowdecay,double mu_mix,double mu_mix_beta,double mix_nu)
-    :n(vn.size()),p(n),clms(n),
-    lms_mix(n,mu_mix,mu_mix_beta),pnu(n)
+    :n(vn.size()),
+    #ifdef LMS_N0
+      p(n+1),lms_mix(n+1,mu_mix,mu_mix_beta),
+    #else
+      p(n),lms_mix(n,mu_mix,mu_mix_beta),
+    #endif
+    clms(n),pnu(n)
     {
       for (int i=0;i<n;i++) {
         #if LMS_DECAY == 0
@@ -47,6 +53,9 @@ class LMSCascade {
         clms[i]->Update(target);
         target-=pnu[i]*p[i];
       }
+      #ifdef LMS_N0
+        p[n] = target;
+      #endif
     }
     ~LMSCascade()
     {
@@ -55,8 +64,8 @@ class LMSCascade {
   private:
     int n;
     vec1D p;
-    std::vector<LS_Stream*> clms;
     LAD_ADA lms_mix;
+    std::vector<LS_Stream*> clms;
     vec1D pnu;
 };
 
