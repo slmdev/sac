@@ -39,7 +39,7 @@ double Predictor::predict(int ch)
 void Predictor::update(int ch,double val)
 {
   ols[ch].Update(val);
-  lms[ch].Update(val,p_lpc[ch]);
+  lms[ch].Update(val-p_lpc[ch]);
   be[ch].Update(val);
 }
 

@@ -44,15 +44,15 @@ class LMSCascade {
       }
       return lms_mix.Predict(p);
     }
-    void Update(double input, double ols_pred)
+    void Update(double target)
     {
-      double target=input-ols_pred;
       lms_mix.Update(target);
 
-      for (int i=0;i<n; i++) {
+      for (int i=0;i<n-1; i++) {
         clms[i]->Update(target);
         target-=pnu[i]*p[i];
       }
+      clms[n-1]->Update(target);
       #ifdef LMS_N0
         p[n] = target;
       #endif

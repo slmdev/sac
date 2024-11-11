@@ -118,7 +118,7 @@ class LMS {
     :n(n),x(n),w(n),mu(mu),pred(0)
     {
     }
-    virtual double Predict(const vec1D &inp)
+    double Predict(const vec1D &inp)
     {
       x=inp;
       pred=0.0;
