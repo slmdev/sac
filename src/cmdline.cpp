@@ -7,14 +7,6 @@
 CmdLine::CmdLine()
 :mode(ENCODE)
 {
-  /*opt.optimize=0;
-  opt.sparse_pcm=1;
-  opt.reset_profile=0;
-  opt.zero_mean=1;
-  opt.max_framelen=8;
-
-  opt.optimize_cost=opt.SearchCost::Entropy;
-  opt.optimize_search=opt.SearchMethod::DDS;*/
 }
 
 void CmdLine::PrintWav(const AudioFile &myWav)
@@ -33,8 +25,9 @@ void CmdLine::PrintMode()
   std::cout << "  Profile: ";
   std::cout << "mt" << opt.mt_mode;
   std::cout << " " << opt.max_framelen << "s";
+  if (opt.adapt_block) std::cout << " ab";
   if (opt.optimize) {
-      std::cout << " opt (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
+      std::cout << "  opt (" << std::format("{:.1f}%", opt.optimize_fraction*100.0);
       std::string cost_str;
       switch (opt.optimize_cost) {
         case opt.SearchCost::L1:cost_str="L1";break;
@@ -163,6 +156,9 @@ int CmdLine::Parse(int argc,char *argv[])
           else opt.sparse_pcm=1;
        } else if (key=="--STEREO-MS") {
          opt.stereo_ms=1;
+       } else if (key=="--ADAPT-BLOCK") {
+         if (val=="NO" || val=="0") opt.adapt_block=0;
+         else opt.adapt_block=1;
        } else if (key=="--ZERO-MEAN") {
          if (val=="NO" || val=="0") opt.zero_mean=0;
          else opt.zero_mean=1;

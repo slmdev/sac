@@ -25,7 +25,8 @@ const char SACHelp[] =
 "                      c=[l1,rms,glb,ent,bpn] k=[1,32]\n"
 "   --mt-mode=n        multi-threading level n=[0-2]\n"
 "   --zero-mean        zero-mean input\n"
-"   --framelen=n       def=8 seconds\n"
+"   --adapt-block      adaptive frame splitting\n"
+"   --framelen=n       def=20 seconds\n"
 "   --sparse-pcm       enable pcm modelling\n";
 
 class CmdLine {

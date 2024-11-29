@@ -21,6 +21,7 @@ class FrameCoder {
       int stereo_ms=0;
       int optk=4;
       int mt_mode=2;
+      int adapt_block=1;
 
       SearchMethod optimize_search=SearchMethod::DDS;
       SearchCost optimize_cost=SearchCost::Entropy;

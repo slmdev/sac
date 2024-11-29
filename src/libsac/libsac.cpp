@@ -787,46 +787,37 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac)
   int samplescoded=0;
   int samplestocode=myWav.getNumSamples();
   std::vector<std::vector<int32_t>> csamples(myWav.getNumChannels(),std::vector<int32_t>(max_framesize));
+
   while (samplestocode>0) {
-    #if 1
-    int samplesread=myWav.ReadSamples(csamples,max_framesize);
+      int samplesread=myWav.ReadSamples(csamples,max_framesize);
 
-    int block_len=myWav.getSampleRate()*3;
-    int min_frame_len=myWav.getSampleRate()*3;
-    auto sub_frames=Analyse(csamples,block_len,min_frame_len,samplesread);
+      std::vector<Codec::tsub_frame> sub_frames;
+      if (opt_.adapt_block) {
+        int block_len=myWav.getSampleRate()*3;
+        int min_frame_len=myWav.getSampleRate()*3;
+        sub_frames=Analyse(csamples,block_len,min_frame_len,samplesread);
+      } else {
+        sub_frames.push_back({0,0,samplesread});
+      }
 
-    for (auto &subframe:sub_frames)
-    {
-      if (opt_.verbose_level)
-        std::cout << "frame " << subframe.start << " state " << subframe.state << " len " << subframe.length << '\n';
+      for (auto &subframe:sub_frames)
+      {
+        if (opt_.verbose_level)
+          std::cout << "frame " << subframe.start << " state " << subframe.state << " len " << subframe.length << '\n';
 
-      for (int ch=0;ch<myWav.getNumChannels();ch++)
-        std::copy_n(&csamples[ch][subframe.start],subframe.length,&myFrame.samples[ch][0]);
+        for (int ch=0;ch<myWav.getNumChannels();ch++)
+          std::copy_n(&csamples[ch][subframe.start],subframe.length,&myFrame.samples[ch][0]);
 
-      myFrame.SetNumSamples(subframe.length);
+        myFrame.SetNumSamples(subframe.length);
 
-      ltimer.start();myFrame.Predict();ltimer.stop();time_prd+=ltimer.elapsedS();
-      ltimer.start();myFrame.Encode();ltimer.stop();time_enc+=ltimer.elapsedS();
-      myFrame.WriteEncoded(mySac);
+        ltimer.start();myFrame.Predict();ltimer.stop();time_prd+=ltimer.elapsedS();
+        ltimer.start();myFrame.Encode();ltimer.stop();time_enc+=ltimer.elapsedS();
+        myFrame.WriteEncoded(mySac);
 
-      samplescoded+=subframe.length;
-      PrintProgress(samplescoded,myWav.getNumSamples());
-      samplestocode-=subframe.length;
-    }
-    #else
-    int samplesread=myWav.ReadSamples(myFrame.samples,max_framesize);
-    myFrame.SetNumSamples(samplesread);
-
-    //Analyse(myFrame.samples,myWav.getSampleRate()*4,samplesread);
-
-    ltimer.start();myFrame.Predict();ltimer.stop();time_prd+=ltimer.elapsedS();
-    ltimer.start();myFrame.Encode();ltimer.stop();time_enc+=ltimer.elapsedS();
-    myFrame.WriteEncoded(mySac);
-
-    samplescoded+=samplesread;
-    PrintProgress(samplescoded,myWav.getNumSamples());
-    samplestocode-=samplesread;
-    #endif
+        samplescoded+=subframe.length;
+        PrintProgress(samplescoded,myWav.getNumSamples());
+        samplestocode-=subframe.length;
+      }
   }
   MD5::Finalize(&myWav.md5ctx);
   gtimer.stop();
