@@ -17,17 +17,17 @@ Matt Mahoney, Dmitry Shkarin, Eugene D. Shelwien, Florin Ghido, Grzegorz Ulacha
 Sac uses fp64 for many internal calculations. The change of compiler options or (cpu-)platform might effect the output. Use at your own risk and for testing purposes only.
  
 ## Benchmarks
-**Sac v0.7.8**
+**Sac v0.7.11**
 
 16 files (51.014.742 bytes) parallel on i7-13700H.
 
 **Asymmetric encoding profiles** - bits per sample (bps) is mean bps over all files
 |Profile|Size|Enc-time|Dec-time|bps|
 |:-|:-|:-|:-|:-|
-|--normal|26.812.987|00:00:41|00:00:30|8.441|
-|--high|26.708.465|00:04:55|00:00:52|8.407|
-|--veryhigh|26.621.497|00:32:04|00:01:04|8.379|
-|--best|26.554.323|05:17:19|00:01:05|8.358|
+|--normal|26.695.173|00:00:33|00:00:29|8.402|
+|--high|26.586.867|00:04:55|00:01:05|8.366|
+|--veryhigh|26.516.301|00:31:23|00:01:12|8.343|
+|--best|26.455.919|05:00:19|00:01:00|8.324|
 
 &nbsp;
 
@@ -42,21 +42,21 @@ Sac uses fp64 for many internal calculations. The change of compiler options or 
 Numbers are bits per sample (bps)
 | Name  | Sac | OFR | paq8px | MAC |
 |:---|---:|---:|---:|---:|
-|ATrain|7.026|7.156|7.353|7,269|
-|BeautySlept|7.418|7.790|7.826|8,464|
-|chanchan|9.692|9.778|9.723|9,951|
-|death2|5.068|5.465|5.215|6,213|
-|experiencia|10.866|10.915|10.963|11,005|
-|female_speech|4.372|4.498|4.708|5,190|
-|FloorEssence|9.081|9.409|9.488|9,537|
-|ItCouldBeSweet|8.200|8.310|8.330|8,531|
-|Layla|9.490|9.571|9.725|9,783|
-|LifeShatters|10.768|10.808|10.868|10,838|
-|macabre|8.986|9.026|9.249|9,172|
-|male_speech|4.276|4.256|4.509|5,255|
-|SinceAlways|10.344|10.409|10.455|10,522|
-|thear1|11.379|11.400|11.474|11,451|
-|TomsDiner|6.996|7.108|7.057|7,432|
-|velvet|9.762|9.990|10.030|10,461|
-|*Mean*|**8.358**|8.493|8.561|8,817|
+|ATrain|7.005|7.156|7.353|7,269|
+|BeautySlept|7.137|7.790|7.826|8,464|
+|chanchan|9.683|9.778|9.723|9,951|
+|death2|5.043|5.465|5.215|6,213|
+|experiencia|10.861|10.915|10.963|11,005|
+|female_speech|4.365|4.498|4.708|5,190|
+|FloorEssence|9.059|9.409|9.488|9,537|
+|ItCouldBeSweet|8.185|8.310|8.330|8,531|
+|Layla|9.472|9.571|9.725|9,783|
+|LifeShatters|10.760|10.808|10.868|10,838|
+|macabre|8.977|9.026|9.249|9,172|
+|male_speech|4.237|4.256|4.509|5,255|
+|SinceAlways|10.333|10.409|10.455|10,522|
+|thear1|11.368|11.400|11.474|11,451|
+|TomsDiner|6.993|7.108|7.057|7,432|
+|velvet|9.700|9.990|10.030|10,461|
+|*Mean*|**8.324**|8.493|8.561|8,817|
 
