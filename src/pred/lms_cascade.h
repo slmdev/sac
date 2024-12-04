@@ -4,9 +4,10 @@
 #include "lms.h"
 #include "../common/utils.h"
 
-#define LMS_DECAY 2
+#define LMS_DECAY 0
 //#define LMS_ADA
 //#define LMS_N0
+#define LMS_INIT
 
 class LMSCascade {
   public:
@@ -21,13 +22,16 @@ class LMSCascade {
     {
       for (int i=0;i<n;i++) {
         #if LMS_DECAY == 0
-          pnu[i] = 1.0
+          pnu[i] = 1.0;
         #elif LMS_DECAY == 1
           pnu[i] = mix_nu;
         #elif LMS_DECAY == 2
           pnu[i]=exp(-(1.0-mix_nu)*i);
         #endif
       }
+      #ifdef LMS_INIT
+        for (int i=0;i<n;i++) lms_mix.w[i] = 1.0/(i+1);
+      #endif
       #ifdef LMS_ADA
         for (int i=0;i<n-1;i++)
           clms[i]=new NLMS_Stream(vn[i],vmu[i],vmudecay[i],vpowdecay[i]);
