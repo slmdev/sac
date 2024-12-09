@@ -38,17 +38,17 @@ class LMSCascade {
       }
       return lms_mix.Predict(p);
     }
-    void Update(double target)
+    void Update(const double target)
     {
       lms_mix.Update(target);
 
-      for (int i=0;i<n-1; i++) {
-        clms[i]->Update(target);
-        target-=lms_mix.w[i]*p[i];
+      double t=target;
+      for (int i=0;i<n; i++) {
+        clms[i]->Update(t);
+        t-=lms_mix.w[i]*p[i];
       }
-      clms[n-1]->Update(target);
       #ifdef LMS_N0
-        p[n] = target;
+        p[n] = t;
       #endif
     }
     ~LMSCascade()
