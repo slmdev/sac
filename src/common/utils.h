@@ -251,7 +251,7 @@ namespace miscUtils {
       data[0]=input;
     }
   }
-  inline std::string getTimeStrFromSamples(int numsamples,int samplerate)
+  inline std::string getTimeStrFromSamples(int64_t numsamples,int64_t samplerate)
   {
    std::ostringstream ss;
    int h,m,s,ms;

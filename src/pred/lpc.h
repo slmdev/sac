@@ -34,7 +34,7 @@ class OLS {
       double c0=pow(esum.sum+beta_add,-beta_pow);
 
       for (int j=0;j<n;j++) {
-        // only update upper triangular
+        // only update lower triangular
         for (int i=0;i<=j;i++) mcov[j][i]=lambda*mcov[j][i]+c0*(x[j]*x[i]);
         b[j]=lambda*b[j]+c0*(x[j]*val);
       }

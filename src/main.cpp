@@ -1,14 +1,6 @@
 #include "cmdline.h"
-#include <variant>
 
-#define SAC_VERSION "0.7.11"
-
-#include <thread>
-#include <future>
-int test(int ch)
-{
-  return ch*2;
-}
+#define SAC_VERSION "0.7.12"
 
 int main(int argc,char *argv[])
 {

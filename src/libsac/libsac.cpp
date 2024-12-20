@@ -40,16 +40,11 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 
 void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
-  param.nA=16;
-  //param.nS0=round(profile.Get(9));
-  //param.nS1=round(profile.Get(10));
   if (optimize) param.k=opt.optk;
   else param.k=1;
+
   param.lambda0=param.lambda1=profile.Get(0);
   param.ols_nu0=param.ols_nu1=profile.Get(1);
-  param.mix_nu0=param.mix_nu1=1.0;
-  param.bias_scale=5;
-  param.bias_mu0 = param.bias_mu1 = 0.0015;
 
   param.vn0={(int)round(profile.Get(28)),(int)round(profile.Get(29)),(int)round(profile.Get(30)),(int)round(profile.Get(37))};
   param.vn1={(int)round(profile.Get(31)),(int)round(profile.Get(32)),(int)round(profile.Get(33)),(int)round(profile.Get(38))};

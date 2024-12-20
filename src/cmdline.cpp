@@ -156,6 +156,8 @@ int CmdLine::Parse(int argc,char *argv[])
           else opt.sparse_pcm=1;
        } else if (key=="--STEREO-MS") {
          opt.stereo_ms=1;
+       } else if (key=="--RESET-OPT") {
+         opt.reset_profile=1;
        } else if (key=="--ADAPT-BLOCK") {
          if (val=="NO" || val=="0") opt.adapt_block=0;
          else opt.adapt_block=1;

@@ -5,7 +5,7 @@
 #include "../common/utils.h"
 
 //#define LMS_ADA
-//#define LMS_N0
+#define LMS_N0
 #define LMS_INIT
 
 class LMSCascade {
