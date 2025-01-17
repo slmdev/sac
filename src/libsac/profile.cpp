@@ -41,16 +41,16 @@ int LoadProfileHigh(SacProfile &profile)
     profile.Set(24,4,mo_lpc,16);//nA
     profile.Set(25,4,mo_lpc,16);//nB
     profile.Set(26,0,mo_lpc,8);//nS0
-    profile.Set(27,0,mo_lpc,8);//nS1
+    profile.Set(27,-mo_lpc,mo_lpc,8);//nS1
     profile.Set(9,0,mo_lpc,0); //nM0
 
     profile.Set(28,256,4096,1280);
-    profile.Set(29,32,1024,256);
-    profile.Set(30,4,256,32);
+    profile.Set(29,32,2048,256);
+    profile.Set(30,4,512,32);
 
     profile.Set(31,256,4096,1280);
-    profile.Set(32,32,1024,256);
-    profile.Set(33,4,256,32);
+    profile.Set(32,32,2048,256);
+    profile.Set(33,4,512,32);
 
     profile.Set(34,0,1,0.6);
     profile.Set(35,0.1,2,0.8);

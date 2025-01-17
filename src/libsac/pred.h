@@ -17,7 +17,7 @@ class Predictor {
       double lambda0,lambda1,ols_nu0,ols_nu1,mu_mix0,mu_mix1,mu_mix_beta0,mu_mix_beta1;
       double beta_sum0,beta_pow0,beta_add0;
       double beta_sum1,beta_pow1,beta_add1;
-      double mix_nu0,mix_nu1;
+      int ch_ref;
       double bias_mu0,bias_mu1;
       int bias_scale;
     };

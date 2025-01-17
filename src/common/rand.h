@@ -10,7 +10,7 @@ class Random {
     double r_01() { // [0,1)
       return std::uniform_real_distribution<double>{0,1}(engine);
     };
-    double r_01open() { // [0,1)
+    double r_01open() { // (0,1)
       return std::uniform_real_distribution<double>{std::nextafter(0.0, std::numeric_limits<double>::max()),1.0}(engine);
     };
     double r_01closed() { // [0,1]

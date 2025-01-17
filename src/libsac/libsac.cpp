@@ -7,6 +7,7 @@
 #include "sparse.h"
 #include "../common/timer.h"
 #include "../opt/dds.h"
+#include "../opt/de.h"
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 :numchannels_(numchannels),framesize_(framesize),opt(opt)
@@ -40,7 +41,7 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 
 void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
-  if (optimize) param.k=opt.optk;
+  if (optimize) param.k=opt.ocfg.optk;
   else param.k=1;
 
   param.lambda0=param.lambda1=profile.Get(0);
@@ -77,13 +78,22 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow1=profile.Get(35);
   param.beta_add1=profile.Get(36);
 
-  param.mix_nu0=profile.Get(41);
-  param.mix_nu1=profile.Get(42);
+  //param.mix_nu0=profile.Get(41);
+  //param.mix_nu1=profile.Get(42);
 
   param.bias_mu0=profile.Get(43);
   param.bias_mu1=profile.Get(44);
 
   param.bias_scale=std::round(profile.Get(45));
+
+  //param.nM0 = std::min(std::max(0,param.nB-param.nS1),param.nM0);
+
+  //if (param.nS1==0) param.nS1=1;
+  param.ch_ref=0;
+  if (param.nS1 < 0) {
+    param.nS1 = -param.nS1;
+    param.ch_ref=1;
+  }
 }
 
 void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize)
@@ -93,14 +103,14 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
   SetParam(param,profile,optimize);
   Predictor pr(param);
 
-  auto eprocess=[&](int ch,int32_t val,int idx) {
-      const double pd=pr.predict(ch);
+  auto eprocess=[&](int ch_p,int ch,int32_t val,int idx) {
+      const double pd=pr.predict(ch_p);
 
       const int32_t pi=clamp((int32_t)std::round(pd),framestats[ch].minval,framestats[ch].maxval);
       pred[ch][idx]=pi+framestats[ch].mean;
       error[ch][idx]=val-pi; // needed for cost-function within optimize
 
-      pr.update(ch,val);
+      pr.update(ch_p,val);
   };
 
 
@@ -109,23 +119,26 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
     for (int idx=0;idx<numsamples;idx++)
     {
       pr.fillbuf_ch0(src,idx,src,idx);
-      eprocess(0,src[idx],idx);
+      eprocess(0,0,src[idx],idx);
     }
   } else if (numchannels_==2) {
-    const auto *src0=&samples[0][from];
-    const auto *src1=&samples[1][from];
+    int ch0=param.ch_ref;
+    int ch1=1-ch0;
+
+    const auto *src0=&samples[ch0][from];
+    const auto *src1=&samples[ch1][from];
 
     int idx0=0,idx1=0;
     while (idx0<numsamples || idx1<numsamples)
     {
       if (idx0<numsamples) {
         pr.fillbuf_ch0(src0,idx0,src1,idx1);
-        eprocess(0,src0[idx0],idx0);
+        eprocess(0,ch0,src0[idx0],idx0);
         idx0++;
       }
       if (idx0>=param.nS1) {
         pr.fillbuf_ch1(src0,src1,idx1,numsamples);
-        eprocess(1,src1[idx1],idx1);
+        eprocess(1,ch1,src1[idx1],idx1);
         idx1++;
       }
     }
@@ -150,8 +163,8 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
   SetParam(param,profile,false);
   Predictor pr(param);
 
-  auto dprocess=[&](int ch,int32_t *dst,int idx) {
-    const double pd=pr.predict(ch);
+  auto dprocess=[&](int ch_p,int ch,int32_t *dst,int idx) {
+    const double pd=pr.predict(ch_p);
     const int32_t pi=clamp((int32_t)round(pd),framestats[ch].minval,framestats[ch].maxval);
 
     if (framestats[ch].enc_mapped)
@@ -159,7 +172,7 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
     else
       dst[idx]=pi+error[ch][idx];
 
-    pr.update(ch,dst[idx]);
+    pr.update(ch_p,dst[idx]);
   };
 
   if (numchannels_==1) {
@@ -167,22 +180,25 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
     for (int idx=0;idx<numsamples;idx++)
     {
       pr.fillbuf_ch0(dst,idx,dst,idx);
-      dprocess(0,dst,idx);
+      dprocess(0,0,dst,idx);
     }
   } else if (numchannels_==2) {
-    auto *dst0=&samples[0][0];
-    auto *dst1=&samples[1][0];
+    int ch0=param.ch_ref;
+    int ch1=1-ch0;
+
+    auto *dst0=&samples[ch0][0];
+    auto *dst1=&samples[ch1][0];
     int idx0=0,idx1=0;
     while (idx0<numsamples || idx1<numsamples)
     {
       if (idx0<numsamples) {
         pr.fillbuf_ch0(dst0,idx0,dst1,idx1);
-        dprocess(0,dst0,idx0);
+        dprocess(0,ch0,dst0,idx0);
         idx0++;
       }
       if (idx0>=param.nS1) {
         pr.fillbuf_ch1(dst0,dst1,idx1,numsamples);
-        dprocess(1,dst1,idx1);
+        dprocess(1,ch1,dst1,idx1);
         idx1++;
       }
     }
@@ -260,7 +276,8 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
     framestats[ch].enc_mapped=false;
     encoded[ch]=enc_temp1[ch];
 
-    if (r > 1.05) {
+    if (r > 1.05)
+    {
       int size_mapped=EncodeMonoFrame_Mapped(ch,numsamples,enc_temp2[ch]);
       if (size_mapped<size_normal)
       {
@@ -325,7 +342,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << '\n';
 
     std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
-    std::cout << "mu-nu " << param.mix_nu0 << ", " << param.mix_nu1 << "\n";
+    std::cout << "ch-ref " << param.ch_ref << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale) << '\n';
     std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
     std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
@@ -356,59 +373,65 @@ double FrameCoder::GetCost(const CostFunction *func,std::size_t samples_to_optim
 }
 
 
-void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize)
+void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile,const std::vector<int>&params_to_optimize)
 {
   //std::cout << params_to_optimize.size() << " parameters to optimize\n";
-  int norm_samples=std::min((int)std::ceil(framesize_*opt.optimize_fraction), framesize_);
-  int samples_to_optimize=std::min((int)std::ceil(numsamples_*opt.optimize_fraction), framesize_);
-  if (samples_to_optimize<norm_samples) {
+  int norm_samples=std::min((int)std::ceil(framesize_*ocfg.fraction), framesize_);
+  int samples_to_optimize=std::min((int)std::ceil(numsamples_*ocfg.fraction), framesize_);
+  if (samples_to_optimize<norm_samples)
     samples_to_optimize=std::min(numsamples_,norm_samples);
-  }
 
   const int start_pos=(numsamples_-samples_to_optimize)/2;
+  //if (opt.verbose_level) std::cout << start_pos << " " << samples_to_optimize << " ep=" << (start_pos+samples_to_optimize) << " " << "len=" << numsamples_ << '\n';
 
   CostFunction *CostFunc=nullptr;
-  switch (opt.optimize_cost)  {
-    case opt.SearchCost::L1:CostFunc=new CostL1();break;
-    case opt.SearchCost::RMS:CostFunc=new CostRMS();break;
-    case opt.SearchCost::Golomb:CostFunc=new CostGolomb();break;
-    case opt.SearchCost::Entropy:CostFunc=new CostEntropy();break;
-    case opt.SearchCost::Bitplane:CostFunc=new CostBitplane();break;
+  switch (ocfg.optimize_cost)  {
+    case FrameCoder::SearchCost::L1:CostFunc=new CostL1();break;
+    case FrameCoder::SearchCost::RMS:CostFunc=new CostRMS();break;
+    case FrameCoder::SearchCost::Golomb:CostFunc=new CostGolomb();break;
+    case FrameCoder::SearchCost::Entropy:CostFunc=new CostEntropy();break;
+    case FrameCoder::SearchCost::Bitplane:CostFunc=new CostBitplane();break;
     default:std::cerr << "  error: unknown FramerCoder::CostFunction\n";return;
   }
 
-  if (opt.optimize_search==opt.SearchMethod::DDS) {
-    const int ndim=params_to_optimize.size();
-    vec1D xstart(ndim); // starting vector
-    Opt::box_const pb(ndim); // set constraints
-    for (int i=0;i<ndim;i++) {
-      pb[i].xmin=profile.coefs[params_to_optimize[i]].vmin;
-      pb[i].xmax=profile.coefs[params_to_optimize[i]].vmax;
-      xstart[i]=profile.coefs[params_to_optimize[i]].vdef;
-      //std::cout << pb[i].xmin << ' ' << pb[i].xmax << ' ' << xstart[i] << '\n';
-    }
-
-    auto cost_func=[&](const vec1D &x) {
-      for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x[i];
-      PredictFrame(profile,start_pos,samples_to_optimize,true);
-      return GetCost(CostFunc,samples_to_optimize);
-    };
-
-    auto sigma_func=[&](int idx) {
-      return MathUtils::linear_map_n(0,opt.optimize_maxnfunc,0.25,0.05,idx);
-    };
-
-    //Opt::opt_ret ret;
-
-    DDS dds(pb);
-
-    if (opt.verbose_level>0) std::cout << "\nDDS " << opt.optimize_maxnfunc << "= ";
-    auto ret = dds.run(cost_func,xstart,opt.optimize_maxnfunc,sigma_func);
-    if (opt.verbose_level>0) std::cout << ret.first << "\n";
-
-    const vec1D x_p = ret.second;
-    for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
+  const int ndim=params_to_optimize.size();
+  vec1D xstart(ndim); // starting vector
+  Opt::box_const pb(ndim); // set constraints
+  for (int i=0;i<ndim;i++) {
+    pb[i].xmin=profile.coefs[params_to_optimize[i]].vmin;
+    pb[i].xmax=profile.coefs[params_to_optimize[i]].vmax;
+    xstart[i]=profile.coefs[params_to_optimize[i]].vdef;
+    //std::cout << pb[i].xmin << ' ' << pb[i].xmax << ' ' << xstart[i] << '\n';
   }
+
+  auto cost_func=[&](const vec1D &x) {
+    for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x[i];
+    PredictFrame(profile,start_pos,samples_to_optimize,true);
+    return GetCost(CostFunc,samples_to_optimize);
+  };
+
+  Opt::ppoint ret;
+  std::string opt_str="DDS";
+  if (ocfg.optimize_search==FrameCoder::SearchMethod::DE) opt_str="DE";
+
+  if (opt.verbose_level>0) std::cout << "\n " << opt_str << " " << ocfg.maxnfunc << "= ";
+
+
+  if (ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
+  {
+    OptDDS dds(pb);
+    ret = dds.run(ocfg.dds_cfg,cost_func,xstart,ocfg.maxnfunc,opt.verbose_level);
+  } else if (ocfg.optimize_search==FrameCoder::SearchMethod::DE)
+  {
+    OptDE de(pb);
+    OptDE::DECfg de_cfg;
+    ret = de.run(de_cfg,cost_func,xstart,ocfg.maxnfunc,opt.verbose_level);
+  }
+
+
+  if (opt.verbose_level>0) std::cout << ret.first << "\n";
+  const vec1D x_p = ret.second;
+  for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
 
   if (opt.verbose_level>0) {
     PrintProfile(profile);
@@ -417,75 +440,6 @@ void FrameCoder::Optimize(SacProfile &profile,const std::vector<int>&params_to_o
 }
 
 
-double FrameCoder::AnalyseStereoChannel(int ch0, int ch1, int numsamples)
-{
-  int32_t *src0=&(samples[ch0][0]);
-  int32_t *src1=&(samples[ch1][0]);
-  int64_t sum0=0,sum1=0,sum_m=0,sum_s=0;
-  for (int i=0;i<numsamples;i++) {
-    sum0+=fabs(src0[i]);
-    sum1+=fabs(src1[i]);
-    int32_t m=(src0[i]+src1[i]) / 2;
-    int32_t s=(src0[i]-src1[i]);
-
-    sum_m+=fabs(m);
-    sum_s+=fabs(s);
-  }
-  int64_t c0 = sum0+sum1;
-  int64_t c1 = sum_m+sum_s;
-  return double(c0) / double(c1);
-}
-
-void FrameCoder::ApplyMs(int ch0, int ch1, int numsamples)
-{
-  int32_t *src0=&(samples[ch0][0]);
-  int32_t *src1=&(samples[ch1][0]);
-  for (int i=0;i<numsamples;i++) {
-    int32_t m=(src0[i]+src1[i]) / 2;
-    int32_t s=(src0[i]-src1[i]);
-    src0[i]=m;
-    src1[i]=s;
-  }
-}
-
-void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
-{
-  int32_t *src=&(samples[ch][0]);
-
-  if (numsamples) {
-    int64_t sum=0;
-    for (int i=0;i<numsamples;i++) {
-        sum += src[i];
-    }
-    framestats[ch].mean = (int)std::floor(sum / (double)numsamples);
-
-    int32_t minval = std::numeric_limits<int32_t>::max();
-    int32_t maxval = std::numeric_limits<int32_t>::min();
-    for (int i=0;i<numsamples;i++) {
-      const int32_t val=src[i];
-      if (val>maxval) maxval=val;
-      if (val<minval) minval=val;
-    }
-    framestats[ch].minval = minval;
-    framestats[ch].maxval = maxval;
-    if (opt.verbose_level>0) {
-      std::cout << "  ch" << ch << " samples=" << numsamples;
-      std::cout << ",mean=" << framestats[ch].mean << ",min=" << framestats[ch].minval << ",max=" << framestats[ch].maxval << "\n";
-    }
-
-
-  }
-}
-
-int num0(uint32_t val,int valid_bits)
-{
-  int nb=0;
-  while (nb<valid_bits) {
-    if (val&1) break;
-    val>>=1;nb++;
-  }
-  return nb;
-}
 
 void FrameCoder::Predict()
 {
@@ -507,12 +461,15 @@ void FrameCoder::Predict()
   {
     // reset profile params
     // otherwise: starting point for optimization is the best point from the last frame
-    if (opt.reset_profile) {
+    if (opt.ocfg.reset)
       LoadProfileHigh(base_profile);
-    }
-    std::vector<int>lparam(base_profile.coefs.size());
-    std::iota(std::begin(lparam),std::end(lparam),0);
-    Optimize(base_profile,lparam);
+
+    std::vector<int>lparam_base(base_profile.coefs.size());
+    std::iota(std::begin(lparam_base),std::end(lparam_base),0);
+
+    //opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
+
+    Optimize(opt.ocfg,base_profile,lparam_base);
   }
   PredictFrame(base_profile,0,numsamples_,false);
 }
@@ -631,6 +588,66 @@ void FrameCoder::ReadEncoded(AudioFile &fin)
   }
 }
 
+double FrameCoder::AnalyseStereoChannel(int ch0, int ch1, int numsamples)
+{
+  int32_t *src0=&(samples[ch0][0]);
+  int32_t *src1=&(samples[ch1][0]);
+  int64_t sum0=0,sum1=0,sum_m=0,sum_s=0;
+  for (int i=0;i<numsamples;i++) {
+    sum0+=fabs(src0[i]);
+    sum1+=fabs(src1[i]);
+    int32_t m=(src0[i]+src1[i]) / 2;
+    int32_t s=(src0[i]-src1[i]);
+
+    sum_m+=fabs(m);
+    sum_s+=fabs(s);
+  }
+  int64_t c0 = sum0+sum1;
+  int64_t c1 = sum_m+sum_s;
+  return double(c0) / double(c1);
+}
+
+void FrameCoder::ApplyMs(int ch0, int ch1, int numsamples)
+{
+  int32_t *src0=&(samples[ch0][0]);
+  int32_t *src1=&(samples[ch1][0]);
+  for (int i=0;i<numsamples;i++) {
+    int32_t m=(src0[i]+src1[i]) / 2;
+    int32_t s=(src0[i]-src1[i]);
+    src0[i]=m;
+    src1[i]=s;
+  }
+}
+
+void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
+{
+  int32_t *src=&(samples[ch][0]);
+
+  if (numsamples) {
+    int64_t sum=0;
+    for (int i=0;i<numsamples;i++) {
+        sum += src[i];
+    }
+    framestats[ch].mean = (int)std::floor(sum / (double)numsamples);
+
+    int32_t minval = std::numeric_limits<int32_t>::max();
+    int32_t maxval = std::numeric_limits<int32_t>::min();
+    for (int i=0;i<numsamples;i++) {
+      const int32_t val=src[i];
+      if (val>maxval) maxval=val;
+      if (val<minval) minval=val;
+    }
+    framestats[ch].minval = minval;
+    framestats[ch].maxval = maxval;
+    if (opt.verbose_level>0) {
+      std::cout << "  ch" << ch << " samples=" << numsamples;
+      std::cout << ",mean=" << framestats[ch].mean << ",min=" << framestats[ch].minval << ",max=" << framestats[ch].maxval << "\n";
+    }
+
+
+  }
+}
+
 void Codec::PrintProgress(int samplesprocessed,int totalsamples)
 {
   double r=samplesprocessed*100.0/(double)totalsamples;
@@ -697,7 +714,7 @@ void Codec::PushState(std::vector<Codec::tsub_frame> &sub_frames,Codec::tsub_fra
 
       if (samples_block) {
         curframe.state=block_state; // set new blockstate
-        curframe.start=curframe.length;
+        curframe.start+=curframe.length;
         curframe.length=samples_block;
       }
     }

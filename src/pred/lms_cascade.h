@@ -7,6 +7,7 @@
 //#define LMS_ADA
 #define LMS_N0
 #define LMS_INIT
+#define LMS_CLAMPW
 
 class LMSCascade {
   public:
@@ -40,16 +41,22 @@ class LMSCascade {
     }
     void Update(const double target)
     {
+      //for (int i=0;i<n;i++) lms_mix.w[i]=std::max(lms_mix.w[i],0.0);
       lms_mix.Update(target);
 
       double t=target;
       for (int i=0;i<n; i++) {
         clms[i]->Update(t);
-        t-=lms_mix.w[i]*p[i];
+        #ifdef LMS_CLAMPW
+          t-=std::max(lms_mix.w[i],0.0)*p[i];
+        #else
+          t-=lms_mix.w[i]*p[i];
+        #endif
       }
       #ifdef LMS_N0
         p[n] = t;
       #endif
+
     }
     ~LMSCascade()
     {

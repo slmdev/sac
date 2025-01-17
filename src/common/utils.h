@@ -87,9 +87,9 @@ class Cholesky
       }
       int Factor(const vec2D &matrix,const double nu=0.0)
       {
-        mchol=matrix; // copy matrix and add regularization
-        for (int i=0;i<n;i++) mchol[i][i]+=nu;
+        mchol=matrix; // copy matrix
         for (int i=0;i<n;i++) {
+          mchol[i][i]+=nu; //add regularization
           for (int j=0;j<=i;j++) {
             double sum=mchol[i][j];
             for (int k=0;k<j;k++) sum-=(mchol[i][k]*mchol[j][k]);
@@ -205,14 +205,38 @@ class Cholesky
         else val=-(val>>1);
         return val;
       }
-      inline double L2Dist(const std::vector<double> &vec1,const std::vector<double> &vec2)
+      inline double norm2(const std::vector<double> &vec1,const std::vector<double> &vec2)
       {
-         if (vec1.size()!=vec2.size()) return -1;
+         if (vec1.size()!=vec2.size()) return 0;
          else {
            double sum=0.;
            for (size_t i=0;i<vec1.size();i++) {double t=vec1[i]-vec2[i];sum+=t*t;};
            return sqrt(sum);
          }
+      }
+      inline double mean(const std::vector<double> &vec)
+      {
+        if (vec.size()) {
+          double sum=0.0;
+          for (size_t i=0;i<vec.size();++i)
+            sum+=vec[i];
+          return sum / static_cast<double>(vec.size());
+        }
+        return 0;
+      }
+      inline double Lmean(const std::vector<double> &vec)
+      {
+        if (vec.size()) {
+          double sum0=0.0;
+          double sum1=0.0;
+          for (size_t i=0;i<vec.size();++i) {
+            sum0+=(vec[i]*vec[i]);
+            sum1+=vec[i];
+          }
+          if (sum1>0.0) return sum0 / sum1;
+          else return 0.;
+        }
+        return 0.;
       }
       inline double linear_map_n(int n0,int n1,double y0,double y1,int idx)
       {

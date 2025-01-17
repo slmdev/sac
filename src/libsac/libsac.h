@@ -5,27 +5,32 @@
 #include "../file/sac.h"
 #include "cost.h"
 #include "profile.h"
+#include "../opt/dds.h"
 
 class FrameCoder {
   public:
+    enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
+    enum SearchMethod {DDS,DE};
+    struct toptim_cfg {
+      OptDDS::DDSCfg dds_cfg;
+      int reset=0;
+      double fraction=0;
+      int maxnfunc=0;
+      int optk=4;
+      SearchMethod optimize_search=SearchMethod::DDS;
+      SearchCost optimize_cost=SearchCost::Entropy;
+    };
     struct coder_ctx {
-      enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
-      enum SearchMethod {DDS};
       int optimize=0;
       int sparse_pcm=1;
       int zero_mean=1;
       int max_framelen=20;
-      int optimize_maxnfunc=0;
       int verbose_level=0;
-      int reset_profile=0;
       int stereo_ms=0;
-      int optk=4;
       int mt_mode=2;
       int adapt_block=1;
 
-      SearchMethod optimize_search=SearchMethod::DDS;
-      SearchCost optimize_cost=SearchCost::Entropy;
-      double optimize_fraction=0;
+      toptim_cfg ocfg;
 
       SacProfile profiledata;
     };
@@ -55,7 +60,7 @@ class FrameCoder {
     //void InterChannel(int ch0,int ch1,int numsamples);
     int EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf);
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
-    void Optimize(SacProfile &profile,const std::vector<int>&params_to_optimize);
+    void Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile,const std::vector<int>&params_to_optimize);
     double GetCost(const CostFunction *func,std::size_t samples_to_optimize);
 
     void PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize=false);
