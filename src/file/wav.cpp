@@ -105,7 +105,19 @@ int Wav::ReadSamples(std::vector <std::vector <int32_t>>&data,int samplestoread)
         data[k][i]=static_cast<int32_t>(sample);
       }
     }
-  }
+  } else if (csize==3) {
+    int bufptr=0;
+    for (int i=0;i<samplesread;i++) { // unpack samples
+      for (int k=0;k<numchannels;k++) {
+        int32_t sample=0;
+        sample = static_cast<int32_t>(filebuffer[bufptr+2])<<24;
+        sample |= static_cast<int32_t>(filebuffer[bufptr+1])<<16;
+        sample |= static_cast<int32_t>(filebuffer[bufptr])<<8;
+        bufptr+=3;
+        data[k][i]=sample>>8;
+      }
+    }
+  } else std::cerr << "error: unknown csize=" << csize << '\n';
 
   return samplesread;
 }
@@ -131,6 +143,17 @@ int Wav::WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrit
           bufptr+=2;
       }
     }
+  } else if (csize==3) {
+    int bufptr=0;
+      for (int i=0;i<samplestowrite;i++) { // pack samples
+        for (int k=0;k<numchannels;k++) {
+          int32_t sample=data[k][i];
+          filebuffer[bufptr]=sample&0xff;
+          filebuffer[bufptr+1]=(sample>>8)&0xff;
+          filebuffer[bufptr+2]=(sample>>16)&0xff;
+          bufptr+=3;
+      }
+    }
   }
   int bytestowrite=samplestowrite*blockalign;
   file.write(reinterpret_cast<char*>(&filebuffer[0]),bytestowrite);
@@ -138,6 +161,7 @@ int Wav::WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrit
   MD5::Update(&md5ctx, &filebuffer[0], bytestowrite);
   return bytestowrite;
 }
+
 
 int Wav::ReadHeader()
 {

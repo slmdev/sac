@@ -203,7 +203,7 @@ int CmdLine::Process()
       if (myWav.ReadHeader()==0) {
          PrintWav(myWav);
 
-         bool fsupp=(myWav.getBitsPerSample()<=16) && ( (myWav.getNumChannels()==2) || (myWav.getNumChannels()==1));
+         bool fsupp=(myWav.getBitsPerSample()<=24) && ( (myWav.getNumChannels()==2) || (myWav.getNumChannels()==1));
          if (!fsupp)
          {
             std::cerr << "unsupported input format" << std::endl;

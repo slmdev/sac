@@ -65,14 +65,14 @@ class SparsePCM {
 
       const int pidx=p-minval;
       int mres=0;
-      for (int i=1;i<=sgn*val;i++)
-      {
-         const int idx=pidx+(sgn*i);
-         /*if (idx<0 || (unsigned)idx>=used.size())
-         {
-           std::cout << p << ' ' << val << ' ' << p+(sgn*i) << ' ' << minval << ' ' << maxval << '\n';
-         } else */
-         if (used[idx]) ++mres;
+      if (val>0) {
+        for (int i=pidx+1;i<=pidx+val;i++)
+          mres+=used[i];
+          //if (used[i]) ++mres;
+      } else {
+        for (int i=pidx-1;i>=pidx+val;i--)
+          mres+=used[i];
+         //if (used[i])  ++mres;
       }
       return sgn*mres;
     }

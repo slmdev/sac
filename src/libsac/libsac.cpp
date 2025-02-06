@@ -446,8 +446,10 @@ void FrameCoder::Predict()
   for (int ch=0;ch<numchannels_;ch++)
   {
     AnalyseMonoChannel(ch,numsamples_);
-    framestats[ch].mymap.Reset();
-    framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
+    if (opt.sparse_pcm) {
+      framestats[ch].mymap.Reset();
+      framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
+    }
     if (opt.zero_mean==0) {
       framestats[ch].mean = 0;
     } else if (framestats[ch].mean!=0) {

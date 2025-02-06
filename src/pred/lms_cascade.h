@@ -41,7 +41,6 @@ class LMSCascade {
     }
     void Update(const double target)
     {
-      //for (int i=0;i<n;i++) lms_mix.w[i]=std::max(lms_mix.w[i],0.0);
       lms_mix.Update(target);
 
       double t=target;
