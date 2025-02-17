@@ -4,7 +4,7 @@
 #include "../global.h"
 
 // rolling buffer, n must be power of two
-template <class T>
+template <typename T>
 class HistBuffer {
   public:
       HistBuffer(int n)
@@ -23,7 +23,9 @@ class HistBuffer {
     std::vector <T> buf;
 };
 
-template <class T>
+// circulating buffer
+// operator [] starts from 0=newest to oldest
+template <typename T>
 class RollBuffer {
   public:
     RollBuffer(int n)
@@ -31,11 +33,11 @@ class RollBuffer {
     {
 
     }
-    const T operator[](int idx) const
+    const T& operator[](int idx) const
     {
       return buf[clamp_idx(pos-idx)];
     };
-    void PushBack(T val)
+    void push(T val)
     {
       if (++pos>=n) pos=0;
       buf[pos]=val;
@@ -51,5 +53,39 @@ class RollBuffer {
     int n,pos;
     std::vector <T> buf;
 };
+
+//circulating buffer, bi-partit
+//operator [] starts from 0=newest to oldest
+template <typename T>
+class RollBuffer2 {
+  public:
+    RollBuffer2(std::size_t capacity)
+    :n(capacity),pos(0),buf(2*capacity)
+    {
+
+    }
+    void push(T val)
+    {
+      pos = (pos + n - 1) % n;
+      buf[pos] = val;
+      buf[pos+n] = val;
+    }
+
+    const T& operator[](int index) const
+    {
+      return buf[pos + index];
+    }
+
+    const std::span<T> get_span() const {
+      return std::span<const>{buf.data() + pos,n};
+    }
+    const T* get_buf() const {
+      return buf.data() + pos;
+    }
+  private:
+    std::size_t n,pos;
+    std::vector<T> buf;
+};
+
 
 #endif // HISTBUF_H

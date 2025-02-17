@@ -22,8 +22,7 @@ class OLS {
     }
     double Predict()
     {
-      pred=0.0;
-      for (int i=0;i<n;i++) pred+=x[i]*w[i];
+      pred=MathUtils::dot(&x[0],&w[0],n);
       return pred;
     }
 

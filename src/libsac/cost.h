@@ -39,10 +39,9 @@ class CostRMS : public CostFunction {
 };
 
 
-// estimate avg. bytes per sample with a simple golomb model
+// estimate bytes per frame with a simple golomb model
 class CostGolomb : public CostFunction {
   const double alpha=0.97; // critical
-  const double log2=log(2.0);
   public:
       CostGolomb(){};
       double Calc(span_ci32 buf) const
@@ -56,10 +55,12 @@ class CostGolomb : public CostFunction {
             int q=uval/m;
             //int r=val-q*m;
             nbits+=(q+1);
-            if (m>1) nbits+=std::ceil(log(m)/log2);
+            if (m>1) {
+              nbits+=BitUtils::count_bits32(m);
+            }
             rm.Update(uval);
           }
-          return nbits/static_cast<double>(8*buf.size());
+          return nbits/(8.*buf.size());
         } else return 0;
       }
 };

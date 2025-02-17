@@ -320,6 +320,8 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << '\n';
     std::cout << "lpc (nA " << std::round(profile.Get(24)) << " nM0 " << std::round(profile.Get(9));
     std::cout << ") (nB " << std::round(profile.Get(25)) << " nS0 " << std::round(profile.Get(26)) << " nS1 " << std::round(profile.Get(27)) << ")\n";
+    std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
+    std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
     std::cout << "lms0 ";
     for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
     std::cout << std::round(profile.Get(37));
@@ -344,8 +346,6 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
     std::cout << "ch-ref " << param.ch_ref << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale) << '\n';
-    std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
-    std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
 }
 
 double FrameCoder::GetCost(const CostFunction *func,std::size_t samples_to_optimize)
@@ -429,7 +429,6 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
   }
 
 
-  if (opt.verbose_level>0) std::cout << ret.first << "\n";
   const vec1D x_p = ret.second;
   for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
 
