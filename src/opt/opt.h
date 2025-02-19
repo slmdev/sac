@@ -19,7 +19,7 @@ class Opt {
     typedef std::function<double(const vec1D &param)> opt_func;
 
     Opt(const box_const &parambox)
-    :rand(0),pb(parambox)
+    :rand(0),pb(parambox),ndim(parambox.size())
     {
 
     };
@@ -105,6 +105,7 @@ class Opt {
 
     Random rand;
     const box_const pb;
+    const int ndim;
 };
 
 #endif

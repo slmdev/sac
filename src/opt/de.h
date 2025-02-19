@@ -23,7 +23,7 @@ class OptDE : public Opt {
       double init_sigma=0.15;
     };
     OptDE(const box_const &parambox)
-    :Opt(parambox),ndim(pb.size())
+    :Opt(parambox)
     {
     }
 
@@ -161,7 +161,6 @@ class OptDE : public Opt {
       }
       return xm;
     }
-    int ndim;
 };
 
 #endif // DDS_H

@@ -20,7 +20,7 @@ class OptDDS : public Opt {
     };
 
     OptDDS(const box_const &parambox)
-    :Opt(parambox),ndim(parambox.size())
+    :Opt(parambox)
     {
     }
     ppoint run(const DDSCfg &cfg,opt_func func,const vec1D &xstart,int nfunc_max,bool verbose=true)
@@ -53,7 +53,7 @@ class OptDDS : public Opt {
         vec1D xtest=xbest;
         for (auto k:J) {
           xtest[k]=gen_norm(xtest[k],pb[k],sigma);
-          assert(xtest[k]>pb[k].xmin && xtest[k]<pb[k].xmax);
+          assert(xtest[k]>=pb[k].xmin && xtest[k]<=pb[k].xmax);
         }
         double ftest=func(xtest);
 
@@ -89,7 +89,6 @@ class OptDDS : public Opt {
       return {fbest,xbest};
     }
   protected:
-    const int ndim;
 };
 
 #endif // DDS_H
