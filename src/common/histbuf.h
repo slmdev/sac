@@ -3,6 +3,41 @@
 
 #include "../global.h"
 
+template <typename T, std::size_t align_t>
+struct align_alloc {
+    using value_type = T;
+
+    template <typename U>
+    struct rebind {
+        using other = align_alloc<U, align_t>;
+    };
+
+    align_alloc() noexcept = default;
+
+    template <typename U>
+    constexpr align_alloc(const align_alloc<U, align_t>&) noexcept {}
+
+    T* allocate(std::size_t n) {
+        auto ptr = static_cast<T*>(::operator new(n * sizeof(T), std::align_val_t(align_t)));
+        return ptr;
+    }
+
+    void deallocate(T* p, std::size_t n) noexcept {
+        ::operator delete(p, n * sizeof(T), std::align_val_t(align_t));
+    }
+};
+
+template <typename T, typename U, std::size_t align_t>
+bool operator==(const align_alloc<T, align_t>&, const align_alloc<U, align_t>&) noexcept {
+    return true;
+}
+
+template <typename T, typename U, std::size_t align_t>
+bool operator!=(const align_alloc<T, align_t>&, const align_alloc<U, align_t>&) noexcept {
+    return false;
+}
+
+
 // rolling buffer, n must be power of two
 template <typename T>
 class HistBuffer {
@@ -62,7 +97,12 @@ class RollBuffer2 {
     RollBuffer2(std::size_t capacity)
     :n(capacity),pos(0),buf(2*capacity)
     {
-
+      #if 0
+        auto* data_ptr = buf.data();
+        std::uintptr_t address = reinterpret_cast<std::uintptr_t>(data_ptr);
+        std::size_t align = 1ULL << __builtin_ctzll(address);
+        std::cout << " rb2 adr: " << static_cast<void*>(data_ptr) << ", align: " << align << '\n';
+      #endif
     }
     void push(T val)
     {
@@ -79,7 +119,7 @@ class RollBuffer2 {
     const std::span<T> get_span() const {
       return std::span<const>{buf.data() + pos,n};
     }
-    const T* get_buf() const {
+    const T* data() const {
       return buf.data() + pos;
     }
   private:

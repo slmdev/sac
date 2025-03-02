@@ -8,11 +8,8 @@
 const char SACHelp[] =
 "usage: sac [--options] input output\n\n"
 "  --encode            encode input.wav to output.sac (def)\n"
-"    --normal          normal compression (def)\n"
-"    --high            high compression, slow\n"
-"    --veryhigh        very high compression, really slow\n"
-"    --best            you asked for it\n"
-"    --insane          :>\n"
+"    --normal|high|veryhigh|extrahigh compression (def=normal)\n"
+"    --best            you asked for it\n\n"
 "  --decode            decode input.sac to output.wav\n"
 "  --list              list info about input.sac\n"
 "  --listfull          verbose info about input\n"

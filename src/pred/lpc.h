@@ -22,7 +22,7 @@ class OLS {
     }
     double Predict()
     {
-      pred=MathUtils::dot(&x[0],&w[0],n);
+      pred=MathUtils::dot(x.data(),w.data(),n);
       return pred;
     }
 

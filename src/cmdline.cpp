@@ -27,8 +27,11 @@ void CmdLine::PrintMode()
   std::cout << "mt" << opt.mt_mode;
   std::cout << " " << opt.max_framelen << "s";
   if (opt.adapt_block) std::cout << " ab";
+  if (opt.zero_mean) std::cout << " zero-mean";
+  if (opt.sparse_pcm) std::cout << " sparse-pcm";
+  std::cout << '\n';
   if (opt.optimize) {
-      std::cout << "  opt (" << std::format("{:.1f}%", ocfg.fraction*100.0);
+      std::cout << "  Optimize: " << std::format("{:.1f}%", ocfg.fraction*100.0);
       std::string cost_str;
       switch (ocfg.optimize_cost) {
         case FrameCoder::SearchCost::L1:cost_str="L1";break;
@@ -41,11 +44,8 @@ void CmdLine::PrintMode()
       std::cout << "," << cost_str;
       std::cout << ",n=" << ocfg.maxnfunc;
       std::cout << ",k=" << ocfg.optk;
-      std::cout << ")";
+      std::cout << '\n';
   }
-  if (opt.zero_mean) std::cout << " zero-mean";
-  if (opt.sparse_pcm) std::cout << " sparse-pcm";
-  std::cout << '\n';
   std::cout << std::endl;
 }
 
@@ -118,19 +118,22 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.ocfg.maxnfunc=250;
          opt.ocfg.dds_cfg.sigma_start=0.2;
          opt.ocfg.dds_cfg.c_fail_max=30;
+       } else if (key=="--EXTRAHIGH") {
+         opt.optimize=1;
+         opt.ocfg.fraction=0.25;
+         opt.ocfg.maxnfunc=500;
+         opt.ocfg.dds_cfg.sigma_start=0.2;
        } else if (key=="--BEST") {
          opt.optimize=1;
          opt.ocfg.fraction=0.50;
          opt.ocfg.maxnfunc=1000;
          opt.ocfg.dds_cfg.sigma_start=0.25;
-         opt.ocfg.dds_cfg.c_fail_max=50;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
          opt.optimize=1;
          opt.ocfg.fraction=0.75;
          opt.ocfg.maxnfunc=1500;
          opt.ocfg.dds_cfg.sigma_start=0.30;
-         opt.ocfg.dds_cfg.c_fail_max=50;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--OPTIMIZE") {
          if (val=="NO" || val=="0") opt.optimize=0;

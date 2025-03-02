@@ -1,7 +1,7 @@
 #include "cmdline.h"
 #include "opt/opt.h"
 
-#define SAC_VERSION "0.7.15"
+#define SAC_VERSION "0.7.16"
 
 int main(int argc,char *argv[])
 {
@@ -13,7 +13,7 @@ int main(int argc,char *argv[])
     std::cout << "(32-bit";
   #endif
   #if defined(USE_AVX256)
-    std::cout << ",avx256";
+    std::cout << ",AVX2";
   #endif
   std::cout << ")";
   #ifdef __clang__

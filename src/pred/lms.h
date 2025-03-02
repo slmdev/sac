@@ -15,15 +15,15 @@ class LS_Stream {
     }
     double Predict()
     {
-      pred=MathUtils::dot(x.get_buf(),&w[0],n);
+      pred=MathUtils::dot(x.data(),w.data(),n);
       return pred;
     }
     virtual void Update(double val)=0;
     virtual ~LS_Stream(){};
   protected:
     int n;
-    RollBuffer2 <double>x;
-    vec1D w;
+    RollBuffer2<double>x;
+    std::vector<double> w;
     double pred;
 };
 
@@ -74,9 +74,9 @@ class NLMS_Stream : public LS_Stream
   #if defined(USE_AVX256)
     double calc_spow(const double *x,const double *powtab,std::size_t n)
     {
+      double spow=0.0;
+      std::size_t i=0;
       __m256d sum_vec = _mm256_setzero_pd();
-
-      std::size_t i = 0;
       for (; i + 4 <= n; i += 4) {
         __m256d x_vec = _mm256_loadu_pd(&x[i]);
         __m256d pow_vec = _mm256_loadu_pd(&powtab[i]);
@@ -86,7 +86,7 @@ class NLMS_Stream : public LS_Stream
 
       alignas(32) double buffer[4];
       _mm256_storeu_pd(buffer, sum_vec);
-      double spow = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+      spow = buffer[0] + buffer[1] + buffer[2] + buffer[3];
 
       for (;i<n;i++)
         spow += powtab[i] * (x[i] * x[i]);
@@ -105,7 +105,7 @@ class NLMS_Stream : public LS_Stream
 
     void Update(double val) override
     {
-      const double spow=calc_spow(x.get_buf(),&powtab[0],n);
+      const double spow=calc_spow(x.data(),powtab.data(),n);
       const double wgrad=mu*(val-pred)*sum_powtab/(eps_pow+spow);
       for (int i=0;i<n;i++) {
         w[i]+=mutab[i]*(wgrad*x[i]);
