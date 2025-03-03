@@ -6,6 +6,7 @@
 #include "../model/sse.h"
 #include "../model/mixer.h"
 #include "../common/utils.h"
+#include <functional>
 
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
@@ -35,6 +36,9 @@ class StaticLaplaceModel {
     std::vector<std::vector<int>> pr;
 };
 
+using EncodeP1 = std::function<void(uint32_t,int)>;
+using DecodeP1 = std::function<int(uint32_t)>;
+
 class BitplaneCoder {
   const int cnt_upd_rate_p=150;
   const int cnt_upd_rate_sig=300;
@@ -44,9 +48,9 @@ class BitplaneCoder {
   const int cntsse_upd_rate=250;
   const int mixsse_upd_rate=250;
   public:
-    BitplaneCoder(RangeCoderSH &rc,int maxbpn,int numsamples);
-    void Encode(int32_t *abuf);
-    void Decode(int32_t *buf);
+    BitplaneCoder(int maxbpn,int numsamples);
+    void Encode(EncodeP1 encode_p1,int32_t *abuf);
+    void Decode(DecodeP1 decode_p1,int32_t *buf);
   private:
     void CountSig(int n,int &n1,int &n2);
     void GetSigState(int i); // get actual significance state
@@ -58,8 +62,6 @@ class BitplaneCoder {
     int PredictSSE(int p1);
     void UpdateSSE(int bit);
     uint32_t GetAvgSum(int n);
-
-    RangeCoderSH &rc;
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,csig3,cref0,cref1,cref2,cref3;
     std::vector<LinearCounterLimit>p_laplace;

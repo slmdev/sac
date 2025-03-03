@@ -3,6 +3,7 @@
 
 #include "../common/bufio.h"
 #include "model.h"
+#include <functional>
 
 class RangeCoderBase {
   public:
@@ -49,6 +50,9 @@ class RangeCoderSH : public RangeCoderBase {
     void Stop();
     void EncodeBitOne(uint32_t p1,int bit);
     int  DecodeBitOne(uint32_t p1);
+
+    std::function<void(uint32_t,int)> encode_p1 = [this](uint32_t p1,int bit) {return EncodeBitOne(p1,bit);}; // stupid C++
+    std::function<int(uint32_t)> decode_p1 = [this](uint32_t p1) {return DecodeBitOne(p1);};
   protected:
     void ShiftLow();
     uint32_t range,code,FFNum,Cache;

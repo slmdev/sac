@@ -1,7 +1,7 @@
 #include "cmdline.h"
 #include "opt/opt.h"
 
-#define SAC_VERSION "0.7.16"
+#define SAC_VERSION "0.7.17"
 
 int main(int argc,char *argv[])
 {

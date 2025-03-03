@@ -1,8 +1,7 @@
 #include "vle.h"
 
-BitplaneCoder::BitplaneCoder(RangeCoderSH &rc,int maxbpn,int numsamples)
-:rc(rc),
-csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
+BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
+:csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
 p_laplace(32),
 lmixref(256,NMixLogistic(5)),lmixsig(256,NMixLogistic(3)),
@@ -213,7 +212,7 @@ void BitplaneCoder::UpdateSSE(int bit)
   ssemix.Update(bit,mixsse_upd_rate);
 }
 
-void BitplaneCoder::Encode(int32_t *abuf)
+void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
 {
   pabuf=abuf;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
@@ -226,12 +225,12 @@ void BitplaneCoder::Encode(int32_t *abuf)
       int p=0;
       if (sigst[0]) { // coef is significant, refine
         p=PredictSSE(PredictRef());
-        rc.EncodeBitOne(p,bit);
+        encode_p1(p,bit);
         UpdateRef(bit);
         UpdateSSE(bit);
       } else { // coef is insignificant
         p=PredictSSE(PredictSig());
-        rc.EncodeBitOne(p,bit);
+        encode_p1(p,bit);
         UpdateSig(bit);
         UpdateSSE(bit);
         if (bit) msb[sample]=bpn;
@@ -240,7 +239,7 @@ void BitplaneCoder::Encode(int32_t *abuf)
   }
 }
 
-void BitplaneCoder::Decode(int32_t *buf)
+void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
 {
   int bit;
   pabuf=buf;
@@ -252,12 +251,12 @@ void BitplaneCoder::Decode(int32_t *buf)
       pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);
       GetSigState(sample);
       if (sigst[0]) { // coef is significant, refine
-        bit=rc.DecodeBitOne(PredictSSE(PredictRef()));
+        bit=decode_p1(PredictSSE(PredictRef()));
         UpdateRef(bit);
         UpdateSSE(bit);
         if (bit) buf[sample]+=(1<<bpn);
        } else { // coef is insignificant
-         bit=rc.DecodeBitOne(PredictSSE(PredictSig()));
+         bit=decode_p1(PredictSSE(PredictSig()));
          UpdateSig(bit);
          UpdateSSE(bit);
          if (bit) {

@@ -126,8 +126,8 @@ int CmdLine::Parse(int argc,char *argv[])
        } else if (key=="--BEST") {
          opt.optimize=1;
          opt.ocfg.fraction=0.50;
-         opt.ocfg.maxnfunc=1000;
-         opt.ocfg.dds_cfg.sigma_start=0.25;
+         opt.ocfg.maxnfunc=1250;
+         opt.ocfg.dds_cfg.sigma_start=0.30;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
          opt.optimize=1;

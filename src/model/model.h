@@ -1,6 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+
 // probability precision
 #define PBITS   (15)
 #define PSCALE  (1<<PBITS)

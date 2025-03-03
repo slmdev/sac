@@ -216,9 +216,10 @@ int FrameCoder::EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf)
   buf.Reset();
   RangeCoderSH rc(buf);
   rc.Init();
-  BitplaneCoder bc(rc,framestats[ch].maxbpn,numsamples);
+
+  BitplaneCoder bc(framestats[ch].maxbpn,numsamples);
   int32_t *psrc=&(s2u_error[ch][0]);
-  bc.Encode(psrc);
+  bc.Encode(rc.encode_p1,psrc);
   rc.Stop();
   return buf.GetBufPos();
 }
@@ -230,13 +231,11 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
   RangeCoderSH rc(buf);
   rc.Init();
 
-  BitplaneCoder bc(rc,framestats[ch].maxbpn_map,numsamples);
+  BitplaneCoder bc(framestats[ch].maxbpn_map,numsamples);
 
   MapEncoder me(rc,framestats[ch].mymap.usedl,framestats[ch].mymap.usedh);
   me.Encode();
-  //std::cout << "mapsize: " << buf.GetBufPos() << " Bytes\n";
-
-  bc.Encode(&(s2u_error_map[ch][0]));
+  bc.Encode(rc.encode_p1,&(s2u_error_map[ch][0]));
   rc.Stop();
   return buf.GetBufPos();
 }
@@ -306,8 +305,8 @@ void FrameCoder::DecodeMonoFrame(int ch,int numsamples)
     //std::cout << buf.GetBufPos() << std::endl;
   }
 
-  BitplaneCoder bc(rc,framestats[ch].maxbpn,numsamples);
-  bc.Decode(dst);
+  BitplaneCoder bc(framestats[ch].maxbpn,numsamples);
+  bc.Decode(rc.decode_p1,dst);
   rc.Stop();
 }
 

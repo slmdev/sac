@@ -23,7 +23,7 @@ class LS_Stream {
   protected:
     int n;
     RollBuffer2<double>x;
-    std::vector<double> w;
+    std::vector<double,align_alloc<double>> w;
     double pred;
 };
 
@@ -114,7 +114,7 @@ class NLMS_Stream : public LS_Stream
     };
     ~NLMS_Stream(){};
   protected:
-    vec1D mutab,powtab;
+    std::vector<double> mutab,powtab;
     double sum_powtab;
     double mu;
 };
