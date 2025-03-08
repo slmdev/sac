@@ -1,0 +1,202 @@
+---
+#配合文档https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+#clang-format基本设置
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: Latest
+
+#代码换行风格设置,遵循:在保证代码可读性的情况下,尽量减少代码行数
+UseTab: Never
+TabWidth: 2
+SeparateDefinitionBlocks: Always
+ReflowComments: true
+EmptyLineBeforeAccessModifier: Always
+EmptyLineAfterAccessModifier: Never
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Always
+IndentCaseBlocks: false
+BreakStringLiterals: true
+ColumnLimit: 80
+CompactNamespaces: true
+PackConstructorInitializers: CurrentLine
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: MultiLine
+BinPackArguments: true
+BinPackParameters: true
+IndentExternBlock: AfterExternBlock
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+#代码缩进风格设置
+AccessModifierOffset: -2
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+PPIndentWidth: 2
+IndentAccessModifiers: false
+IndentCaseLabels: true
+IndentGotoLabels: true
+IndentPPDirectives: AfterHash
+IndentRequires: false
+IndentWidth: 2
+IndentWrappedFunctionNames: false
+LambdaBodyIndentation: Signature
+NamespaceIndentation: All
+
+#代码特殊字符行位风格设置,遵循:在保证代码可读性
+BreakBeforeBinaryOperators: NonAssignment
+
+#BreakBeforeConceptDeclarations: Always
+BreakBeforeConceptDeclarations: true
+
+BreakBeforeBraces: Attach
+BreakInheritanceList: AfterColon
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: AfterColon
+
+#空格位置设置
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceBeforeParens: Never
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: Never
+SpacesInConditionalStatement: false
+SpacesInContainerLiterals: false
+SpacesInCStyleCastParentheses: false
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceBeforeSquareBrackets: false
+BitFieldColonSpacing: After
+
+#代码对齐风格设置
+AlignAfterOpenBracket: BlockIndent
+AlignArrayOfStructures: Right
+AlignOperands: Align
+
+#AlignTrailingComments:
+#  Kind: Always
+#  OverEmptyLines: 1
+AlignTrailingComments: true
+
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+Cpp11BracedListStyle: true
+AlignEscapedNewlines: Right
+
+#代码include风格设置
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"(llvm|clang|llvm-c|clang-c)/'
+    Priority: 2
+    SortPriority: 2
+    CaseSensitive: true
+  - Regex: '^(<|"(gtest|gmock|isl|json)/)'
+    Priority: 3
+    SortPriority: 4
+    CaseSensitive: true
+  - Regex: ".*"
+    Priority: 1
+    SortPriority: 0
+    CaseSensitive: true
+
+#代码using,namespace设置
+FixNamespaceComments: true
+ShortNamespaceLines: 1
+SortUsingDeclarations: true
+
+#令人困惑的设置
+AttributeMacros: ["__capability", "__output", "__ununsed"]
+ForEachMacros: ["RANGES_FOR", "FOREACH", "Q_FOREACH", "BOOST_FOREACH"]
+IfMacros: ["IF", "KJ_IF_MAYBE"]
+MacroBlockBegin: ""
+MacroBlockEnd: ""
+CommentPragmas: "^ IWYU pragma:"
+QualifierAlignment: Leave #文档推荐Leave
+DeriveLineEnding: true
+DerivePointerAlignment: false
+DisableFormat: false
+WhitespaceSensitiveMacros:
+  [STRINGIZE, PP_STRINGIZE, BOOST_PP_STRINGIZE, NS_SWIFT_NAME, CF_SWIFT_NAME]
+StatementAttributeLikeMacros: [emit, Q_EMIT]
+StatementMacros: [Q_UNUSED, QT_REQUIRE_VERSION]
+UseCRLF: false
+
+#令人困惑的设置
+#BreakBeforeInheritanceComma: false 文档中并无此设置
+#BreakConstructorInitializersBeforeComma: false 文档中并无此设置
+#RemoveBracesLLVM: false 文档中此选项需谨慎修改
+#SpaceAroundPointerQualifiers: Default 文档中此设置描述不明
+#AlignConsecutiveMacros: None 文档中此设置描述不明
+#AlignConsecutiveAssignments: None 文档中此设置描述不明
+#AlignConsecutiveBitFields: None 文档中此设置描述不明
+#AlignConsecutiveDeclarations: None 文档中此设置描述不明
+#IncludeIsMainRegex: "(Test)?$" 文档中此设置描述不明
+#IncludeIsMainSourceRegex: "" 文档中此设置描述不明
+#PenaltyBreakAssignment: 2 文档中此设置描述不明
+#PenaltyBreakBeforeFirstCallParameter: 19 文档中此设置描述不明
+#PenaltyBreakComment: 300 文档中此设置描述不明
+#PenaltyBreakFirstLessLess: 120 文档中此设置描述不明
+#PenaltyBreakOpenParenthesis: 0 文档中此设置描述不明
+#PenaltyBreakString: 1000 文档中此设置描述不明
+#PenaltyBreakTemplateDeclaration: 10 文档中此设置描述不明
+#PenaltyExcessCharacter: 1000000 文档中此设置描述不明
+#PenaltyReturnTypeOnItsOwnLine: 60 文档中此设置描述不明
+#PenaltyIndentedWhitespace: 0 文档中此设置描述不明
+#ExperimentalAutoDetectBinPacking: false 文档中不推荐使用此选项
+
+#不需要的设置
+#BreakAfterJavaFieldAnnotations: false 此处不需要Java设置
+#SpaceBeforeParensOptions 当SpaceBeforeParens为Never时,不必配置此
+#ConstructorInitializerAllOnOneLineOrOnePerLine: false 此选项已弃用,请参阅PackConstructorInitializers
+#AllowAllConstructorInitializersOnNextLine: true 此选项已弃用,请参阅PackConstructorInitializers
+#InsertTrailingCommas: None 此处不需要JS设置
+#JavaScriptQuotes: Leave 此处不需要JS设置
+#JavaScriptWrapImports: true 此处不需要JS设置
+#ObjCBinPackProtocolList: Auto 此处不需要Objective-C设置
+#ObjCBlockIndentWidth: 2 此处不需要Objective-C设置
+#ObjCBreakBeforeNestedBlockParam: true 此处不需要Objective-C设置
+#ObjCSpaceAfterProperty: false 此处不需要Objective-C设置
+#ObjCSpaceBeforeProtocolList: true 此处不需要Objective-C设置
+#SortJavaStaticImport: Before 此处不需要Java设置
+
+---
+
