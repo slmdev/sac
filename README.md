@@ -1,4 +1,11 @@
 # Sac
+
+Zig Build System for the [Sac](https://github.com/slmdev/sac)
+
+The original repository did not provide a compilation plan This is the reason for Fork
+
+Zig 0.13.0
+
 Sac is a state-of-the-art lossless audio compression model
 
 Lossless audio compression is a complex problem, because PCM data is highly non-stationary and uses high sample resolution (typically >=16bit). That's why classic context modelling suffers from context dilution problems. Sac employs a simple OLS-NLMS predictor per frame including bias correction. Prediction residuals are encoded using a sophisticated bitplane coder including SSE and various forms of probability estimations. Meta-parameters of the predictor are optimized with [DDS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2005WR004723) on by-frame basis. This results in a highly asymmetric codec design. 
