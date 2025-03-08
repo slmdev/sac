@@ -2,6 +2,7 @@ const std = @import("std");
 const fs = std.fs;
 const mem = std.mem;
 const path = std.fs.path;
+const zcc = @import("compile_commands");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -19,9 +20,12 @@ pub fn build(b: *std.Build) void {
 
     exe.linkLibCpp();
     b.installArtifact(exe);
+
+    var targets = std.ArrayList(*std.Build.Step.Compile).init(b.allocator);
+    targets.append(exe) catch @panic("OOM");
+    zcc.createStep(b, "cdb", targets.toOwnedSlice() catch @panic("OOM"));
 }
 
-// 修改为返回错误类型
 fn collectCppFiles(b: *std.Build, exe: *std.Build.Step.Compile) !void {
     const src_dir = "src";
     var cpp_files = std.ArrayList([]const u8).init(b.allocator);
@@ -39,7 +43,6 @@ fn collectCppFiles(b: *std.Build, exe: *std.Build.Step.Compile) !void {
     });
 }
 
-// 保持原有逻辑但返回错误
 fn collectFilesRecursive(
     allocator: std.mem.Allocator,
     dir_path: []const u8,

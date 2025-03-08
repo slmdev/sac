@@ -1,2 +1,7 @@
+# Zig Build System
 .zig-cache
 zig-out
+
+# Clangd
+.cache
+compile_commands.json
