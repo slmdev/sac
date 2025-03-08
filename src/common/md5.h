@@ -11,10 +11,10 @@ namespace MD5 {
     uint8_t digest[16];   // Result of algorithm
   } MD5Context;
 
-#define A 0x67452301
-#define B 0xefcdab89
-#define C 0x98badcfe
-#define D 0x10325476
+#define SAC_A 0x67452301
+#define SAC_B 0xefcdab89
+#define SAC_C 0x98badcfe
+#define SAC_D 0x10325476
 
 
 /*

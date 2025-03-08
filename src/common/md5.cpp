@@ -42,10 +42,10 @@ uint32_t MD5::rotateLeft(uint32_t x, uint32_t n)
 void MD5::Init(MD5Context *ctx){
     ctx->size = (uint64_t)0;
 
-    ctx->buffer[0] = (uint32_t)A;
-    ctx->buffer[1] = (uint32_t)B;
-    ctx->buffer[2] = (uint32_t)C;
-    ctx->buffer[3] = (uint32_t)D;
+    ctx->buffer[0] = (uint32_t)SAC_A;
+    ctx->buffer[1] = (uint32_t)SAC_B;
+    ctx->buffer[2] = (uint32_t)SAC_C;
+    ctx->buffer[3] = (uint32_t)SAC_D;
 }
 
 /*
