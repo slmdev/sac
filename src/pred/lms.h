@@ -76,6 +76,7 @@ class NLMS_Stream : public LS_Stream
     {
       double spow=0.0;
       std::size_t i=0;
+      if (n>=4) {
       __m256d sum_vec = _mm256_setzero_pd();
       for (; i + 4 <= n; i += 4) {
         __m256d x_vec = _mm256_loadu_pd(&x[i]);
@@ -87,6 +88,7 @@ class NLMS_Stream : public LS_Stream
       alignas(32) double buffer[4];
       _mm256_storeu_pd(buffer, sum_vec);
       spow = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+      }
 
       for (;i<n;i++)
         spow += powtab[i] * (x[i] * x[i]);
@@ -114,7 +116,7 @@ class NLMS_Stream : public LS_Stream
     };
     ~NLMS_Stream(){};
   protected:
-    std::vector<double> mutab,powtab;
+    std::vector<double,align_alloc<double>> mutab,powtab;
     double sum_powtab;
     double mu;
 };
