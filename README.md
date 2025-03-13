@@ -1,3 +1,7 @@
+![Version](https://img.shields.io/github/release/slmdev/sac)
+![Repo size](https://img.shields.io/github/repo-size/slmdev/sac)
+![License](https://img.shields.io/github/license/slmdev/sac)
+
 # Sac
 
 Zig Build System for the [Sac](https://github.com/slmdev/sac)

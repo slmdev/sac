@@ -11,7 +11,7 @@ class OLS {
     :x(n),
     chol(n),
     w(n),b(n),mcov(n,vec1D(n)),
-    n(n),kmax(kmax),lambda(lambda),nu(nu),
+    n(n),kmax(kmax),lambda(lambda),nu(n*nu),
     beta_pow(beta_pow),beta_add(beta_add),esum(beta_sum)
     {
       km=0;
