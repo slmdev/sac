@@ -1,3 +1,7 @@
+![Version](https://img.shields.io/github/release/slmdev/sac)
+![Repo size](https://img.shields.io/github/repo-size/slmdev/sac)
+![License](https://img.shields.io/github/license/slmdev/sac)
+
 # Sac
 Sac is a state-of-the-art lossless audio compression model
 
