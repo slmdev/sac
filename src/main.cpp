@@ -1,29 +1,31 @@
 #include "cmdline.h"
-#include "opt/opt.h"
+#include "info.h"
 
-#define SAC_VERSION "0.7.17"
+#include <iostream>
 
-int main(int argc,char *argv[])
-{
-  std::cout << "Sac v" << SAC_VERSION << " - Lossless Audio Coder (c) Sebastian Lehmann\n";
-  std::cout << "compiled on " << __DATE__ << " ";
-  #ifdef __x86_64
-    std::cout << "(64-bit";
-  #else
-    std::cout << "(32-bit";
-  #endif
-  #if defined(USE_AVX256)
-    std::cout << ",AVX2";
-  #endif
-  std::cout << ")";
-  #ifdef __clang__
-    std::cout << " clang " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << "\n";
-  #elif __GNUC__ // __clang__
-    std::cout << " gcc " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__;
-  #endif
-  std::cout << "\n\n";
+void SACInfo() {
+  const int kValueWidth = 35; // 右对齐字段宽度（根据需求调整）
 
+  std::cout << "+----------------------- Sac -----------------------+\n"
+            << "| State-of-the-art lossless audio compression model |\n"
+            << "+---------------------------------------------------+\n"
+            << "| Copyright (c) 2024 Sebastian Lehmann  MIT License |\n"
+            << "+---------------------------------------------------+\n"
+            << "| Compiler      " << std::setw(kValueWidth) << std::right
+            << COMPILER << " |\n"
+            << "| Architecture  " << std::setw(kValueWidth) << std::right
+            << ARCHITECTURE << " |\n"
+            << "| Build On      " << std::setw(kValueWidth) << std::right
+            << BUILD_DATE << " |\n"
+            << "| AVX2 State    " << std::setw(kValueWidth) << std::right
+            << AVX2_STATE << " |\n"
+            << "+---------------------------------------------------+\n";
+}
+
+int main(int argc, char* argv[]) {
+  SACInfo();
   CmdLine cmdline;
-  int error=cmdline.Parse(argc,argv);
-  if (error==0) error=cmdline.Process();
+  int error = cmdline.Parse(argc, argv);
+  if(error == 0) error = cmdline.Process();
+  return error;
 }
