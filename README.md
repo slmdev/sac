@@ -8,26 +8,29 @@ Zig Build System for the [Sac](https://github.com/slmdev/sac)
 
 The original repository did not provide a compilation plan This is the reason for Fork
 
-Zig 0.13.0
+Zig 0.14.0
 
 Sac is a state-of-the-art lossless audio compression model
 
-Lossless audio compression is a complex problem, because PCM data is highly non-stationary and uses high sample resolution (typically >=16bit). That's why classic context modelling suffers from context dilution problems. Sac employs a simple OLS-NLMS predictor per frame including bias correction. Prediction residuals are encoded using a sophisticated bitplane coder including SSE and various forms of probability estimations. Meta-parameters of the predictor are optimized with [DDS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2005WR004723) on by-frame basis. This results in a highly asymmetric codec design. 
+Lossless audio compression is a complex problem, because PCM data is highly non-stationary and uses high sample resolution (typically >=16bit). That's why classic context modelling suffers from context dilution problems. Sac employs a simple OLS-NLMS predictor per frame including bias correction. Prediction residuals are encoded using a sophisticated bitplane coder including SSE and various forms of probability estimations. Meta-parameters of the predictor are optimized with [DDS](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2005WR004723) on by-frame basis. This results in a highly asymmetric codec design.
 
 This program wouldn't exist without the help from the following people (in no particular order):
 
 Matt Mahoney, Dmitry Shkarin, Eugene D. Shelwien, Florin Ghido, Grzegorz Ulacha
 
 ## Technical features
-* Input: wav file with 1-16 bit sample size, mono/stereo, pcm
-* Output: sac file including all input metadata
-* Decoded wav file is bit for bit identical to input wav file
-* MD5 of raw pcm values
+
+- Input: wav file with 1-16 bit sample size, mono/stereo, pcm
+- Output: sac file including all input metadata
+- Decoded wav file is bit for bit identical to input wav file
+- MD5 of raw pcm values
 
 ## Technical limitations
+
 Sac uses fp64 for many internal calculations. The change of compiler options or (cpu-)platform might effect the output. Use at your own risk and for testing purposes only.
- 
+
 ## Benchmarks
+
 **Sac v0.7.13**
 
 16 files (44.1Khz, stereo) - 51.014.742 bytes - parallel on i7-13700H
@@ -54,7 +57,7 @@ Sac uses fp64 for many internal calculations. The change of compiler options or 
 |FLAC v1.4.3|-8|open|
 
 Numbers are bits per sample (bps)
-| Name  | Sac | OFR | paq8px | MP4ALS | MAC | FLAC |
+| Name | Sac | OFR | paq8px | MP4ALS | MAC | FLAC |
 |:---|---:|---:|---:|---:|---:|---:|
 |ATrain|6.994|7.156|7.353|7.232|7.269|7.962|
 |BeautySlept|7.109|7.790|7.826|8.305|8.464|10.134|
@@ -72,8 +75,7 @@ Numbers are bits per sample (bps)
 |thear1|11.364|11.400|11.474|11.425|11.451|11.783|
 |TomsDiner|6.990|7.108|7.057|7.268|7.432|8.572|
 |velvet|9.687|9.990|10.030|10.212|10.461|10.770|
-|*Mean*|**8.313**|8.493|8.561|8.718|8.817|9.385|
+|_Mean_|**8.313**|8.493|8.561|8.718|8.817|9.385|
 |||||||
 |Enc-time|07:35:00|00:00:09|00:05:37|00:00:15|00:00:01|00:00:00|
 |Dec-time|00:01:19|00:00:02|00:05:40|00:00:13|00:00:01|00:00:00|
-
