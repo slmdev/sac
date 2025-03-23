@@ -8,6 +8,7 @@
       "type": "lldb",
       "request": "launch",
       "name": "Debug",
+      "preLaunchTask": "compile",
       "program": "zig-out\\bin\\sac.exe",
       "args": ["--best", ".\\debug\\debug.wav", ".\\debug\\test.sac"],
       "cwd": "${workspaceFolder}",
