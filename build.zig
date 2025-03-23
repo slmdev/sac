@@ -39,7 +39,10 @@ fn collectCppFiles(b: *std.Build, exe: *std.Build.Step.Compile) !void {
 
     exe.addCSourceFiles(.{
         .files = cpp_files.items,
-        .flags = &[_][]const u8{ "-std=c++23", "-fexperimental-library" },
+        .flags = &[_][]const u8{
+            "-std=c++23",
+            "-fexperimental-library",
+        },
     });
 }
 

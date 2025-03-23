@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "Debug",
       "program": "zig-out\\bin\\sac.exe",
-      "args": [],
+      "args": ["--best", ".\\debug\\debug.wav", ".\\debug\\test.sac"],
       "cwd": "${workspaceFolder}",
       "internalConsoleOptions": "neverOpen",
       "console": "integratedTerminal"
