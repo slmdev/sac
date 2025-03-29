@@ -15,8 +15,6 @@ void SACInfo() {
             << COMPILER << " |\n"
             << "| Architecture  " << std::setw(kValueWidth) << std::right
             << ARCHITECTURE << " |\n"
-            << "| Build On      " << std::setw(kValueWidth) << std::right
-            << BUILD_DATE << " |\n"
             << "| AVX2 State    " << std::setw(kValueWidth) << std::right
             << AVX2_STATE << " |\n"
             << "+---------------------------------------------------+\n";

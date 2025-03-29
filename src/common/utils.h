@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once // UTILS_H
 
 #include "../global.h"
 
@@ -383,5 +382,3 @@ namespace BitUtils {
     #endif
   }
 }
-
-#endif // UTILS_H

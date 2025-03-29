@@ -1,5 +1,4 @@
-#ifndef SPARSEPCM_H
-#define SPARSEPCM_H
+#pragma once // SPARSEPCM_H
 
 #include <algorithm>
 #include <cmath>
@@ -109,5 +108,3 @@ protected:
   std::vector<bool> used;      // 使用更紧凑的布尔数组
   std::vector<int> prefix_sum; // 前缀和数组加速区间查询
 };
-
-#endif // SPARSEPCM_H

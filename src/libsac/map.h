@@ -1,5 +1,4 @@
-#ifndef MAP_H
-#define MAP_H
+#pragma once // MAP_H
 
 #include "../model/range.h"
 #include "../model/counter.h"
@@ -47,6 +46,3 @@ class Remap {
     std::vector <bool>usedl,usedh;
     std::vector<int32_t> mapl,maph;
 };
-
-
-#endif // MAP_H

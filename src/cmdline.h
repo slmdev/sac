@@ -1,8 +1,6 @@
-#ifndef CMDLINE_H
-#define CMDLINE_H
+#pragma once // CMDLINE_H
 
 #include <string>
-#include "file/wav.h"
 #include "libsac/libsac.h"
 
 const char SACHelp[] =
@@ -42,6 +40,3 @@ class CmdLine {
     CMODE mode;
     FrameCoder::coder_ctx opt;
 };
-
-
-#endif // CMDLINE_H

@@ -42,11 +42,19 @@ uint32_t MD5::rotateLeft(uint32_t x, uint32_t n)
 void MD5::Init(MD5Context *ctx){
     ctx->size = (uint64_t)0;
 
-    ctx->buffer[0] = (uint32_t)SAC_A;
-    ctx->buffer[1] = (uint32_t)SAC_B;
-    ctx->buffer[2] = (uint32_t)SAC_C;
-    ctx->buffer[3] = (uint32_t)SAC_D;
+    ctx->buffer[0] = MD5_A;
+    ctx->buffer[1] = MD5_B;
+    ctx->buffer[2] = MD5_C;
+    ctx->buffer[3] = MD5_D;
 }
+
+/*
+ * Bit-manipulation functions defined by the MD5 algorithm
+ */
+uint32_t F(uint32_t X, uint32_t Y, uint32_t Z) {return ((X & Y) | (~X & Z));}
+uint32_t G(uint32_t X, uint32_t Y, uint32_t Z) {return ((X & Z) | (Y & ~Z));}
+uint32_t H(uint32_t X, uint32_t Y, uint32_t Z) {return (X ^ Y ^ Z);}
+uint32_t I(uint32_t X, uint32_t Y, uint32_t Z) {return (Y ^ (X | ~Z));}
 
 /*
  * Add some amount of input to the context

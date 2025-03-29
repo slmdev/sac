@@ -17,18 +17,12 @@
 #  define COMPILER "Unknown"
 #endif
 
-#ifdef __x86_64
+#ifdef __x86_64__
 #  define ARCHITECTURE "x86_64"
 #elifdef __i386__
 #  define ARCHITECTURE "x86_32"
 #else
 #  define ARCHITECTURE "Unknown"
-#endif
-
-#if !defined(NDEBUG)
-#  define BUILD_DATE __DATE__
-#else
-#  define BUILD_DATE "Release" // 避免未定义宏的警告
 #endif
 
 #if defined(USE_AVX256)

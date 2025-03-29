@@ -1,5 +1,4 @@
-#ifndef HISTBUF_H
-#define HISTBUF_H
+#pragma once // HISTBUF_H
 
 #include "../global.h"
 #include "alignbuf.h"
@@ -92,6 +91,3 @@ class RollBuffer2 {
     std::size_t n,pos;
     std::vector<T, align_alloc<T> > buf;
 };
-
-
-#endif // HISTBUF_H

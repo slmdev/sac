@@ -1,5 +1,4 @@
-#ifndef OPTIMIZER_H
-#define OPTIMIZER_H
+#pragma once
 
 #include "../global.h"
 #include "../common/rand.h"
@@ -13,10 +12,10 @@ class Opt {
       double xmin,xmax;
     };
     inline static const std::string SLOPT_VERSION="0.2.0";
-    typedef std::pair<double,vec1D> ppoint;
-    typedef std::vector<ppoint> opt_points;
-    typedef std::vector <tboxconst> box_const;
-    typedef std::function<double(const vec1D &param)> opt_func;
+    using ppoint = std::pair<double,vec1D>;
+    using opt_points = std::vector<ppoint>;
+    using box_const = std::vector <tboxconst>;
+    using opt_func = std::function<double(const vec1D &param)>;
 
     Opt(const box_const &parambox)
     :rand(0),pb(parambox),ndim(parambox.size())
@@ -107,5 +106,3 @@ class Opt {
     const box_const pb;
     const int ndim;
 };
-
-#endif

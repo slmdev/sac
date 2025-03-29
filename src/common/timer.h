@@ -1,15 +1,14 @@
-#ifndef TIMER_H
-#define TIMER_H
+#pragma once  // TIMER_H
 
 #include "../global.h"
 
 // time measuring via C++ 11 chrono
 class Timer {
-  typedef std::chrono::high_resolution_clock Clock;
-  //typedef std::chrono::milliseconds TimeT;
-  typedef std::chrono::duration<double, std::ratio<1>> durationS;
-  typedef std::chrono::duration<double, std::milli> durationMS;
-  typedef Clock::time_point Timepoint;
+  using Clock = std::chrono::high_resolution_clock;
+  //using TimeT = std::chrono::milliseconds;
+  using durationS = std::chrono::duration<double, std::ratio<1>>;
+  using durationMS = std::chrono::duration<double, std::milli>;
+  using Timepoint = Clock::time_point;
   public:
     void start() {tstart=Clock::now();};
     void stop() {tstop=Clock::now();};
@@ -26,4 +25,3 @@ class Timer {
   private:
     Timepoint tstart,tstop;
 };
-#endif // TIMER_H

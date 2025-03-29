@@ -12,7 +12,7 @@
       "program": "zig-out\\bin\\sac.exe",
       "args": [
         "--best",
-        ".\\debug\\debug.wav",
+        ".\\debug\\test.wav",
         ".\\debug\\test.sac",
         "--verbose"
       ],

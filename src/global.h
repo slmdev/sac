@@ -1,5 +1,4 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#pragma once
 
 // #include "windows.h"
 #include <algorithm>
@@ -11,20 +10,20 @@
 #include <sstream>
 #include <vector>
 
+/*
 #ifndef M_PI
 #  define M_PI (3.14159265358979323846)
 #endif
 
-// #define NDEBUG
+#define NDEBUG
+*/
 
-typedef std::vector<double> vec1D;
-typedef std::vector<std::vector<double>> vec2D;
-typedef std::vector<double*> ptr_vec1D;
-typedef std::span<int32_t> span_i32;
-typedef std::span<const int32_t> span_ci32;
-typedef std::span<const double> span_f64;
+using vec1D = std::vector<double>;
+using vec2D = std::vector<std::vector<double>>;
+using ptr_vec1D = std::vector<double*>;
+using span_i32 = std::span<int32_t>;
+using span_ci32 = std::span<const int32_t>;
+using span_f64 = std::span<const double>;
 
 #define USE_AVX256
 // #define USE_AVX512
-
-#endif
