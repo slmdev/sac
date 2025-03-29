@@ -21,7 +21,7 @@ maxbpn(maxbpn),numsamples(numsamples),lm(maxbpn)
   }
   pestimate=0;
   for (int i=0;i<32;i++) {
-    bmask[i]=~((1<<i)-1);
+    bmask[i]=~((1U<<i)-1);
   }
   /*double s=35;
   for (int i=0;i<2*n_laplace+1;i++) {
