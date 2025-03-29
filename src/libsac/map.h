@@ -38,7 +38,7 @@ class Remap {
     Remap();
     void Reset();
     double Compare(const Remap &cmap);
-    void Analyse(int32_t *src,int numsamples);
+    void Analyse(std::vector<int32_t> *src,int numsamples);
     bool isUsed(int val);
     int32_t Map2(int32_t pred);
     int32_t Map(int32_t pred,int32_t err);

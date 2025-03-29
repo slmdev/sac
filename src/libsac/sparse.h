@@ -7,6 +7,8 @@
 #include <span>
 #include <vector>
 
+#include "../common/utils.h"
+
 class SimplePred {
 public:
   SimplePred(): lb(0) {}
@@ -79,7 +81,7 @@ public:
   int32_t map_val(int32_t val, int32_t p = 0) const {
     if(val == 0) return 0;
 
-    const int sgn = (0 < val) - (val < 0);
+    const int sgn = MathUtils::sgn(val);
     const int32_t clamped_p = std::clamp(p, minval, maxval);
     const int32_t pidx = clamped_p - minval;
 

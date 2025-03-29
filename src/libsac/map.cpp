@@ -126,10 +126,10 @@ double Remap::Compare(const Remap &cmap)
   return diff*100./double(2*scale);
 }
 
-void Remap::Analyse(int32_t *src,int numsamples)
+void Remap::Analyse(std::vector<int32_t> *src,int numsamples)
 {
   for (int i=0;i<numsamples;i++) {
-    int val=src[i];
+    int val = (*src)[i];
     if (val>0) {
       if (val>scale) std::cout << "val too large: " << val << std::endl;
       else {

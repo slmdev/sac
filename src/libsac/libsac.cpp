@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <numeric>
 #include <thread>
 #include <future>
 
@@ -446,7 +447,7 @@ void FrameCoder::Predict()
     AnalyseMonoChannel(ch,numsamples_);
     if (opt.sparse_pcm) {
       framestats[ch].mymap.Reset();
-      framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
+      framestats[ch].mymap.Analyse(&(samples[ch]),numsamples_);
     }
     if (opt.zero_mean==0) {
       framestats[ch].mean = 0;
