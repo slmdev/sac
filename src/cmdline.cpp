@@ -32,6 +32,7 @@ void CmdLine::PrintMode()
   std::cout << '\n';
   if (opt.optimize) {
       std::cout << "  Optimize: " << std::format("{:.1f}%", ocfg.fraction*100.0);
+      std::cout << ",n=" << ocfg.maxnfunc;
       std::string cost_str;
       switch (ocfg.optimize_cost) {
         case FrameCoder::SearchCost::L1:cost_str="L1";break;
@@ -42,7 +43,6 @@ void CmdLine::PrintMode()
         default:break;
       }
       std::cout << "," << cost_str;
-      std::cout << ",n=" << ocfg.maxnfunc;
       std::cout << ",k=" << ocfg.optk;
       std::cout << '\n';
   }
@@ -110,29 +110,31 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.optimize=1;
          opt.ocfg.fraction=0.075;
          opt.ocfg.maxnfunc=100;
-         opt.ocfg.dds_cfg.sigma_start=0.2;
+         opt.ocfg.sigma=0.2;
          opt.ocfg.dds_cfg.c_fail_max=30;
        } else if (key=="--VERYHIGH") {
          opt.optimize=1;
          opt.ocfg.fraction=0.2;
          opt.ocfg.maxnfunc=250;
-         opt.ocfg.dds_cfg.sigma_start=0.2;
+         opt.ocfg.sigma=0.2;
        } else if (key=="--EXTRAHIGH") {
          opt.optimize=1;
          opt.ocfg.fraction=0.25;
          opt.ocfg.maxnfunc=500;
-         opt.ocfg.dds_cfg.sigma_start=0.2;
+         opt.ocfg.sigma=0.2;
        } else if (key=="--BEST") {
          opt.optimize=1;
          opt.ocfg.fraction=0.50;
          opt.ocfg.maxnfunc=1000;
-         opt.ocfg.dds_cfg.sigma_start=0.30;
+         opt.ocfg.optk=2;
+         opt.ocfg.sigma=0.20;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
          opt.optimize=1;
          opt.ocfg.fraction=0.75;
          opt.ocfg.maxnfunc=1500;
-         opt.ocfg.dds_cfg.sigma_start=0.30;
+         opt.ocfg.optk=2;
+         opt.ocfg.sigma=0.25;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--OPTIMIZE") {
          if (val=="NO" || val=="0") opt.optimize=0;
@@ -172,9 +174,17 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.stereo_ms=1;
        } else if (key=="--OPT-RESET") {
          opt.ocfg.reset=1;
-       } else if (key=="--OPT-SIGMA") {
-         if (val.length())
-            opt.ocfg.dds_cfg.sigma_start=std::clamp(stod_safe(val),0.,1.);
+       } else if (key=="--OPT-CFG") {
+         std::vector<std::string>vs;
+         StrUtils::SplitToken(val,vs,",");
+         if (vs.size()>=1) {
+            std::string val=StrUtils::str_up(vs[0]);
+            if (val=="DDS") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DDS;
+            else if (val=="DE") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
+            else std::cerr << "  warning: invalid val='"<<val<<"'\n";
+         }
+         if (vs.size()>=2) opt.ocfg.num_threads = std::clamp(std::stoi(vs[1]),1,256);
+         if (vs.size()>=3) opt.ocfg.sigma=std::clamp(stod_safe(vs[2]),0.,1.);
        } else if (key=="--ADAPT-BLOCK") {
          if (val=="NO" || val=="0") opt.adapt_block=0;
          else opt.adapt_block=1;
@@ -189,6 +199,19 @@ int CmdLine::Parse(int argc,char *argv[])
     }
     k++;
   }
+  // configure opt method
+  if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
+  {
+    opt.ocfg.dds_cfg.nfunc_max=opt.ocfg.maxnfunc;
+    opt.ocfg.dds_cfg.num_threads=opt.ocfg.num_threads;
+    opt.ocfg.dds_cfg.sigma_start=opt.ocfg.sigma;
+  } else if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DE)
+  {
+    opt.ocfg.de_cfg.nfunc_max=opt.ocfg.maxnfunc;
+    opt.ocfg.de_cfg.num_threads=opt.ocfg.num_threads;
+    opt.ocfg.de_cfg.init_sigma=opt.ocfg.sigma;
+  }
+
   return 0;
 }
 

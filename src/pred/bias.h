@@ -8,7 +8,7 @@
 #define BIAS_ROUND_PRED 1
 #define BIAS_MIX_N 3
 #define BIAS_MIX_NUMCTX 4
-#define BIAS_MIX 0
+#define BIAS_MIX 1
 #define BIAS_NAVG 5
 
 class BiasEstimator {
@@ -55,11 +55,11 @@ class BiasEstimator {
     cnt0(1<<6,CntAvg(nb_scale)),
     cnt1(1<<6,CntAvg(nb_scale)),
     cnt2(1<<6,CntAvg(nb_scale)),
-    sigma(nd_sigma),lambda(nd_lambda)
+    sigma(nd_sigma),
+    run_mv(nd_lambda)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
       p=0.0;
-      mean_est=var_est=0.;
     }
     void CalcContext()
     {
@@ -130,20 +130,22 @@ class BiasEstimator {
       miscUtils::RollBack(hist_input,val);
       miscUtils::RollBack(hist_delta,delta);
 
-      const double q=sigma*sqrt(var_est);
-      const double lb=mean_est-q;
-      const double ub=mean_est+q;
+      const auto [mean,var] = run_mv.get();
 
-      if ( (delta>lb) && (delta<ub)) {
+      const double q=sigma*sqrt(var);
+      const double lb=mean-q;
+      const double ub=mean+q;
+
+      if ( (delta>lb) && (delta<ub))
+      {
         cnt0[ctx0].update(delta);
         cnt1[ctx1].update(delta);
         cnt2[ctx2].update(delta);
       }
 
+      run_mv.Update(delta);
       mix_ada[mix_ctx].Update(delta);
 
-      mean_est=lambda*mean_est+(1.0-lambda)*delta;
-      var_est=lambda*var_est+(1.0-lambda)*((delta-mean_est)*(delta-mean_est));
     }
   private:
     #if BIAS_MIX == 0
@@ -158,8 +160,8 @@ class BiasEstimator {
     double p;
     //double alpha,p,bias0,bias1,bias2;
     std::vector<CntAvg> cnt0,cnt1,cnt2;
-    double mean_est,var_est;
-    const double sigma,lambda;
+    const double sigma;
+    RunMeanVar run_mv;
 };
 
 

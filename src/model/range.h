@@ -7,7 +7,7 @@
 
 class RangeCoderBase {
   public:
-    RangeCoderBase(BufIO &buf,int dec=0):buf(buf),decode(dec){};
+    explicit RangeCoderBase(BufIO &buf,int dec=0):buf(buf),decode(dec){};
     void SetDecode(){decode=1;};
     void SetEncode(){decode=0;};
   protected:

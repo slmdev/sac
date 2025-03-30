@@ -1,10 +1,14 @@
 #include "cmdline.h"
 #include "opt/opt.h"
+//#include <cfenv>
 
-#define SAC_VERSION "0.7.17"
+#define SAC_VERSION "0.7.18"
 
 int main(int argc,char *argv[])
 {
+
+  //std::fesetround(FE_TONEAREST);
+
   std::cout << "Sac v" << SAC_VERSION << " - Lossless Audio Coder (c) Sebastian Lehmann\n";
   std::cout << "compiled on " << __DATE__ << " ";
   #ifdef __x86_64
@@ -26,4 +30,5 @@ int main(int argc,char *argv[])
   CmdLine cmdline;
   int error=cmdline.Parse(argc,argv);
   if (error==0) error=cmdline.Process();
+  return error;
 }

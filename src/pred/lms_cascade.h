@@ -55,7 +55,6 @@ class LMSCascade {
       #ifdef LMS_N0
         p[n] = t;
       #endif
-
     }
     ~LMSCascade()
     {

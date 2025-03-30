@@ -122,7 +122,7 @@ int Wav::ReadSamples(std::vector <std::vector <int32_t>>&data,int samplestoread)
   return samplesread;
 }
 
-int Wav::WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrite)
+int Wav::WriteSamples(const std::vector <std::vector <int32_t>>&data,int samplestowrite)
 {
   const int csize=blockalign/numchannels;
   if (csize==1) {

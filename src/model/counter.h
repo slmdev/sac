@@ -25,7 +25,7 @@ class LinearCounter16 : public Prob16Counter
       int h=(w0*wh(w1))>>PBITS;
       int p=idiv((PSCALE-w0)*p1,PBITS);
       p+=bit?w0-h:h;
-      p1=clamp(p,1,PSCALEm);
+      p1=std::clamp(p,1,PSCALEm);
     };
     //p'+=L*(bit-p)
     void update(int bit,int L)
@@ -33,7 +33,7 @@ class LinearCounter16 : public Prob16Counter
       int err=(bit<<PBITS)-p1;
       // p1 should be converted to "int" implicit anyway?
       int px = int(p1) + idiv_signed(L*err,PBITS);
-      p1=clamp(px,1,PSCALEm);
+      p1=std::clamp(px,1,PSCALEm);
     }
 };
 
@@ -64,7 +64,7 @@ class LinearCounterLimit: public Prob16Counter
         int dp=bit?((PSCALE-p1)*div_tbl[counter])>>PBITS:-((p1*div_tbl[counter])>>PBITS);
         //int dp=(((bit<<PBITS)-p1)*div_tbl[counter]+PSCALEh)>>PBITS;
       #endif
-      p1=clamp(p1+dp,1,PSCALEm);
+      p1=std::clamp(p1+dp,1,PSCALEm);
     };
 };
 

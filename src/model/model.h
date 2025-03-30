@@ -1,6 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include <algorithm>
 
 // probability precision
 #define PBITS   (15)
@@ -12,7 +13,5 @@
 #define WBITS   (16)
 #define WSCALE  (1<<WBITS)
 #define WSCALEh (WSCALE>>1)
-
-template <class T> T clamp(T val,T min,T max) {return val<min?min:val>max?max:val;};
 
 #endif // MODEL_H

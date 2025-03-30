@@ -7,8 +7,8 @@ ols{OLS(nA+nM0,p.k,p.lambda0,p.ols_nu0,p.beta_sum0,p.beta_pow0,p.beta_add0),
 OLS(nB+nS0+nS1,p.k,p.lambda1,p.ols_nu1,p.beta_sum1,p.beta_pow1,p.beta_add1)},
 lms{LMSCascade(p.vn0,p.vmu0,p.vmudecay0,p.vpowdecay0,p.mu_mix0,p.mu_mix_beta0),
 LMSCascade(p.vn1,p.vmu1,p.vmudecay1,p.vpowdecay1,p.mu_mix1,p.mu_mix_beta1)},
-be{BiasEstimator(p.bias_mu0,p.bias_scale),
-   BiasEstimator(p.bias_mu1,p.bias_scale)}
+be{BiasEstimator(p.bias_mu0,p.bias_scale0),
+   BiasEstimator(p.bias_mu1,p.bias_scale1)}
 {
 }
 
@@ -27,7 +27,6 @@ void Predictor::fillbuf_ch1(const int32_t *src0,const int32_t *src1,int idx1,int
   for (int i=idx1-nB;i<idx1;i++) buf[bp++]=(i>=0)?src1[i]:0.0;;
   for (int i=idx1-nS0;i<idx1+nS1;i++) buf[bp++]=(i>=0 && i<numsamples)?src0[i]:0.0;
 }
-
 
 double Predictor::predict(int ch)
 {

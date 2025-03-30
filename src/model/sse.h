@@ -18,7 +18,7 @@ class SSE {
       for (int i=0;i<=mapsize;i++) // init prob-map that SSE.p1(p)~p
       {
         int v=((i*PSCALE)>>NB);
-        v = clamp(v,1,PSCALEm);
+        v = std::clamp(v,1,PSCALEm);
         Map[i].p1=v;
       }
     }
@@ -111,7 +111,7 @@ class SSENL
        int ph=Map[lb][p_quant+1].p1;
 
        int px=(pl*(xscale-p_mod)+ph*p_mod)/xscale;
-       return clamp(px,1,PSCALEm);
+       return std::clamp(px,1,PSCALEm);
     };
     void Update(int bit,int rate,bool updlb=true)
     {

@@ -12,20 +12,16 @@
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 :numchannels_(numchannels),framesize_(framesize),opt(opt)
 {
-  profile_size_bytes_=LoadProfileHigh(base_profile)*4;
+  profile_size_bytes_=base_profile.LoadBaseProfile()*4;
 
   framestats.resize(numchannels);
   samples.resize(numchannels);
-  err0.resize(numchannels);
-  err1.resize(numchannels);
   error.resize(numchannels);
   s2u_error.resize(numchannels);
   s2u_error_map.resize(numchannels);
   pred.resize(numchannels);
   for (int i=0;i<numchannels;i++) {
     samples[i].resize(framesize);
-    err0[i].resize(framesize);
-    err1[i].resize(framesize);
     error[i].resize(framesize);
     pred[i].resize(framesize);
     s2u_error[i].resize(framesize);
@@ -78,13 +74,12 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow1=profile.Get(35);
   param.beta_add1=profile.Get(36);
 
-  //param.mix_nu0=profile.Get(41);
-  //param.mix_nu1=profile.Get(42);
-
   param.bias_mu0=profile.Get(43);
   param.bias_mu1=profile.Get(44);
 
-  param.bias_scale=std::round(profile.Get(45));
+  param.bias_scale0=param.bias_scale1=std::round(profile.Get(45));
+  //param.mix_wmax=profile.Get(41);
+  //param.bias_scale1=std::round(profile.Get(41));
 
   //param.nM0 = std::min(std::max(0,param.nB-param.nS1),param.nM0);
 
@@ -93,10 +88,10 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   if (param.nS1 < 0) {
     param.nS1 = -param.nS1;
     param.ch_ref=1;
-  }
+  };// else if (param.nS1==0) param.nS1=1;
 }
 
-void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize)
+void FrameCoder::PredictFrame(const SacProfile &profile,tch_samples &error,int from,int numsamples,bool optimize)
 {
 
   Predictor::tparam param;
@@ -104,12 +99,10 @@ void FrameCoder::PredictFrame(const SacProfile &profile,int from,int numsamples,
   Predictor pr(param);
 
   auto eprocess=[&](int ch_p,int ch,int32_t val,int idx) {
-      const double pd=pr.predict(ch_p);
-
-      const int32_t pi=clamp((int32_t)std::round(pd),framestats[ch].minval,framestats[ch].maxval);
-      pred[ch][idx]=pi+framestats[ch].mean;
+      double pd=pr.predict(ch_p);
+      int32_t pi=std::clamp((int32_t)std::round(pd),framestats[ch].minval,framestats[ch].maxval);
+      if (!optimize) pred[ch][idx]=pi+framestats[ch].mean;
       error[ch][idx]=val-pi; // needed for cost-function within optimize
-
       pr.update(ch_p,val);
   };
 
@@ -165,7 +158,8 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
 
   auto dprocess=[&](int ch_p,int ch,int32_t *dst,int idx) {
     const double pd=pr.predict(ch_p);
-    const int32_t pi=clamp((int32_t)round(pd),framestats[ch].minval,framestats[ch].maxval);
+    const int32_t pi=std::clamp((int32_t)round(pd),framestats[ch].minval,framestats[ch].maxval);
+
 
     if (framestats[ch].enc_mapped)
       dst[idx]=pi+framestats[ch].mymap.Unmap(pi+framestats[ch].mean,error[ch][idx]);
@@ -338,20 +332,20 @@ void FrameCoder::PrintProfile(SacProfile &profile)
       std::cout << x << ' ';
     std::cout << '\n';
     std::cout << "pow_decay ";
-    for (auto &x : param.vpowdecay0)
+    for (const auto &x : param.vpowdecay0)
       std::cout << x << ' ';
     std::cout << '\n';
 
     std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
     std::cout << "ch-ref " << param.ch_ref << "\n";
-    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale) << '\n';
+    std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale0) << ' ' << (1<<param.bias_scale1) << '\n';
 }
 
-double FrameCoder::GetCost(const CostFunction *func,std::size_t samples_to_optimize)
+double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
 {
-  // return a span over sample error
+  // return a span over samples
   const auto span_ch = [=,this](int ch){
-    return std::span{&error[ch][0],samples_to_optimize};
+    return std::span{&samples[ch][0],samples_to_optimize};
   };
 
   double cost=0.0;
@@ -370,7 +364,6 @@ double FrameCoder::GetCost(const CostFunction *func,std::size_t samples_to_optim
   }
   return cost;
 }
-
 
 void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile,const std::vector<int>&params_to_optimize)
 {
@@ -404,9 +397,14 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
   }
 
   auto cost_func=[&](const vec1D &x) {
-    for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x[i];
-    PredictFrame(profile,start_pos,samples_to_optimize,true);
-    return GetCost(CostFunc,samples_to_optimize);
+    // create thread safe copies for error and profile
+    tch_samples tmp_error(numchannels_,std::vector<int32_t>(samples_to_optimize));
+    SacProfile tmp_profile=profile;
+
+    for (int i=0;i<ndim;i++) tmp_profile.coefs[params_to_optimize[i]].vdef=x[i];
+
+    PredictFrame(tmp_profile,tmp_error,start_pos,samples_to_optimize,true);
+    return GetCost(CostFunc,tmp_error,samples_to_optimize);
   };
 
   Opt::ppoint ret;
@@ -418,18 +416,18 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
 
   if (ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
   {
-    OptDDS dds(pb);
-    ret = dds.run(ocfg.dds_cfg,cost_func,xstart,ocfg.maxnfunc,opt.verbose_level);
+    OptDDS dds(ocfg.dds_cfg,pb,opt.verbose_level);
+    ret = dds.run(cost_func,xstart);
   } else if (ocfg.optimize_search==FrameCoder::SearchMethod::DE)
   {
-    OptDE de(pb);
-    OptDE::DECfg de_cfg;
-    ret = de.run(de_cfg,cost_func,xstart,ocfg.maxnfunc,opt.verbose_level);
+    OptDE de(ocfg.de_cfg,pb,opt.verbose_level);
+    ret = de.run(cost_func,xstart);
   }
 
 
   const vec1D x_p = ret.second;
-  for (int i=0;i<ndim;i++) profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
+  for (int i=0;i<ndim;i++)
+    profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
 
   if (opt.verbose_level>0) {
     PrintProfile(profile);
@@ -462,7 +460,7 @@ void FrameCoder::Predict()
     // reset profile params
     // otherwise: starting point for optimization is the best point from the last frame
     if (opt.ocfg.reset)
-      LoadProfileHigh(base_profile);
+      base_profile.LoadBaseProfile();
 
     std::vector<int>lparam_base(base_profile.coefs.size());
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
@@ -471,7 +469,7 @@ void FrameCoder::Predict()
 
     Optimize(opt.ocfg,base_profile,lparam_base);
   }
-  PredictFrame(base_profile,0,numsamples_,false);
+  PredictFrame(base_profile,error,0,numsamples_,false);
 }
 
 void FrameCoder::Unpredict()
@@ -532,14 +530,14 @@ int FrameCoder::WriteBlockHeader(std::fstream &file, const std::vector<SacProfil
   BitUtils::put32LH(buf+12,static_cast<uint32_t>(framestats[ch].maxval));
   uint16_t flag=0;
   if (framestats[ch].enc_mapped) {
-     flag|=(1<<9);
-     flag|=framestats[ch].maxbpn_map;
+    flag|=(1<<9);
+    flag|=framestats[ch].maxbpn_map;
   } else {
-     flag|=framestats[ch].maxbpn;
+    flag|=framestats[ch].maxbpn;
   }
   BitUtils::put16LH(buf+16,flag);
   file.write(reinterpret_cast<char*>(buf),18);
-  return 12;
+  return 18;
 }
 
 int FrameCoder::ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats,int ch)
@@ -643,8 +641,6 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
       std::cout << "  ch" << ch << " samples=" << numsamples;
       std::cout << ",mean=" << framestats[ch].mean << ",min=" << framestats[ch].minval << ",max=" << framestats[ch].maxval << "\n";
     }
-
-
   }
 }
 
@@ -660,7 +656,7 @@ void Codec::ScanFrames(Sac &mySac)
   std::streampos fsize=mySac.getFileSize();
 
   SacProfile profile_tmp; //create dummy profile
-  LoadProfileHigh(profile_tmp);
+  profile_tmp.LoadBaseProfile();
   const int size_profile_bytes=profile_tmp.coefs.size()*4;
 
   int frame_num=1;
@@ -768,7 +764,7 @@ std::vector<Codec::tsub_frame> Codec::Analyse(const std::vector <std::vector<int
 
   if (opt_.verbose_level>1) std::cout << "sub_frames\n";
   int64_t nlen=0;
-  for (auto &frame : sub_frames) {
+  for (const auto &frame : sub_frames) {
     if (opt_.verbose_level>1) std::cout << "  " << frame.start << ' ' << frame.length << ' ' << frame.state << '\n';
     nlen+=frame.length;
   }

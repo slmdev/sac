@@ -81,6 +81,8 @@ class SacProfile {
       {
 
       }
+      int LoadBaseProfile();
+      std::size_t get_size() {return coefs.size();};
       void Set(int num,double vmin,double vmax,double vdef)
       {
         if (num>=0 && num< static_cast<int>(coefs.size())) {
@@ -97,14 +99,12 @@ class SacProfile {
           coefs[num].vdef=x[2];
         }
       }
-      double Get(int num) const {
-        if (num>=0 && num< static_cast<int>(coefs.size())) {
+      float Get(std::size_t num) const {
+        if (num<coefs.size()) {
             return coefs[num].vdef;
         } else return 0.;
       }
       std::vector <coef> coefs;
 };
-
-int LoadProfileHigh(SacProfile &profile);
 
 #endif // PROFILE_H

@@ -23,13 +23,13 @@ class Mix2Linear : public Mix2
     {
       p1=_p1;p2=_p2;
       pm = p1+idiv_signed32((p2-p1)*w,WBITS);
-      pm = clamp(pm,1,PSCALEm);
+      pm = std::clamp(pm,1,PSCALEm);
       return pm;
     }
     int w,p1,p2,pm;
   protected:
     inline int idiv_signed32(int val,int s){return val<0?-(((-val)+(1<<(s-1)))>>s):(val+(1<<(s-1)))>>s;};
-    inline void upd_w(int d,int rate) {int wd=idiv_signed32(rate*d,PBITS);w=clamp(w+wd,0,int(WSCALE));};
+    inline void upd_w(int d,int rate) {int wd=idiv_signed32(rate*d,PBITS);w=std::clamp(w+wd,0,int(WSCALE));};
 };
 
 class Mix2LeastSquares : public Mix2Linear  {
@@ -82,7 +82,7 @@ class NMixLogistic
          sum+=int64_t(w[i]*x[i]);
       }
       sum=idiv_signed64(sum,WBITS);
-      pd=clamp(myDomain.Inv(sum),1,PSCALEm);
+      pd=std::clamp(myDomain.Inv(sum),1,PSCALEm);
       return pd;
     }
     void Update(int bit,int rate)
@@ -97,7 +97,7 @@ class NMixLogistic
   protected:
     inline int idiv_signed32(int val,int s){return val<0?-(((-val)+(1<<(s-1)))>>s):(val+(1<<(s-1)))>>s;};
     inline int idiv_signed64(int64_t val,int64_t s){return val<0?-(((-val)+(1<<(s-1)))>>s):(val+(1<<(s-1)))>>s;};
-    inline void upd_w(int i,int wd){w[i]=clamp(w[i]+wd,-WRANGE,WRANGE-1);}
+    inline void upd_w(int i,int wd){w[i]=std::clamp(w[i]+wd,-WRANGE,WRANGE-1);}
 };
 
 #endif // MIXER_H

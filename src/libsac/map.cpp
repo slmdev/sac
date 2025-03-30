@@ -72,10 +72,8 @@ void MapEncoder::UpdateSSE(int bit,int ctx)
 
 void MapEncoder::Encode()
 {
-  int bit;
-
   for (int i=1;i<=1<<15;i++) {
-    bit=ul[i];
+    int bit=ul[i];
 
     rc.EncodeBitOne(PredictSSE(PredictLow(i),0),bit);
     Update(bit);
@@ -90,9 +88,8 @@ void MapEncoder::Encode()
 
 void MapEncoder::Decode()
 {
-  int bit;
   for (int i=1;i<=1<<15;i++) {
-    bit=rc.DecodeBitOne(PredictSSE(PredictLow(i),0));
+    int bit=rc.DecodeBitOne(PredictSSE(PredictLow(i),0));
     Update(bit);
     ul[i]=bit;
     UpdateSSE(bit,0);

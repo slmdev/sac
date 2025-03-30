@@ -32,7 +32,7 @@ class Wav : public AudioFile {
     int WriteHeader();
     void InitFileBuf(int maxframesize);
     int ReadSamples(std::vector <std::vector <int32_t>>&data,int samplestoread);
-    int WriteSamples(std::vector <std::vector <int32_t>>&data,int samplestowrite);
+    int WriteSamples(const std::vector <std::vector <int32_t>>&data,int samplestowrite);
     Chunks &GetChunks(){return myChunks;};
     MD5::MD5Context md5ctx;
   private:

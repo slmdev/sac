@@ -34,6 +34,41 @@ class RunWeight {
     double alpha;
 };
 
+class RunMeanVar {
+  public:
+    RunMeanVar(double alpha)
+    :alpha_(alpha),first_(true)
+    {
+      mean_ = var_ = 0.0;
+    }
+    void Update(double val)
+    {
+      /*if (first_) {
+        mean_ = val;
+        var_ = 0.0;
+        first_ = false;
+      } else*/
+      {
+        /*double delta = val - mean_;
+        mean_ += (1 - alpha_) * delta;
+        var_ = alpha_ * var_ + (1 - alpha_) * delta * (val - mean_);*/
+
+        // Welford
+        double old_mean = mean_;
+        mean_=alpha_*mean_+(1.0-alpha_)*val;
+        var_=alpha_*var_+(1.0-alpha_)*((val-old_mean)*(val-mean_));
+      }
+    }
+    auto get()
+    {
+      return std::pair{mean_,std::max(0.0,var_)};
+    }
+  protected:
+    double alpha_;
+    bool first_;
+    double mean_,var_;
+};
+
 namespace StrUtils {
       inline void StrUpper(std::string &str)
       {
@@ -298,7 +333,7 @@ class Cholesky
       }
       inline double linear_map_n(int n0,int n1,double y0,double y1,int idx)
       {
-        double dx = n1-n0;
+        double dx = static_cast<double>(n1-n0);
         double dy = y1-y0;
         return idx*(dy/dx)+y0;
       }
@@ -325,6 +360,15 @@ namespace miscUtils {
     );
   return reciprocal;
 }*/
+  template <typename T>
+  void swap_erase(std::vector<T>& e, std::size_t idx)
+  {
+    if (idx < e.size()) {
+      std::swap(e[idx], e.back());
+      e.pop_back();
+    }
+  }
+
   inline void RollBack(vec1D &data,double input)
   {
     if (data.size()) {

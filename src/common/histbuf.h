@@ -29,7 +29,7 @@ class HistBuffer {
 template <typename T>
 class RollBuffer {
   public:
-    RollBuffer(int n)
+    explicit RollBuffer(int n)
     :n(n),pos(-1),buf(n)
     {
 
@@ -60,15 +60,9 @@ class RollBuffer {
 template <typename T>
 class RollBuffer2 {
   public:
-    RollBuffer2(std::size_t capacity)
+    explicit RollBuffer2(std::size_t capacity)
     :n(capacity),pos(0),buf(2*capacity)
     {
-      #if 0
-        auto* data_ptr = buf.data();
-        std::uintptr_t address = reinterpret_cast<std::uintptr_t>(data_ptr);
-        std::size_t align = 1ULL << __builtin_ctzll(address);
-        std::cout << " rb2 adr: " << static_cast<void*>(data_ptr) << ", align: " << align << '\n';
-      #endif
     }
     void push(T val)
     {

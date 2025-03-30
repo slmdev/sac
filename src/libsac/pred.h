@@ -19,9 +19,9 @@ class Predictor {
       double beta_sum1,beta_pow1,beta_add1;
       int ch_ref;
       double bias_mu0,bias_mu1;
-      int bias_scale;
+      int bias_scale0,bias_scale1;
     };
-    Predictor(const tparam &p);
+    explicit Predictor(const tparam &p);
 
     double predict(int ch);
     void update(int ch,double val);

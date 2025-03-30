@@ -7,7 +7,7 @@
 class BufIO {
   public:
       BufIO():buf(1024){Reset();};
-      BufIO(int initsize):buf(initsize){Reset();};
+      explicit BufIO(int initsize):buf(initsize){Reset();};
       void Reset(){bufpos=0;};
       void PutByte(int val)
       {

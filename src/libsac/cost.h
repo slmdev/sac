@@ -7,35 +7,35 @@
 
 class CostFunction {
   public:
-      CostFunction() {};
-      virtual double Calc(span_ci32 buf) const =0;
-      virtual ~CostFunction(){};
+    CostFunction() {};
+    virtual double Calc(span_ci32 buf) const =0;
+    virtual ~CostFunction(){};
 };
 
 class CostL1 : public CostFunction {
   public:
-      double Calc(span_ci32 buf) const
-      {
-        if (buf.size()) {
-          int64_t sum=0;
-          for (const auto val:buf)
-            sum+=std::fabs(val);
-          return sum/static_cast<double>(buf.size());
-        } else return 0.;
-      }
+    double Calc(span_ci32 buf) const override
+    {
+      if (buf.size()) {
+        int64_t sum=0;
+        for (const auto val:buf)
+          sum+=std::fabs(val);
+        return sum/static_cast<double>(buf.size());
+      } else return 0.;
+    }
 };
 
 class CostRMS : public CostFunction {
   public:
-      double Calc(span_ci32 buf) const
-      {
-        if (buf.size()) {
-          int64_t sum=0.0;
-          for (const auto val:buf)
-            sum+=val*val;
-          return sqrt(sum/static_cast<double>(buf.size()));
-        } else return 0.;
-      }
+    double Calc(span_ci32 buf) const override
+    {
+      if (buf.size()) {
+        int64_t sum=0.0;
+        for (const auto val:buf)
+          sum+=val*val;
+        return sqrt(sum/static_cast<double>(buf.size()));
+      } else return 0.;
+    }
 };
 
 
@@ -43,33 +43,33 @@ class CostRMS : public CostFunction {
 class CostGolomb : public CostFunction {
   const double alpha=0.97; // critical
   public:
-      CostGolomb(){};
-      double Calc(span_ci32 buf) const
-      {
-        RunWeight rm(alpha);
+    CostGolomb(){};
+    double Calc(span_ci32 buf) const override
+    {
+      RunWeight rm(alpha);
+      if (buf.size()) {
         int64_t nbits=0;
-        if (buf.size()) {
-          for (const auto sval:buf) {
-            const auto m=std::max(static_cast<int32_t>(rm.sum),1);
-            const auto uval=MathUtils::S2U(sval);
-            int q=uval/m;
-            //int r=val-q*m;
-            nbits+=(q+1);
-            if (m>1) {
-              nbits+=BitUtils::count_bits32(m);
-            }
-            rm.Update(uval);
+        for (const auto sval:buf) {
+          const auto m=std::max(static_cast<int32_t>(rm.sum),1);
+          const auto uval=MathUtils::S2U(sval);
+          int q=uval/m;
+          //int r=val-q*m;
+          nbits+=(q+1);
+          if (m>1) {
+            nbits+=BitUtils::count_bits32(m);
           }
-          return nbits/(8.*buf.size());
-        } else return 0;
-      }
+          rm.Update(uval);
+        }
+        return nbits/(8.*buf.size());
+      } else return 0;
+    }
 };
 
 // entropy using order-0 markov model
 class CostEntropy : public CostFunction {
   public:
     CostEntropy(){};
-    double Calc(span_ci32 buf) const
+    double Calc(span_ci32 buf) const override
     {
       double entropy=0.0;
       if (buf.size())
@@ -126,7 +126,7 @@ class CostBitplane : public CostFunction {
  public:
   CostBitplane() {
   }
-  double Calc(span_ci32 buf) const
+  double Calc(span_ci32 buf) const override
   {
     int numsamples=buf.size();
     std::vector<int32_t> ubuf(numsamples);

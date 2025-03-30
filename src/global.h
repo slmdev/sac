@@ -24,7 +24,6 @@ typedef std::span<int32_t> span_i32;
 typedef std::span<const int32_t> span_ci32;
 typedef std::span<const double> span_f64;
 
-
 #define USE_AVX256
 //#define USE_AVX512
 

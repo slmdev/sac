@@ -23,7 +23,7 @@ class StaticLaplaceModel {
             double theta=exp(-1.0/static_cast<double>(sum));
             pd=1.0-1.0/(1+pow(theta,1<<bpn));
           }
-          int pi=clamp((int)round(pd*PSCALE),1,PSCALEm);
+          int pi=std::clamp((int)round(pd*PSCALE),1,PSCALEm);
           pr[sum][bpn]=pi;
         }
       }

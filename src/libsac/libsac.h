@@ -6,16 +6,23 @@
 #include "cost.h"
 #include "profile.h"
 #include "../opt/dds.h"
+#include "../opt/de.h"
 
 class FrameCoder {
   public:
     enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
     enum SearchMethod {DDS,DE};
+
+    typedef std::vector <std::vector<int32_t>> tch_samples;
+
     struct toptim_cfg {
       OptDDS::DDSCfg dds_cfg;
+      OptDE::DECfg de_cfg;
       int reset=0;
       double fraction=0;
       int maxnfunc=0;
+      int num_threads=0;
+      double sigma=0.2;
       int optk=4;
       SearchMethod optimize_search=SearchMethod::DDS;
       SearchCost optimize_cost=SearchCost::Entropy;
@@ -31,7 +38,6 @@ class FrameCoder {
       int adapt_block=1;
 
       toptim_cfg ocfg;
-
       SacProfile profiledata;
     };
     FrameCoder(int numchannels,int framesize,const coder_ctx &opt);
@@ -43,7 +49,7 @@ class FrameCoder {
     void Decode();
     void WriteEncoded(AudioFile &fout);
     void ReadEncoded(AudioFile &fin);
-    std::vector <std::vector<int32_t>>samples,err0,err1,error,s2u_error,s2u_error_map,pred;
+    std::vector <std::vector<int32_t>>samples,error,s2u_error,s2u_error_map,pred;
     std::vector <BufIO> encoded,enc_temp1,enc_temp2;
     std::vector <SacProfile::FrameStats> framestats;
 
@@ -61,9 +67,9 @@ class FrameCoder {
     int EncodeMonoFrame_Normal(int ch,int numsamples,BufIO &buf);
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
     void Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile,const std::vector<int>&params_to_optimize);
-    double GetCost(const CostFunction *func,std::size_t samples_to_optimize);
+    double GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const;
 
-    void PredictFrame(const SacProfile &profile,int from,int numsamples,bool optimize=false);
+    void PredictFrame(const SacProfile &profile,tch_samples &error,int from,int numsamples,bool optimize);
     void UnpredictFrame(const SacProfile &profile,int numsamples);
     double CalcRemapError(int ch, int numsamples);
     void EncodeMonoFrame(int ch,int numsamples);
