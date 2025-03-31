@@ -8,18 +8,17 @@
 
 // general minimization for multivariate problems using box-constraints
 class Opt {
-  public:
-    struct tboxconst {
-      double xmin,xmax;
-    };
     inline static const std::string SLOPT_VERSION="0.3.0";
-    typedef std::pair<double,vec1D> ppoint;
-    typedef std::vector<ppoint> opt_points;
-    typedef std::vector <tboxconst> box_const;
-    typedef std::function<double(const vec1D &param)> opt_func;
+  public:
+    struct tboxconst {double xmin,xmax;};
+    using ppoint = std::pair<double,vec1D>;
+    using opt_points = std::vector<ppoint>;
+    using box_const = std::vector <tboxconst>;
+    using opt_func = std::function<double(const vec1D &param)>;
 
     Opt(const box_const &parambox);
-
+    virtual ppoint run(opt_func func,const vec1D &xstart) = 0;
+    virtual ~Opt() = default;
   protected:
     std::size_t eval_points_mt(opt_func func,std::span<ppoint> ps);
 

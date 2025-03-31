@@ -38,8 +38,7 @@ class SparsePCM {
       used.resize(maxval-minval+1);
 
       for (auto val : buf) used[val-minval] = 1;
-      int sum=0;
-      for (auto u : used) sum+=u;
+      int sum=std::accumulate(begin(used),end(used),0);
       fraction_used = used.size()>0?(sum/static_cast<double>(used.size()))*100.:0.0;
 
 

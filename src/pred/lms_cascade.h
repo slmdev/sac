@@ -11,7 +11,7 @@
 
 class LMSCascade {
   public:
-    LMSCascade(const std::vector<int> &vn,const std::vector<double>&vmu,const std::vector<double>vmudecay,const std::vector<double> &vpowdecay,double mu_mix,double mu_mix_beta)
+    LMSCascade(const std::vector<int> &vn,const std::vector<double>&vmu,const std::vector<double>&vmudecay,const std::vector<double> &vpowdecay,double mu_mix,double mu_mix_beta)
     :n(vn.size()),
     #ifdef LMS_N0
       p(n+1),lms_mix(n+1,mu_mix,mu_mix_beta),

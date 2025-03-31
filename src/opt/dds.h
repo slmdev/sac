@@ -13,7 +13,7 @@ class OptDDS : public Opt {
   public:
     struct DDSCfg
     {
-      double sigma_start=0.; // gets overwritten
+      double sigma_init=0.2;
       double sigma_max=0.5;
       double sigma_min=0.05;
       int c_succ_max=3;
@@ -26,10 +26,10 @@ class OptDDS : public Opt {
     :Opt(parambox),cfg(cfg),verbose(verbose)
     {
     }
-    vec1D generate_candidate(const vec1D &x,int nfunc,int nfunc_max,double sigma)
+    vec1D generate_candidate(const vec1D &x,int nfunc,double sigma)
     {
       std::vector <int>J; // select J of D variables
-      double p=1.0-log(nfunc)/log(nfunc_max);
+      double p=1.0-log(nfunc)/log(cfg.nfunc_max);
 
       for (int i=0;i<ndim;i++) {
         if (rand.event(p)) J.push_back(i);
@@ -40,7 +40,7 @@ class OptDDS : public Opt {
       // perturb decision variables
       vec1D xtest=x;
       for (auto k:J) {
-        xtest[k]=gen_norm(xtest[k],pb[k],sigma);
+        xtest[k]=gen_norm(x[k],pb[k],sigma);
         assert(xtest[k]>=pb[k].xmin && xtest[k]<=pb[k].xmax);
       }
       return xtest;
@@ -53,14 +53,14 @@ class OptDDS : public Opt {
       ppoint xb{func(xstart),xstart};
       if (verbose) std::cout << xb.first << '\n';
 
-      double sigma=cfg.sigma_start;
+      double sigma=cfg.sigma_init;
       #ifdef DDS_SIGMA_ADAPT
         int c_succ=0,c_fail=0;
       #endif
 
       while (nfunc<cfg.nfunc_max) {
         ppoint x_gen;
-        x_gen.second=generate_candidate(xb.second,nfunc,cfg.nfunc_max,sigma);
+        x_gen.second=generate_candidate(xb.second,nfunc,sigma);
         x_gen.first=func(x_gen.second);
 
         #ifndef DDS_SIGMA_ADAPT
@@ -99,7 +99,7 @@ class OptDDS : public Opt {
 
       if (verbose) std::cout << xb.first << '\n';
 
-      double sigma=cfg.sigma_start;
+      double sigma=cfg.sigma_init;
 
       int nfunc=1;
       while (nfunc<cfg.nfunc_max) {
@@ -108,10 +108,9 @@ class OptDDS : public Opt {
         // generate candidates around current xbest
         opt_points x_gen(nthreads);
         for (int i=0;i<nthreads;i++) {
-          x_gen[i].second=generate_candidate(xb.second,nfunc,cfg.nfunc_max,sigma);
+          x_gen[i].second=generate_candidate(xb.second,nfunc,sigma);
           nfunc++;
         };
-        //nfunc+=nthreads;
 
         eval_points_mt(func,std::span(x_gen));
 
@@ -125,7 +124,7 @@ class OptDDS : public Opt {
       return xb;
     }
 
-    ppoint run(opt_func func,const vec1D &xstart)
+    virtual ppoint run(opt_func func,const vec1D &xstart) override
     {
       assert(pb.size()==xstart.size());
 

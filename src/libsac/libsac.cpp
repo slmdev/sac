@@ -136,18 +136,6 @@ void FrameCoder::PredictFrame(const SacProfile &profile,tch_samples &error,int f
       }
     }
   }
-
-   if (!optimize)
-    for (int ch=0;ch<numchannels_;ch++)
-    {
-      int32_t emax=0;
-      for (int i=0;i<numsamples;i++) {
-        const int32_t e_s2u=MathUtils::S2U(error[ch][i]);
-        if (e_s2u>emax) emax=e_s2u;
-        s2u_error[ch][i]=e_s2u;
-      }
-      framestats[ch].maxbpn=MathUtils::iLog2(emax);
-    }
 }
 
 void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
@@ -367,14 +355,8 @@ double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,s
 
 void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile,const std::vector<int>&params_to_optimize)
 {
-  //std::cout << params_to_optimize.size() << " parameters to optimize\n";
-  int norm_samples=std::min((int)std::ceil(framesize_*ocfg.fraction), framesize_);
-  int samples_to_optimize=std::min((int)std::ceil(numsamples_*ocfg.fraction), framesize_);
-  if (samples_to_optimize<norm_samples)
-    samples_to_optimize=std::min(numsamples_,norm_samples);
-
+  int samples_to_optimize=std::min(numsamples_,static_cast<int>(std::ceil(framesize_*ocfg.fraction)));
   const int start_pos=(numsamples_-samples_to_optimize)/2;
-  //if (opt.verbose_level) std::cout << start_pos << " " << samples_to_optimize << " ep=" << (start_pos+samples_to_optimize) << " " << "len=" << numsamples_ << '\n';
 
   CostFunction *CostFunc=nullptr;
   switch (ocfg.optimize_cost)  {
@@ -393,7 +375,6 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
     pb[i].xmin=profile.coefs[params_to_optimize[i]].vmin;
     pb[i].xmax=profile.coefs[params_to_optimize[i]].vmax;
     xstart[i]=profile.coefs[params_to_optimize[i]].vdef;
-    //std::cout << pb[i].xmin << ' ' << pb[i].xmax << ' ' << xstart[i] << '\n';
   }
 
   auto cost_func=[&](const vec1D &x) {
@@ -407,35 +388,45 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
     return GetCost(CostFunc,tmp_error,samples_to_optimize);
   };
 
-  Opt::ppoint ret;
-  std::string opt_str="DDS";
-  if (ocfg.optimize_search==FrameCoder::SearchMethod::DE) opt_str="DE";
-
-  if (opt.verbose_level>0) std::cout << "\n " << opt_str << " " << ocfg.maxnfunc << "= ";
-
-
-  if (ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
-  {
-    OptDDS dds(ocfg.dds_cfg,pb,opt.verbose_level);
-    ret = dds.run(cost_func,xstart);
-  } else if (ocfg.optimize_search==FrameCoder::SearchMethod::DE)
-  {
-    OptDE de(ocfg.de_cfg,pb,opt.verbose_level);
-    ret = de.run(cost_func,xstart);
+  if (opt.verbose_level>0) {
+    std::string opt_str="DDS";
+    if (ocfg.optimize_search==FrameCoder::SearchMethod::DE) opt_str="DE";
+    std::cout << "\n " << opt_str << " " << ocfg.maxnfunc << "= ";
   }
 
+  std::unique_ptr<Opt> myOpt;
 
-  const vec1D x_p = ret.second;
+  if (ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
+    myOpt = std::make_unique<OptDDS>(ocfg.dds_cfg,pb,opt.verbose_level);
+  else if (ocfg.optimize_search==FrameCoder::SearchMethod::DE)
+    myOpt = std::make_unique<OptDE>(ocfg.de_cfg,pb,opt.verbose_level);
+
+  Opt::ppoint ret = myOpt->run(cost_func,xstart);
+
+  // save optimal vector to baseprofile
   for (int i=0;i<ndim;i++)
-    profile.coefs[params_to_optimize[i]].vdef=x_p[i]; // save optimal vector
+    profile.coefs[params_to_optimize[i]].vdef=ret.second[i];
 
   if (opt.verbose_level>0) {
     PrintProfile(profile);
   }
+
   delete CostFunc;
 }
 
-
+void FrameCoder::CnvError_S2U(tch_samples &error,int numsamples)
+{
+  for (int ch=0;ch<numchannels_;ch++)
+  {
+    int32_t emax=0;
+    for (int i=0;i<numsamples;i++) {
+      const int32_t e_s2u=MathUtils::S2U(error[ch][i]);
+      if (e_s2u>emax) emax=e_s2u;
+      s2u_error[ch][i]=e_s2u;
+    }
+    framestats[ch].maxbpn=MathUtils::iLog2(emax);
+  }
+}
 
 void FrameCoder::Predict()
 {
@@ -462,14 +453,14 @@ void FrameCoder::Predict()
     if (opt.ocfg.reset)
       base_profile.LoadBaseProfile();
 
+    // optimize all params
     std::vector<int>lparam_base(base_profile.coefs.size());
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
-
-    //opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
 
     Optimize(opt.ocfg,base_profile,lparam_base);
   }
   PredictFrame(base_profile,error,0,numsamples_,false);
+  CnvError_S2U(error,numsamples_);
 }
 
 void FrameCoder::Unpredict()

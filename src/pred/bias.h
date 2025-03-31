@@ -8,7 +8,7 @@
 #define BIAS_ROUND_PRED 1
 #define BIAS_MIX_N 3
 #define BIAS_MIX_NUMCTX 4
-#define BIAS_MIX 1
+#define BIAS_MIX 0
 #define BIAS_NAVG 5
 
 class BiasEstimator {

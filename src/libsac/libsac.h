@@ -56,6 +56,7 @@ class FrameCoder {
     static int WriteBlockHeader(std::fstream &file, const std::vector<SacProfile::FrameStats> &framestats, int ch);
     static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
   private:
+    void CnvError_S2U(tch_samples &error,int numsamples);
     void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=false);
     void PrintProfile(SacProfile &profile);
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);
@@ -68,7 +69,6 @@ class FrameCoder {
     int EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf);
     void Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile,const std::vector<int>&params_to_optimize);
     double GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const;
-
     void PredictFrame(const SacProfile &profile,tch_samples &error,int from,int numsamples,bool optimize);
     void UnpredictFrame(const SacProfile &profile,int numsamples);
     double CalcRemapError(int ch, int numsamples);

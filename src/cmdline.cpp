@@ -143,7 +143,7 @@ int CmdLine::Parse(int argc,char *argv[])
           StrUtils::SplitToken(val,vs,",");
           if (vs.size()>=2)  {
             opt.ocfg.fraction=std::clamp(stod_safe(vs[0]),0.,1.);
-            opt.ocfg.maxnfunc=std::clamp(std::stoi(vs[1]),0,10000);
+            opt.ocfg.maxnfunc=std::clamp(std::stoi(vs[1]),0,50000);
             if (vs.size()>=3) {
               std::string cf=StrUtils::str_up(vs[2]);
               if (cf=="L1") opt.ocfg.optimize_cost = FrameCoder::SearchCost::L1;
@@ -204,12 +204,12 @@ int CmdLine::Parse(int argc,char *argv[])
   {
     opt.ocfg.dds_cfg.nfunc_max=opt.ocfg.maxnfunc;
     opt.ocfg.dds_cfg.num_threads=opt.ocfg.num_threads;
-    opt.ocfg.dds_cfg.sigma_start=opt.ocfg.sigma;
+    opt.ocfg.dds_cfg.sigma_init=opt.ocfg.sigma;
   } else if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DE)
   {
     opt.ocfg.de_cfg.nfunc_max=opt.ocfg.maxnfunc;
     opt.ocfg.de_cfg.num_threads=opt.ocfg.num_threads;
-    opt.ocfg.de_cfg.init_sigma=opt.ocfg.sigma;
+    opt.ocfg.de_cfg.sigma_init=opt.ocfg.sigma;
   }
 
   return 0;

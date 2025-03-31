@@ -22,7 +22,7 @@ class OptDE : public Opt {
       double c=0.1;
       MutMethod mut_method=CUR1BEST;
       InitMethod init_method=INIT_NORM;
-      double init_sigma=0.15;
+      double sigma_init=0.15;
       std::size_t num_threads=1;
       std::size_t nfunc_max=0;
     };
@@ -92,7 +92,7 @@ class OptDE : public Opt {
       return std::tuple{xtrial,tCR,tF};
     }
 
-    ppoint run(opt_func func,const vec1D &xstart)
+    virtual ppoint run(opt_func func,const vec1D &xstart) override
     {
       assert(pb.size()==xstart.size());
 
@@ -107,16 +107,18 @@ class OptDE : public Opt {
       for (int i=1;i<cfg.NP;i++) {
         vec1D x;
         if (cfg.init_method == INIT_UNIV)
-          x=gen_uniform_samples(xb.second,cfg.init_sigma);
+          x=gen_uniform_samples(xb.second,cfg.sigma_init);
         else if (cfg.init_method == INIT_NORM)
-          x=gen_norm_samples(xb.second,cfg.init_sigma);
+          x=gen_norm_samples(xb.second,cfg.sigma_init);
 
         pop[i].second = x;
       }
 
+      // eval inital population in parallel (excluding first)
       std::span<ppoint> pop_span(pop.begin()+1,pop.end());
       std::size_t k=eval_pop(func,pop_span);
       nfunc+=k;
+      // update best sample
       for (const auto &x:pop_span)
         if (x.first < xb.first)
           xb = x;
@@ -124,7 +126,7 @@ class OptDE : public Opt {
       double mCR = cfg.CR;
       double mF = cfg.F;
 
-      if (verbose) std::cout << "DE init pop " << pop.size() << " (mt=" << cfg.num_threads << "): s=" << cfg.init_sigma << ": " << xb.first << "\n";
+      if (verbose) std::cout << "DE init pop " << pop.size() << " (mt=" << cfg.num_threads << "): s=" << cfg.sigma_init << ": " << xb.first << "\n";
       if (verbose) std::cout << "DE " << nfunc << ": " << xb.first << " (mCR=" << mCR << " mF=" << mF << ")\r";
 
 
@@ -144,11 +146,11 @@ class OptDE : public Opt {
         for (int iagent=0;iagent<num_agents;iagent++)
         {
           auto [xtrial, tCR, tF] = generate_candidate(pop,xb.second,iagent,mCR,mF);
-          gen_mut[iagent]={tCR,tF};
+          gen_mut[iagent]={tCR,tF}; // save (random) mutation params
           gen_pop[iagent].second = xtrial;
         }
 
-        // evaluate
+        // evaluate trial population
         k=eval_pop(func,std::span(gen_pop));
         nfunc+=k;
 
