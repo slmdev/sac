@@ -1,5 +1,6 @@
 #include "opt.h"
 #include <future>
+#include <cassert>
 
 Opt::Opt(const box_const &parambox)
 :rand(0),pb(parambox),ndim(parambox.size())

@@ -126,14 +126,12 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.optimize=1;
          opt.ocfg.fraction=0.50;
          opt.ocfg.maxnfunc=1000;
-         opt.ocfg.optk=2;
          opt.ocfg.sigma=0.20;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
          opt.optimize=1;
          opt.ocfg.fraction=0.75;
          opt.ocfg.maxnfunc=1500;
-         opt.ocfg.optk=2;
          opt.ocfg.sigma=0.25;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--OPTIMIZE") {

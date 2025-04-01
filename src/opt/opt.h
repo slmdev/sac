@@ -4,7 +4,6 @@
 #include "../global.h"
 #include "../common/rand.h"
 #include <functional>
-#include <cassert>
 
 // general minimization for multivariate problems using box-constraints
 class Opt {
