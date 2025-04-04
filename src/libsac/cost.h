@@ -130,7 +130,7 @@ class CostBitplane : public CostFunction {
   {
     int numsamples=buf.size();
     std::vector<int32_t> ubuf(numsamples);
-    int vmax=0;
+    int vmax=1;
     for (int i=0;i<numsamples;i++) {
        int val=MathUtils::S2U(buf[i]);
        if (val>vmax) vmax=val;
@@ -140,14 +140,14 @@ class CostBitplane : public CostFunction {
     BufIO iobuf;
     RangeCoderSH rc(iobuf);
     rc.Init();
-    BitplaneCoder bc_rc(MathUtils::iLog2(vmax),numsamples);
+    BitplaneCoder bc_rc(ilogb(vmax),numsamples);
     bc_rc.Encode(rc.encode_p1,&ubuf[0]);
     rc.Stop();
     double c0=iobuf.GetBufPos();
     #else
 
     StaticBitModel bm;
-    BitplaneCoder bc_bit(MathUtils::iLog2(vmax),numsamples);
+    BitplaneCoder bc_bit(ilogb(vmax),numsamples);
     bc_bit.Encode(bm.EncodeP1_Func(),&ubuf[0]);
 
     double c0=bm.nbits/8.0;

@@ -51,15 +51,6 @@ void BitplaneCoder::GetSigState(int i)
   sigst[16]=i<numsamples-8?msb[i+8]:0;
 }
 
-static inline uint32_t ilog2(const uint32_t x) {
-  uint32_t y;
-  asm ( "\tbsr %1, %0\n"
-      : "=r"(y)
-      : "r" (x)
-  );
-  return y;
-}
-
 uint32_t BitplaneCoder::GetAvgSum(int n)
 {
   uint64_t nsum=0;

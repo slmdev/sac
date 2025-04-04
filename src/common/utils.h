@@ -272,11 +272,6 @@ class Cholesky
           return c;
       }
 
-      inline int iLog2(int val) {
-        int nbits=0;
-        while (val>>=1) nbits++;
-        return nbits;
-      }
       inline double SumDiff(const std::vector<double> &v1,const std::vector<double> &v2)
       {
          if (v1.size()!=v2.size()) return -1;

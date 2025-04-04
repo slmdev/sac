@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <thread>
 #include <future>
 
@@ -225,7 +226,7 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
 double FrameCoder::CalcRemapError(int ch, int numsamples)
 {
     std::vector<int32_t>emap(numsamples);
-    int32_t emax_map=0;
+    int32_t emax_map=1;
     for (int i=0;i<numsamples;i++) {
       int32_t map_e=framestats[ch].mymap.Map(pred[ch][i],error[ch][i]);
       int32_t map_ue=MathUtils::S2U(map_e);
@@ -233,7 +234,7 @@ double FrameCoder::CalcRemapError(int ch, int numsamples)
       s2u_error_map[ch][i]=map_ue;
       if (map_ue>emax_map) emax_map=map_ue;
     }
-    framestats[ch].maxbpn_map=MathUtils::iLog2(emax_map);
+    framestats[ch].maxbpn_map=ilogb(emax_map);
 
     CostL1 cost;
 
@@ -418,13 +419,13 @@ void FrameCoder::CnvError_S2U(tch_samples &error,int numsamples)
 {
   for (int ch=0;ch<numchannels_;ch++)
   {
-    int32_t emax=0;
+    int32_t emax=1;
     for (int i=0;i<numsamples;i++) {
       const int32_t e_s2u=MathUtils::S2U(error[ch][i]);
       if (e_s2u>emax) emax=e_s2u;
       s2u_error[ch][i]=e_s2u;
     }
-    framestats[ch].maxbpn=MathUtils::iLog2(emax);
+    framestats[ch].maxbpn=ilogb(emax);
   }
 }
 
