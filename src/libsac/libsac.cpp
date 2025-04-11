@@ -33,7 +33,7 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
   numsamples_=0;
 }
 
-
+//#define BIAS_SCALE1
 
 void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
@@ -79,7 +79,9 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
 
   param.bias_scale0=param.bias_scale1=std::round(profile.Get(45));
   //param.mix_wmax=profile.Get(41);
-  //param.bias_scale1=std::round(profile.Get(41));
+  #ifdef BIAS_SCALE1
+      param.bias_scale1=std::round(profile.Get(41));
+  #endif
 
   //param.nM0 = std::min(std::max(0,param.nB-param.nS1),param.nM0);
 

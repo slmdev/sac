@@ -7,8 +7,6 @@
 int main(int argc,char *argv[])
 {
 
-  //std::fesetround(FE_TONEAREST);
-
   std::cout << "Sac v" << SAC_VERSION << " - Lossless Audio Coder (c) Sebastian Lehmann\n";
   std::cout << "compiled on " << __DATE__ << " ";
   #ifdef __x86_64

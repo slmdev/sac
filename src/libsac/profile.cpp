@@ -64,7 +64,7 @@ int SacProfile::LoadBaseProfile()
   profile.Set(39,0.98,1,1.0); // mu-decay
   profile.Set(40,0.98,1,1.0); // mu-decay
 
-  //profile.Set(41,1.0,1.8,1.5);
+  profile.Set(41,4,10,5);
   //profile.Set(42,0.9,0.999,0.998);
 
   profile.Set(43,0.001,0.005,0.0015);//bc-mu0

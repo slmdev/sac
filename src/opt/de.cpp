@@ -78,21 +78,20 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
   opt_points pop(cfg.NP); // population
   pop[0] = xb;
 
+  std::span<ppoint> pop_span(pop.begin()+1,pop.end());
   // generate random population
-  for (int i=1;i<cfg.NP;i++) {
+  for (auto &xa : pop_span) {
     vec1D x;
     if (cfg.init_method == INIT_UNIV)
       x=gen_uniform_samples(xb.second,cfg.sigma_init);
     else if (cfg.init_method == INIT_NORM)
       x=gen_norm_samples(xb.second,cfg.sigma_init);
 
-    pop[i].second = x;
+    xa.second = x;
   }
 
   // eval inital population in parallel (excluding first)
-  std::span<ppoint> pop_span(pop.begin()+1,pop.end());
-  std::size_t k=eval_pop(func,pop_span);
-  nfunc+=k;
+  nfunc +=eval_pop(func,pop_span);
   // update best sample
   for (const auto &x:pop_span)
     if (x.first < xb.first)
@@ -126,8 +125,7 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
     }
 
     // evaluate trial population
-    k=eval_pop(func,std::span(gen_pop));
-    nfunc+=k;
+    nfunc+=eval_pop(func,std::span(gen_pop));
 
     // greedy selection
     std::vector<double>CR_succ;

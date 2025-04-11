@@ -181,7 +181,7 @@ int CmdLine::Parse(int argc,char *argv[])
             else if (val=="DE") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
             else std::cerr << "  warning: invalid val='"<<val<<"'\n";
          }
-         if (vs.size()>=2) opt.ocfg.num_threads = std::clamp(std::stoi(vs[1]),1,256);
+         if (vs.size()>=2) opt.ocfg.num_threads = std::clamp(std::stoi(vs[1]),0,256);
          if (vs.size()>=3) opt.ocfg.sigma=std::clamp(stod_safe(vs[2]),0.,1.);
        } else if (key=="--ADAPT-BLOCK") {
          if (val=="NO" || val=="0") opt.adapt_block=0;
@@ -201,12 +201,12 @@ int CmdLine::Parse(int argc,char *argv[])
   if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
   {
     opt.ocfg.dds_cfg.nfunc_max=opt.ocfg.maxnfunc;
-    opt.ocfg.dds_cfg.num_threads=opt.ocfg.num_threads;
+    opt.ocfg.dds_cfg.num_threads=opt.ocfg.num_threads; // also accepts zero
     opt.ocfg.dds_cfg.sigma_init=opt.ocfg.sigma;
   } else if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DE)
   {
     opt.ocfg.de_cfg.nfunc_max=opt.ocfg.maxnfunc;
-    opt.ocfg.de_cfg.num_threads=opt.ocfg.num_threads;
+    opt.ocfg.de_cfg.num_threads=std::max(opt.ocfg.num_threads,1);
     opt.ocfg.de_cfg.sigma_init=opt.ocfg.sigma;
   }
 

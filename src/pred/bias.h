@@ -59,9 +59,9 @@ class BiasEstimator {
     run_mv(nd_lambda)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
-      p=0.0;
+      px=py=0.0;
     }
-    void CalcContext()
+    void CalcContext(double p)
     {
       int b0=hist_input[0]>p?0:1;
       //int b1=hist_input[1]>p?0:1;
@@ -112,20 +112,21 @@ class BiasEstimator {
     }
     double Predict(double pred)
     {
-      p=pred;
-      CalcContext();
+      CalcContext(pred);
 
       const double bias0=cnt0[ctx0].get();
       const double bias1=cnt1[ctx1].get();
       const double bias2=cnt2[ctx2].get();
       const double pbias=mix_ada[mix_ctx].Predict({bias0,bias1,bias2});
-      return pred+pbias;
+      px=pred;
+      py=pred+pbias;
+      return py;
     }
     void Update(double val) {
       #ifdef BIAS_ROUND_PRED
-        const double delta=val-std::round(p);
+        const double delta=val-std::round(px);
       #else
-        const double delta=val-p;
+        const double delta=val-px;
       #endif
       miscUtils::RollBack(hist_input,val);
       miscUtils::RollBack(hist_delta,delta);
@@ -144,8 +145,9 @@ class BiasEstimator {
       }
 
       run_mv.Update(delta);
-      mix_ada[mix_ctx].Update(delta);
 
+      // update with error (including bias)
+      mix_ada[mix_ctx].Update(delta);
     }
   private:
     #if BIAS_MIX == 0
@@ -157,7 +159,7 @@ class BiasEstimator {
     #endif
     vec1D hist_input,hist_delta;
     int ctx0,ctx1,ctx2,mix_ctx;
-    double p;
+    double px,py;
     //double alpha,p,bias0,bias1,bias2;
     std::vector<CntAvg> cnt0,cnt1,cnt2;
     const double sigma;

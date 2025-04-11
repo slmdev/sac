@@ -12,9 +12,9 @@ class OptDE : public Opt {
     enum InitMethod {INIT_UNIV,INIT_NORM};
     struct DECfg
     {
-      int NP=50;
+      int NP=30;
       double CR=0.5;
-      double F=0.6;
+      double F=0.5;
       double c=0.1;
       MutMethod mut_method=CUR1BEST;
       InitMethod init_method=INIT_NORM;

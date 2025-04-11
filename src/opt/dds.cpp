@@ -1,7 +1,9 @@
 #include "dds.h"
+#include "ssc.h"
 
 OptDDS::OptDDS(const DDSCfg &cfg,const box_const &parambox,bool verbose)
-:Opt(parambox),cfg(cfg),verbose(verbose)
+:Opt(parambox),cfg(cfg),
+verbose(verbose)
 {
 }
 
@@ -33,38 +35,23 @@ Opt::ppoint OptDDS::run_single(opt_func func,const vec1D &xstart)
   if (verbose) std::cout << xb.first << '\n';
 
   double sigma=cfg.sigma_init;
-  #ifdef DDS_SIGMA_ADAPT
-    int c_succ=0,c_fail=0;
-  #endif
+
+  // step size control
+  SSC0 ssc(cfg.c_succ_max,cfg.c_fail_max);
 
   while (nfunc<cfg.nfunc_max) {
     ppoint x_gen;
     x_gen.second=generate_candidate(xb.second,nfunc,sigma);
     x_gen.first=func(x_gen.second);
-
-    #ifndef DDS_SIGMA_ADAPT
-      if (x_gen.first<xb.first)
-        xb = x_gen;
-    #else
-      if (x_gen.first<xb.first) {
-        xb=x_gen;
-
-        c_succ+=1;
-        c_fail=0;
-      } else {
-        c_fail+=1;
-        c_succ=0;
-      };
-
-      if (c_succ >= cfg.c_succ_max) {
-        sigma=std::min(2.0*sigma,cfg.sigma_max);
-        c_succ=0;
-      } else if (c_fail >= cfg.c_fail_max) {
-        sigma=std::max(sigma/2.0,cfg.sigma_min);
-        c_fail=0;
-      }
-      #endif
     nfunc++;
+
+    double lambda=0.0;
+    if (x_gen.first<xb.first) {
+      xb = x_gen;
+      lambda=1.0;
+    }
+    sigma = ssc.update(sigma,lambda);
+
     if (verbose) std::cout << " DDS " << std::format("{:5}",nfunc) << ": " << std::format("{:0.4f}",xb.first) << " s=" << sigma << "\r";
   }
   return xb;
@@ -80,9 +67,12 @@ Opt::ppoint OptDDS::run_mt(opt_func func,const vec1D &xstart)
 
   double sigma=cfg.sigma_init;
 
+  // step size control
+  SSC1 ssc(0.05,0.10,0.05);
+
   int nfunc=1;
   while (nfunc<cfg.nfunc_max) {
-    int nthreads = std::min(cfg.nfunc_max-nfunc,cfg.num_threads);
+    const int nthreads = std::min(cfg.nfunc_max-nfunc,cfg.num_threads);
 
     // generate candidates around current xbest
     opt_points x_gen(nthreads);
@@ -91,14 +81,21 @@ Opt::ppoint OptDDS::run_mt(opt_func func,const vec1D &xstart)
       nfunc++;
     };
 
-    eval_points_mt(func,std::span(x_gen));
+    eval_points_mt(func,x_gen);
 
     // select
-    for (int i=0;i<nthreads;i++)
-      if (x_gen[i].first<xb.first)
-        xb = x_gen[i];
+    ppoint xb_old=xb;
+    int nsucc=0;
+    for (const auto &xg : x_gen)
+      if (xg.first<xb_old.first)  {
+        nsucc++; // count as success, if better than parent
+        if (xg.first < xb.first) // replace overall best
+          xb = xg;
+      }
+    double lambda=nsucc/static_cast<double>(nthreads);
+    sigma=ssc.update(sigma,lambda);
 
-    if (verbose) std::cout << " DDS mt=" << nthreads << ": " << std::format("{:5}",nfunc) << ": " << std::format("{:0.4f}",xb.first) << " s=" << std::format("{:0.3f}",sigma) << "\r";
+    if (verbose) std::cout << " DDS mt=" << nthreads << ": " << std::format("{:5}",nfunc) << ": " << std::format("{:0.4f}",xb.first) << " s=" << std::format("{:0.3f}",sigma) << ", p_succ=" << ssc.p_succ << "\r";
   }
   return xb;
 }
@@ -108,7 +105,7 @@ OptDDS::ppoint OptDDS::run(opt_func func,const vec1D &xstart)
   assert(pb.size()==xstart.size());
 
   ppoint pbest;
-  if (cfg.num_threads<=1) pbest=run_single(func,xstart);
+  if (cfg.num_threads<=0) pbest=run_single(func,xstart);
   else pbest=run_mt(func,xstart);
 
   if (verbose) std::cout << '\n';

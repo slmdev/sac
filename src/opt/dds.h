@@ -1,11 +1,9 @@
 #ifndef DDS_H
 #define DDS_H
 
-#include "opt.h"
 #include <future>
 #include <cassert>
-
-#define DDS_SIGMA_ADAPT
+#include "opt.h"
 
 // Dynamical dimensioned search algorithm for computationally efficient watershed model calibration
 // Tolson, Shoemaker 2007
@@ -14,8 +12,6 @@ class OptDDS : public Opt {
     struct DDSCfg
     {
       double sigma_init=0.2;
-      double sigma_max=0.5;
-      double sigma_min=0.05;
       int c_succ_max=3;
       int c_fail_max=50;
       int num_threads=1;
