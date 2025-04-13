@@ -59,7 +59,7 @@ class BiasEstimator {
     run_mv(nd_lambda)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
-      px=py=0.0;
+      px=0.0;
     }
     void CalcContext(double p)
     {
@@ -119,8 +119,7 @@ class BiasEstimator {
       const double bias2=cnt2[ctx2].get();
       const double pbias=mix_ada[mix_ctx].Predict({bias0,bias1,bias2});
       px=pred;
-      py=pred+pbias;
-      return py;
+      return pred+pbias;
     }
     void Update(double val) {
       #ifdef BIAS_ROUND_PRED
@@ -146,7 +145,6 @@ class BiasEstimator {
 
       run_mv.Update(delta);
 
-      // update with error (including bias)
       mix_ada[mix_ctx].Update(delta);
     }
   private:
@@ -159,7 +157,7 @@ class BiasEstimator {
     #endif
     vec1D hist_input,hist_delta;
     int ctx0,ctx1,ctx2,mix_ctx;
-    double px,py;
+    double px;
     //double alpha,p,bias0,bias1,bias2;
     std::vector<CntAvg> cnt0,cnt1,cnt2;
     const double sigma;
