@@ -1,0 +1,24 @@
+.{
+    .name = .Sac,
+
+    .version = "0.7.17",
+
+    .fingerprint = 0x39e623ffae0f9871,
+
+    .dependencies = .{
+        .compile_commands = .{
+            .url = "https://github.com/Sazerac4/zig-compile-commands/archive/refs/heads/0.14.0-update.tar.gz",
+            .hash = "N-V-__8AABjOAAD9JOGy29zdkAQcgyQyd0NaOn0zP0KyC40W",
+        },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        ".gitignore",
+        ".clang-format",
+        "LICENSE",
+        "README.md",
+    },
+}
