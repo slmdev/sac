@@ -86,7 +86,7 @@ class NLMS_Stream : public LS_Stream
         }
 
         alignas(32) double buffer[4];
-        _mm256_storeu_pd(buffer, sum_vec);
+        _mm256_store_pd(buffer, sum_vec);
         spow = buffer[0] + buffer[1] + buffer[2] + buffer[3];
       }
 

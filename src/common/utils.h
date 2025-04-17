@@ -147,7 +147,7 @@ inline double dot(const double* x,const double* y, std::size_t n)
     }
 
     alignas(32) double buffer[4];
-    _mm256_storeu_pd(buffer, sum);
+    _mm256_store_pd(buffer, sum);
     total = buffer[0] + buffer[1] + buffer[2] + buffer[3];
   }
   for (; i < n; ++i)
