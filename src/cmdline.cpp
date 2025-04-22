@@ -140,7 +140,6 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.ocfg.fraction=0.25;
          opt.ocfg.maxnfunc=500;
          opt.ocfg.sigma=0.2;
-         opt.ocfg.optimize_cost=FrameCoder::SearchCost::Golomb;
        } else if (key=="--BEST") {
          opt.optimize=1;
          opt.ocfg.fraction=0.50;
