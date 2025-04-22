@@ -20,6 +20,33 @@ void CmdLine::PrintWav(const AudioFile &myWav)
   std::cout << "  " << myWav.getNumSamples() << " Samples [" << miscUtils::getTimeStrFromSamples(myWav.getNumSamples(),myWav.getSampleRate()) << "]\n";
 }
 
+std::string CmdLine::CostStr(const FrameCoder::SearchCost cost_func)
+{
+  using enum FrameCoder::SearchCost;
+  std::string rstr;
+  switch (cost_func) {
+    case L1:rstr="L1";break;
+    case RMS:rstr="rms";break;
+    case Golomb:rstr="glb";break;
+    case Entropy:rstr="ent";break;
+    case Bitplane:rstr="bpn";break;
+    default:break;
+  }
+  return rstr;
+}
+
+std::string CmdLine::SearchStr(const FrameCoder::SearchMethod search_func)
+{
+  using enum FrameCoder::SearchMethod;
+  std::string rstr;
+  switch (search_func) {
+    case DDS:rstr="DDS";break;
+    case DE:rstr="DE";break;
+    default: break;
+  }
+  return rstr;
+}
+
 void CmdLine::PrintMode()
 {
   const FrameCoder::toptim_cfg &ocfg = opt.ocfg;
@@ -31,25 +58,16 @@ void CmdLine::PrintMode()
   if (opt.sparse_pcm) std::cout << " sparse-pcm";
   std::cout << '\n';
   if (opt.optimize) {
-      std::cout << "  Optimize: " << std::format("{:.1f}%", ocfg.fraction*100.0);
+      std::cout << "  Optimize: ";
+      std::cout << SearchStr(ocfg.optimize_search);
+      std::cout << " " << std::format("{:.1f}%", ocfg.fraction*100.0);
       std::cout << ",n=" << ocfg.maxnfunc;
-      std::string cost_str;
-      switch (ocfg.optimize_cost) {
-        case FrameCoder::SearchCost::L1:cost_str="L1";break;
-        case FrameCoder::SearchCost::RMS:cost_str="rms";break;
-        case FrameCoder::SearchCost::Golomb:cost_str="glb";break;
-        case FrameCoder::SearchCost::Entropy:cost_str="ent";break;
-        case FrameCoder::SearchCost::Bitplane:cost_str="bpn";break;
-        default:break;
-      }
-      std::cout << "," << cost_str;
+      std::cout << "," << CostStr(ocfg.optimize_cost);
       std::cout << ",k=" << ocfg.optk;
       std::cout << '\n';
   }
   std::cout << std::endl;
 }
-
-
 
 void CmdLine::Split(const std::string &str,std::string &key,std::string &val,const char splitval)
 {
@@ -122,6 +140,7 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.ocfg.fraction=0.25;
          opt.ocfg.maxnfunc=500;
          opt.ocfg.sigma=0.2;
+         opt.ocfg.optimize_cost=FrameCoder::SearchCost::Golomb;
        } else if (key=="--BEST") {
          opt.optimize=1;
          opt.ocfg.fraction=0.50;
@@ -130,7 +149,7 @@ int CmdLine::Parse(int argc,char *argv[])
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
          opt.optimize=1;
-         opt.ocfg.fraction=0.75;
+         opt.ocfg.fraction=0.5;
          opt.ocfg.maxnfunc=1500;
          opt.ocfg.sigma=0.25;
          opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;

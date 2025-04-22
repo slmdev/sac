@@ -78,14 +78,7 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.bias_mu1=profile.Get(44);
 
   param.bias_scale0=param.bias_scale1=std::round(profile.Get(45));
-  //param.mix_wmax=profile.Get(41);
-  #ifdef BIAS_SCALE1
-      param.bias_scale1=std::round(profile.Get(41));
-  #endif
 
-  //param.nM0 = std::min(std::max(0,param.nB-param.nS1),param.nM0);
-
-  //if (param.nS1==0) param.nS1=1;
   param.ch_ref=0;
   if (param.nS1 < 0) {
     param.nS1 = -param.nS1;

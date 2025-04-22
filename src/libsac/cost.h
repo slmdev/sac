@@ -60,11 +60,12 @@ class CostGolomb : public CostFunction {
           }
           rm.Update(uval);
         }
-        return nbits/(8.*buf.size());
+        return nbits/(8.);
       } else return 0;
     }
 };
 
+#define TOTAL_SELF_INFORMATION
 // entropy using order-0 markov model
 class CostEntropy : public CostFunction {
   public:
@@ -80,17 +81,35 @@ class CostEntropy : public CostFunction {
           if (val>maxval) maxval=val;
           if (val<minval) minval=val;
         }
-        const auto vmap=[&](int32_t val) {return val-minval;};
-
         std::vector<int> counts(maxval-minval+1);
+
+        const auto cmap=[&](int32_t val) -> int& {
+          return counts[val-minval];};
+
         for (const auto val:buf)
-          counts[vmap(val)]++;
+          ++cmap(val);
 
         const double invs=1.0/static_cast<double>(buf.size());
-        for (const auto val:buf) {
-          const double p=counts[vmap(val)]*invs;
-          entropy+=p*log(p);
-        }
+        #ifdef TOTAL_SELF_INFORMATION
+          for (const auto val:buf) {
+            const double p=cmap(val)*invs;
+            entropy+=p*log(p);
+          }
+        #else
+          if (counts.size() < buf.size()) { // over alphabet
+            for (const auto c:counts) {
+              if (c==0) continue;
+              const double p=c*invs;
+              entropy += c*log2(p);
+            }
+          } else { // over input
+            for (const auto val:buf) {
+              const double p=cmap(val)*invs;
+              entropy+=log2(p);
+            }
+          }
+          entropy = -entropy / 8.0;
+        #endif
       }
       return entropy;
     }

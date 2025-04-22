@@ -1,5 +1,4 @@
 #include "opt.h"
-#include <future>
 #include <cassert>
 
 Opt::Opt(const box_const &parambox)
@@ -24,24 +23,20 @@ std::size_t Opt::eval_points_mt(opt_func func,std::span<ppoint> ps)
   if (threads.size()!=ps.size())
     std::cerr << "  warning: eval_points_mt: thread count too low\n";
 
-  std::vector<double>r1(ps.size());
   for (std::size_t i=0;i<threads.size();i++) {
-    r1[i]=threads[i].get();
-    if (std::isnan(r1[i])) std::cerr << " warning: nan in eval_points_mt\n";
+    ps[i].first=threads[i].get();
+    if (std::isnan(ps[i].first))
+      std::cerr << " warning: nan in eval_points_mt\n";
   }
 
-  // transfer savely to ps
-  for (std::size_t i=0;i<ps.size();i++)
-    ps[i].first=r1[i];
-
   #if 0 // check for thread safety
-    std::vector<double> r2(ps.size());
+    std::vector<double> rt(ps.size());
     for (std::size_t i=0;i<ps.size();i++)
-      r2[i] = func(ps[i].second);
+      rt[i] = func(ps[i].second);
 
     for (std::size_t i=0;i<ps.size();i++)
-      if (r1[i] != r2[i])
-        std::cerr << "  warning: mt res (" << i << "): " << r1[i] << ' ' << r2[i] << '\n';
+      if (ps[i].first != rt[i])
+        std::cerr << "  warning: mt res (" << i << "): " << ps[i].first << ' ' << rt[i] << '\n';
   #endif
 
   return threads.size();

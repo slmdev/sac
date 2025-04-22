@@ -4,9 +4,9 @@
 
 int SacProfile::LoadBaseProfile()
 {
-  SacProfile &profile=*this;
   const int mo_lpc=32; // maximum ols order
-  const int wbits_lms=13;
+  const int wbits_lms=13; // maximum nlms order 2^wbits_lms
+  SacProfile &profile=*this;
 
   profile.Init(53);
 
@@ -64,8 +64,8 @@ int SacProfile::LoadBaseProfile()
   profile.Set(39,0.98,1,1.0); // mu-decay
   profile.Set(40,0.98,1,1.0); // mu-decay
 
-  profile.Set(41,4,10,5);
-  //profile.Set(42,0.9,0.999,0.998);
+  profile.Set(41,0.0,0.0,0.0);
+  profile.Set(42,0.0,0.0,0.0);
 
   profile.Set(43,0.001,0.005,0.0015);//bc-mu0
   profile.Set(44,0.001,0.005,0.0015);//bc-mu1

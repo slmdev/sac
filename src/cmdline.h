@@ -36,6 +36,8 @@ class CmdLine {
     int Process();
   private:
     double stod_safe(const std::string& str);
+    std::string CostStr(const FrameCoder::SearchCost cost_func);
+    std::string SearchStr(const FrameCoder::SearchMethod search_func);
     void PrintMode();
     void PrintWav(const AudioFile &myWav);
     void Split(const std::string &str,std::string &key,std::string &val,const char splitval='=');

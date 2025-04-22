@@ -80,7 +80,7 @@ class NLMS_Stream : public LS_Stream
         __m256d sum_vec = _mm256_setzero_pd();
         for (; i + 4 <= n; i += 4) {
           __m256d x_vec = _mm256_loadu_pd(&x[i]);
-          __m256d pow_vec = _mm256_loadu_pd(&powtab[i]);
+          __m256d pow_vec = _mm256_load_pd(&powtab[i]);
           __m256d x_squared = _mm256_mul_pd(x_vec, x_vec);
           sum_vec = _mm256_fmadd_pd(pow_vec, x_squared, sum_vec);
         }

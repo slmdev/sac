@@ -31,13 +31,15 @@ class LMSCascade {
         for (int i=0;i<n;i++)
           clms[i]=new NLMS_Stream(vn[i],vmu[i],vmudecay[i],vpowdecay[i]);
       #endif
+      px=0.;
     }
     double Predict()
     {
       for (int i=0;i<n;i++) {
           p[i]=clms[i]->Predict();
       }
-      return lms_mix.Predict(p);
+      px=lms_mix.Predict(p);
+      return px;
     }
     void Update(const double target)
     {
@@ -62,6 +64,7 @@ class LMSCascade {
     }
   private:
     int n;
+    double px;
     vec1D p;
     LAD_ADA lms_mix;
     std::vector<LS_Stream*> clms;

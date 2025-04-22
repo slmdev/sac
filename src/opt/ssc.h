@@ -45,7 +45,7 @@ class SSC1
     }
     double update(double sigma,double lambda)
     {
-      // updarte empirical success prob by exp. smoothing
+      // update empirical success prob by exp. smoothing
       p_succ=(1.0-p_a)*p_succ + p_a*lambda;
       sigma = sigma * std::exp(r_sigma * (p_succ-p_target) / (1.0-p_target));
       return std::clamp(sigma,0.05,0.25);

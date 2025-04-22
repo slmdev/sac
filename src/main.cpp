@@ -2,7 +2,7 @@
 #include "opt/opt.h"
 //#include <cfenv>
 
-#define SAC_VERSION "0.7.18"
+#define SAC_VERSION "0.7.19"
 
 int main(int argc,char *argv[])
 {
