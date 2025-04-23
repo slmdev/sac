@@ -29,9 +29,6 @@ class OptDE : public Opt {
 
 
   protected:
-    // evaluate population parallel in rounds of cfg.num_threads
-    std::size_t eval_pop(opt_func func,std::span<ppoint> pop);
-
     auto generate_candidate(const opt_points &pop,const vec1D &xbest,int iagent,double mCR,double mF);
 
     double gen_CR(double mCR)

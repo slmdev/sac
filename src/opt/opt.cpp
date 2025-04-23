@@ -42,6 +42,57 @@ std::size_t Opt::eval_points_mt(opt_func func,std::span<ppoint> ps)
   return threads.size();
 }
 
+// evaluate population parallel in rounds of num_threads
+// all threads should have the same work load
+std::size_t Opt::eval_pop(opt_func func,std::span<ppoint> pop,std::size_t num_threads)
+{
+  std::size_t n=0;
+  while (n < pop.size())
+  {
+    std::size_t start=n;
+    std::size_t ende=std::min(pop.size(),n+num_threads);
+    std::size_t k=eval_points_mt(func,std::span{begin(pop)+start,begin(pop) + ende});
+
+    n+=k;
+  }
+  return n;
+}
+
+// evaluate population with a simple thread-pool using a shared atomic counter
+// more efficient if work load is different per thread
+std::size_t Opt::eval_pop_pool(opt_func func,std::span<ppoint> pop,std::size_t num_threads)
+{
+  // shared atomic counter among threads
+  std::atomic<std::size_t> index{0};
+
+  auto worker = [&]() {
+    while (true) {
+      // return counter, inc after
+      std::size_t i = index.fetch_add(1);
+      if (i >= pop.size()) break; // index oob - nothing to do
+
+      double result = func(pop[i].second);
+      pop[i].first = result;
+
+      if (std::isnan(result)) {
+          std::cerr << " warning: nan in eval_pop\n";
+      }
+    }
+  };
+
+  // launch workers
+  std::vector<std::thread> threads;
+  for (std::size_t i=0;i<std::min(pop.size(),num_threads);i++) {
+    threads.emplace_back(worker);
+  }
+
+  for (auto &t:threads) {
+    t.join();
+  }
+
+  return pop.size();
+}
+
 vec1D Opt::scale(const vec1D &x) {
   vec1D v_out(x.size());
   for (size_t i=0;i<x.size();i++)

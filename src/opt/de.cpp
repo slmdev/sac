@@ -7,21 +7,6 @@ OptDE::OptDE(const DECfg &cfg,const box_const &parambox,bool verbose)
 {
 }
 
-   // evaluate population parallel in rounds of cfg.num_threads
-std::size_t OptDE::eval_pop(opt_func func,std::span<ppoint> pop)
-{
-  std::size_t n=0;
-  while (n < pop.size())
-  {
-    std::size_t start=n;
-    std::size_t ende=std::min(pop.size(),n+cfg.num_threads);
-    std::size_t k=eval_points_mt(func,std::span{begin(pop)+start,begin(pop) + ende});
-
-    n+=k;
-  }
-  return n;
-}
-
 auto OptDE::generate_candidate(const opt_points &pop,const vec1D &xbest,int iagent,double mCR,double mF)
 {
   const double tCR = gen_CR(mCR);
@@ -91,7 +76,7 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
   }
 
   // eval inital population in parallel (excluding first)
-  nfunc +=eval_pop(func,pop_span);
+  nfunc +=eval_pop_pool(func,pop_span,cfg.num_threads);
   // update best sample
   for (const auto &x:pop_span)
     if (x.first < xb.first)
@@ -125,7 +110,7 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
     }
 
     // evaluate trial population
-    nfunc+=eval_pop(func,std::span(gen_pop));
+    nfunc+=eval_pop_pool(func,std::span(gen_pop),cfg.num_threads);
 
     // greedy selection
     std::vector<double>CR_succ;

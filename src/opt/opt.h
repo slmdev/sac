@@ -20,6 +20,8 @@ class Opt {
     virtual ppoint run(opt_func func,const vec1D &xstart) = 0;
     virtual ~Opt() = default;
   protected:
+    std::size_t eval_pop(opt_func func,std::span<ppoint> pop,std::size_t num_threads);
+    std::size_t eval_pop_pool(opt_func func,std::span<ppoint> pop,std::size_t num_threads);
     std::size_t eval_points_mt(opt_func func,std::span<ppoint> ps);
 
     // scale to [0,1]
