@@ -95,7 +95,10 @@ Opt::ppoint OptDDS::run_mt(opt_func func,const vec1D &xstart)
     double lambda=nsucc/static_cast<double>(nthreads);
     sigma=ssc.update(sigma,lambda);
 
-    if (verbose) std::cout << " DDS mt=" << nthreads << ": " << std::format("{:5}",nfunc) << ": " << std::format("{:0.4f}",xb.first) << " s=" << std::format("{:0.3f}",sigma) << ", p_succ=" << ssc.p_succ << "\r";
+    if (verbose) {
+        std::cout << " DDS mt=" << nthreads << ": " << std::format("{:5}",nfunc) << ": " << std::format("{:0.2f}",xb.first);
+        std::cout << " s=" << std::format("{:0.3f}",sigma) << ", p_succ=" << std::format("{:0.4f}",ssc.p_succ) << "\r";
+    }
   }
   return xb;
 }

@@ -7,37 +7,49 @@ OptDE::OptDE(const DECfg &cfg,const box_const &parambox,bool verbose)
 {
 }
 
+// select k unique elements from 0..n-1 except ie
+std::vector<int> OptDE::select_k_unique_except(int n,int ie,int k)
+{
+  std::vector<int>r;
+  if (k>=n-1) return r;
+
+  std::vector<int> e(n);
+  std::iota(std::begin(e),std::end(e),0);
+  std::erase(e,ie);
+
+  for (int i=0;i<k;i++)
+  {
+    int idx = rand.ru_int(0,e.size()-1);
+    int val = e[idx];
+    r.push_back(val);
+    std::erase(e,val);
+  }
+  return r;
+}
+
 auto OptDE::generate_candidate(const opt_points &pop,const vec1D &xbest,int iagent,double mCR,double mF)
 {
   const double tCR = gen_CR(mCR);
   const double tF  = gen_F(mF);
   const int R = rand.ru_int(0,ndim-1);
 
+  auto gp = [&](int i) -> auto& {return pop[i].second;};
+
+  // select k distinct elements from pop depending on mut_method
+  auto v = select_k_unique_except(pop.size(),iagent,MutVals[cfg.mut_method]);
+
   // mutation
-  std::vector<int> e(pop.size());
-  std::iota(std::begin(e),std::end(e),0);std::erase(e,iagent);
-
-  auto select_erase = [this](std::vector<int>& vec) -> int {
-    int idx = rand.ru_int(0,vec.size()-1);
-    int val = vec[idx];
-    std::erase(vec, val);
-    return val;
-  };
-
   vec1D xm;
   if (cfg.mut_method==BEST1BIN) {
-    int xr1 = select_erase(e);
-    int xr2 = select_erase(e);
-    xm = mut_1bin(xbest,pop[xr1].second,pop[xr2].second,mF);
+    xm = mut_1bin(xbest,gp(v[0]),gp(v[1]),mF);
   } else if (cfg.mut_method==RAND1BIN) {
-    int xr0 = select_erase(e);
-    int xr1 = select_erase(e);
-    int xr2 = select_erase(e);
-    xm = mut_1bin(pop[xr0].second,pop[xr1].second,pop[xr2].second,mF);
+    xm = mut_1bin(gp(v[0]),gp(v[1]),gp(v[2]),mF);
   } else if (cfg.mut_method==CUR1BEST) {
-    int xr1 = select_erase(e);
-    int xr2 = select_erase(e);
-    xm = mut_curbest(xbest,pop[iagent].second,pop[xr1].second,pop[xr2].second,mF);
+    xm = mut_curbest(xbest,gp(iagent),gp(v[0]),gp(v[1]),mF);
+  } else if (cfg.mut_method==CURPBEST) {
+    int np = std::min(cfg.npbest,static_cast<int>(pop.size())-1); // pop.size() can by smaller than cfg.NP
+    int xp = rand.ru_int(0,np);
+    xm = mut_curbest(gp(xp),gp(iagent),gp(v[0]),gp(v[1]),mF);
   }
 
   // cross-over
@@ -50,6 +62,13 @@ auto OptDE::generate_candidate(const opt_points &pop,const vec1D &xbest,int iage
   }
 
   return std::tuple{xtrial,tCR,tF};
+}
+
+void OptDE::print_status(std::size_t nfunc,double fx,double mCR,double mF)
+{
+  std::cout << "DE " << std::format("{:5}",nfunc) << ": " << std::format("{:0.2f}",fx);
+  std::cout << " (mCR=" << std::format("{:0.4f}",mCR) << " mF=" << std::format("{:0.4f}",mF);
+  std::cout << ")\r";
 }
 
 OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
@@ -65,14 +84,14 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
 
   std::span<ppoint> pop_span(pop.begin()+1,pop.end());
   // generate random population
-  for (auto &xa : pop_span) {
-    vec1D x;
+  for (auto &x : pop_span) {
+    vec1D xt;
     if (cfg.init_method == INIT_UNIV)
-      x=gen_uniform_samples(xb.second,cfg.sigma_init);
+      xt=gen_uniform_samples(xb.second,cfg.sigma_init);
     else if (cfg.init_method == INIT_NORM)
-      x=gen_norm_samples(xb.second,cfg.sigma_init);
+      xt=gen_norm_samples(xb.second,cfg.sigma_init);
 
-    xa.second = x;
+    x.second = xt;
   }
 
   // eval inital population in parallel (excluding first)
@@ -86,16 +105,18 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
   double mF = cfg.F;
 
   if (verbose) std::cout << "DE init pop " << pop.size() << " (mt=" << cfg.num_threads << "): s=" << cfg.sigma_init << ": " << xb.first << "\n";
-  if (verbose) std::cout << "DE " << nfunc << ": " << xb.first << " (mCR=" << mCR << " mF=" << mF << ")\r";
-
 
   // trial agents
-
   opt_points gen_pop;
   std::vector<std::pair<double,double>> gen_mut;
 
   while (nfunc<cfg.nfunc_max)
   {
+    if (cfg.mut_method==CURPBEST) { // sort by function value
+      std::sort(begin(pop),end(pop),
+        [](const auto &a,const auto &b){return a.first < b.first;});
+    }
+
     int num_agents = std::min(cfg.nfunc_max-nfunc,pop.size());
 
     // trial agents
@@ -110,7 +131,7 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
     }
 
     // evaluate trial population
-    nfunc+=eval_pop_pool(func,std::span(gen_pop),cfg.num_threads);
+    nfunc+=eval_pop_pool(func,gen_pop,cfg.num_threads);
 
     // greedy selection
     std::vector<double>CR_succ;
@@ -127,7 +148,7 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
           xb = pop[iagent];
       }
 
-    if (verbose) std::cout << "DE " << nfunc << ": " << xb.first << " (mCR=" << mCR << " mF=" << mF << ")\r";
+    if (verbose) print_status(nfunc,xb.first,mCR,mF);
 
     if (nfunc >= cfg.nfunc_max) break;
 

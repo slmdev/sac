@@ -8,16 +8,24 @@
 // Differential Evolution
 class OptDE : public Opt {
   public:
-    enum MutMethod {BEST1BIN,RAND1BIN,CUR1BEST};
+    enum MutMethod {BEST1BIN,RAND1BIN,CUR1BEST,CURPBEST};
+    std::unordered_map<MutMethod, int> MutVals = {
+      {BEST1BIN,2},
+      {RAND1BIN,3},
+      {CUR1BEST,2},
+      {CURPBEST,2}
+    };
     enum InitMethod {INIT_UNIV,INIT_NORM};
     struct DECfg
     {
-      int NP=30;
+      int NP=40;
       double CR=0.5;
       double F=0.5;
       double c=0.1;
       MutMethod mut_method=CUR1BEST;
       InitMethod init_method=INIT_NORM;
+      double pbest=0.15;
+      int npbest=std::clamp(static_cast<int>(std::round(pbest*NP))-1,0,NP-1);
       double sigma_init=0.15;
       std::size_t num_threads=1;
       std::size_t nfunc_max=0;
@@ -30,6 +38,8 @@ class OptDE : public Opt {
 
   protected:
     auto generate_candidate(const opt_points &pop,const vec1D &xbest,int iagent,double mCR,double mF);
+    void print_status(std::size_t nfunc,double fx,double mCR,double mF);
+    std::vector<int> select_k_unique_except(int n,int t,int k);
 
     double gen_CR(double mCR)
     {

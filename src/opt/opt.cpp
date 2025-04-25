@@ -68,7 +68,7 @@ std::size_t Opt::eval_pop_pool(opt_func func,std::span<ppoint> pop,std::size_t n
   auto worker = [&]() {
     while (true) {
       // return counter, inc after
-      std::size_t i = index.fetch_add(1);
+      std::size_t i = index.fetch_add(1,std::memory_order_relaxed);
       if (i >= pop.size()) break; // index oob - nothing to do
 
       double result = func(pop[i].second);
