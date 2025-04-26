@@ -4,6 +4,7 @@
 #include "../global.h"
 
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <cmath>
 #include <immintrin.h>
@@ -330,14 +331,13 @@ class Cholesky
       inline double mean(const std::vector<double> &vec)
       {
         if (vec.size()) {
-          double sum=0.0;
-          for (size_t i=0;i<vec.size();++i)
-            sum+=vec[i];
-          return sum / static_cast<double>(vec.size());
+          double sum=std::accumulate(begin(vec),end(vec),0.0);
+          return sum/static_cast<double>(vec.size());
         }
         return 0;
       }
-      inline double Lmean(const std::vector<double> &vec)
+      //contraharmonic mean
+      inline double meanL(const std::vector<double> &vec)
       {
         if (vec.size()) {
           double sum0=0.0;

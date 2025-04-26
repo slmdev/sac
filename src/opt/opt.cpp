@@ -67,7 +67,7 @@ std::size_t Opt::eval_pop_pool(opt_func func,std::span<ppoint> pop,std::size_t n
 
   auto worker = [&]() {
     while (true) {
-      // return counter, inc after
+      // return counter, inc after - only need atomic uniqueness not synchronization visibility
       std::size_t i = index.fetch_add(1,std::memory_order_relaxed);
       if (i >= pop.size()) break; // index oob - nothing to do
 

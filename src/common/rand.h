@@ -25,6 +25,9 @@ class Random {
     double r_norm(double mu,double sigma) { // normal
       return std::normal_distribution<double>{mu,sigma}(engine);
     }
+    double r_cauchy(double mu,double sigma) { // normal
+      return std::cauchy_distribution<double>{mu,sigma}(engine);
+    }
     double r_lognorm(double mu,double sigma) { // log-normal
       return exp(std::normal_distribution<double>{mu,sigma}(engine));
     }

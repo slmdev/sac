@@ -374,7 +374,7 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
 
   auto cost_func=[&](const vec1D &x) {
     // create thread safe copies for error and profile
-    thread_local tch_samples tmp_error(numchannels_,std::vector<int32_t>(samples_to_optimize));
+    tch_samples tmp_error(numchannels_,std::vector<int32_t>(samples_to_optimize));
     SacProfile tmp_profile=profile;
 
     for (int i=0;i<ndim;i++) tmp_profile.coefs[params_to_optimize[i]].vdef=x[i];

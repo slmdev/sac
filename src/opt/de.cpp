@@ -41,15 +41,17 @@ auto OptDE::generate_candidate(const opt_points &pop,const vec1D &xbest,int iage
   // mutation
   vec1D xm;
   if (cfg.mut_method==BEST1BIN) {
-    xm = mut_1bin(xbest,gp(v[0]),gp(v[1]),mF);
+    xm = mut_1bin(xbest,gp(v[0]),gp(v[1]),tF);
   } else if (cfg.mut_method==RAND1BIN) {
-    xm = mut_1bin(gp(v[0]),gp(v[1]),gp(v[2]),mF);
+    xm = mut_1bin(gp(v[0]),gp(v[1]),gp(v[2]),tF);
   } else if (cfg.mut_method==CUR1BEST) {
-    xm = mut_curbest(xbest,gp(iagent),gp(v[0]),gp(v[1]),mF);
+    xm = mut_curbest(xbest,gp(iagent),gp(v[0]),gp(v[1]),tF);
   } else if (cfg.mut_method==CURPBEST) {
-    int np = std::min(cfg.npbest,static_cast<int>(pop.size())-1); // pop.size() can by smaller than cfg.NP
-    int xp = rand.ru_int(0,np);
-    xm = mut_curbest(gp(xp),gp(iagent),gp(v[0]),gp(v[1]),mF);
+    // pop.size() can by smaller than cfg.NP
+    int np = std::min(cfg.npbest,static_cast<int>(pop.size())-1);
+    // np=0 reduces to CUR1BEST as gp(0)=xbest with sorted pop
+    int xp = np>0?rand.ru_int(0,np):0;
+    xm = mut_curbest(gp(xp),gp(iagent),gp(v[0]),gp(v[1]),tF);
   }
 
   // cross-over
@@ -57,7 +59,7 @@ auto OptDE::generate_candidate(const opt_points &pop,const vec1D &xbest,int iage
   const ppoint &xi=pop[iagent];
   for (int i=0;i<ndim;i++)
   {
-    if (rand.event(mCR) || (i==R)) xtrial[i] = xm[i];
+    if (rand.event(tCR) || (i==R)) xtrial[i] = xm[i];
     else xtrial[i] = xi.second[i];
   }
 
@@ -117,7 +119,8 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
         [](const auto &a,const auto &b){return a.first < b.first;});
     }
 
-    int num_agents = std::min(cfg.nfunc_max-nfunc,pop.size());
+    // ensure we don't use more than nfunc_max evals
+    const int num_agents = std::min(cfg.nfunc_max-nfunc,pop.size());
 
     // trial agents
     gen_mut.resize(num_agents);
@@ -153,7 +156,7 @@ OptDE::ppoint OptDE::run(opt_func func,const vec1D &xstart)
     if (nfunc >= cfg.nfunc_max) break;
 
     mCR = (1.0-cfg.c)*mCR + cfg.c*MathUtils::mean(CR_succ);
-    mF  = (1.0-cfg.c)*mF  + cfg.c*MathUtils::mean(F_succ);
+    mF  = (1.0-cfg.c)*mF  + cfg.c*MathUtils::meanL(F_succ);
   }
   if (verbose) std::cout << '\n';
   return xb;
