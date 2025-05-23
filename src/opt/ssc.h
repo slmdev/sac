@@ -1,6 +1,8 @@
 #ifndef SSC_H
 #define SSC_H
 
+// adaptive step-size control
+
 class SSC0
 {
   public:

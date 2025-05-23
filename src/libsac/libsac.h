@@ -56,7 +56,7 @@ class FrameCoder {
     static int WriteBlockHeader(std::fstream &file, const std::vector<SacProfile::FrameStats> &framestats, int ch);
     static int ReadBlockHeader(std::fstream &file, std::vector<SacProfile::FrameStats> &framestats, int ch);
   private:
-    void CnvError_S2U(tch_samples &error,int numsamples);
+    void CnvError_S2U(const tch_samples &error,int numsamples);
     void SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize=false);
     void PrintProfile(SacProfile &profile);
     void EncodeProfile(const SacProfile &profile,std::vector <uint8_t>&buf);

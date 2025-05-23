@@ -2,45 +2,59 @@
 #define RLS_H
 
 #include "../global.h"
+#include "../common/utils.h"
+#include <cmath>
 
-// simple Square-Matrix class
-class SQMatrix
+// adaptive lambda control
+template <miscUtils::MapMode map_mode,int bias_corr=0>
+class ALC
 {
   public:
-    SQMatrix(){};
-    SQMatrix(int dim):mat(dim,std::vector<double>(dim,0.))
+    ALC(double gamma=1.0,double beta=0.95)
+    :gamma(gamma),beta(beta),power_beta(1.0),
+    lambda_min(0.99),lambda_max(0.999),
+    eg(0.)
     {
     }
-    std::vector<double>& operator[] (size_t i) { return mat[i]; } // index operator
 
-    void Print() {
-      int n=mat.size();
-      for (int i=0;i<n;i++) {
-        for (int j=0;j<n;j++) std::cout << mat[j][i] << " ";
-        std::cout << std::endl;
-      }
+    double update(double metric)
+    {
+      eg=beta*eg+(1.0-beta)*metric; // EMA
+
+      double eg_hat=eg;
+      if constexpr (bias_corr) { // bias correction
+        power_beta*=beta;
+        eg_hat=eg/(1.0-power_beta);
+      };
+
+      // normalize metric by average
+      double mnorm = metric/(eg_hat + 1E-5);
+      // map with decay function
+      // high mnorm -> low alpha (faster adaption), low mnorm -> high alpha
+      double m=miscUtils::decay_map<map_mode>(gamma,mnorm);
+      return lambda_min + (lambda_max-lambda_min)*m;
     }
-    size_t Dim()const {return mat.size();};
-    std::vector<std::vector<double>> mat;
-  private:
+  protected:
+    double gamma,beta,power_beta;
+    double lambda_min,lambda_max;
+    double eg;
 };
 
-// recursive least squares algorithm
+// Recursive Least Squares algorithm
 class RLS {
   public:
-    RLS(int n,double alpha);
+    explicit RLS(int n,double alpha,double nu=1);
     double Predict();
-    double Predict(const std::vector<double> &pred);
+    double Predict(const vec1D &pred);
     void Update(double val);
     void UpdateHist(double val);
-  private:
-    void UpdateGain();
-    void UpdateP(); //update inverse of covariance matrix P(n)=1/lambda*P(n-1)-1/lambda * k(n)*x^T(n)*P(n-1)
     int n;
-    double alpha,p;
-    std::vector<double> hist,w,k;
-    SQMatrix P;
+  private:
+    double px,alpha_mu;
+    vec1D hist,w;
+    vec2D P;
+    ALC <miscUtils::MapMode::exp> alc;
 };
 
 
-#endif // RLS_H
+#endif

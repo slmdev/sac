@@ -1,5 +1,20 @@
 #include "md5.h"
 
+#define A 0x67452301
+#define B 0xefcdab89
+#define C 0x98badcfe
+#define D 0x10325476
+
+
+/*
+ * Bit-manipulation functions defined by the MD5 algorithm
+ */
+#define F(X, Y, Z) ((X & Y) | (~X & Z))
+#define G(X, Y, Z) ((X & Z) | (Y & ~Z))
+#define H(X, Y, Z) (X ^ Y ^ Z)
+#define I(X, Y, Z) (Y ^ (X | ~Z))
+
+
 static uint32_t S[] = {7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
                        5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
                        4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,

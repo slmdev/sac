@@ -5,11 +5,13 @@ Predictor::Predictor(const tparam &p)
 :p(p),nA(p.nA),nB(p.nB),nM0(p.nM0),nS0(p.nS0),nS1(p.nS1),
 ols{OLS(nA+nM0,p.k,p.lambda0,p.ols_nu0,p.beta_sum0,p.beta_pow0,p.beta_add0),
 OLS(nB+nS0+nS1,p.k,p.lambda1,p.ols_nu1,p.beta_sum1,p.beta_pow1,p.beta_add1)},
-lms{LMSCascade(p.vn0,p.vmu0,p.vmudecay0,p.vpowdecay0,p.mu_mix0,p.mu_mix_beta0),
-LMSCascade(p.vn1,p.vmu1,p.vmudecay1,p.vpowdecay1,p.mu_mix1,p.mu_mix_beta1)},
+lms{LMSCascade(p.vn0,p.vmu0,p.vmudecay0,p.vpowdecay0,p.mu_mix0,p.mu_mix_beta0,p.lm_n,p.lm_alpha),
+LMSCascade(p.vn1,p.vmu1,p.vmudecay1,p.vpowdecay1,p.mu_mix1,p.mu_mix_beta1,p.lm_n,p.lm_alpha)},
 be{BiasEstimator(p.bias_mu0,p.bias_scale0),
    BiasEstimator(p.bias_mu1,p.bias_scale1)}
 {
+  for (int i=0;i<2;i++)
+    p_lpc[i] = p_lms[i] = 0.0;
 }
 
 void Predictor::fillbuf_ch0(const int32_t *src0,int idx0,const int32_t *src1,int idx1)

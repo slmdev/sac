@@ -1,115 +1,91 @@
 #include "rls.h"
+#include "../common/math.h"
+#include "../common/utils.h"
 
-double VecMulVecInner(const std::vector<double> &v1,const std::vector<double> &v2)
-{
-  double sum=0.;
-  for (size_t i=0;i<v1.size();i++) sum+=v1[i]*v2[i];
-  return sum;
-}
-
-std::vector<double> MatrixMulVec(SQMatrix &m,const std::vector<double> &v)
-{
-  int n=v.size();
-  std::vector<double> t(n);
-  for (int i=0;i<n;i++) t[i]=VecMulVecInner(m[i],v);
-  return t;
-}
-
-std::vector<double> VecMulMatrix(const std::vector<double> &v, SQMatrix &m)
-{
-  int n=v.size();
-  std::vector<double> t(n);
-  for (int j=0;j<n;j++) {
-    double sum=0;
-    for (int i=0;i<n;i++) sum+=v[i]*m[i][j];
-    t[j]=sum;
+ //update the sensitivity state zeta
+  /*double denom = alpha + phi;
+  for(int i=0;i<n;++i){
+    double dk = -k[i] / denom;
+    zeta[i] += err * dk;
   }
-  return t;
-}
 
-std::vector<double> ScalarMulVec(const double x,const std::vector<double> &v)
-{
-  int n=v.size();
-  std::vector<double> t(n);
-  for (int i=0;i<n;i++) t[i]=x*v[i];
-  return t;
-}
+  // 4) update alpha via LMS on the meta gradient
+  double hTz = slmath::dot_scalar(hist, zeta);
+  alpha += alpha_mu * err * hTz;
+  alpha = std::clamp(alpha,0.99,0.999);*/
+  //std::cout << alpha << ' ';
 
-SQMatrix VecMulVecOuter(const std::vector<double> &v1,const std::vector<double> &v2)
+
+  /*double S = phi + 1.0/alpha;
+  double grad=(err*err - S) / (2.0 * alpha*alpha * S*S);
+  alpha = alpha - 0.005*grad;
+  alpha = std::clamp(alpha,0.99,0.999);
+  //std::cout << alpha << ' ';*/
+/*void RLS::UpdateP(double alpha,const vec1D &k)
 {
-  int n=v1.size();
-  SQMatrix m(n);
+ vec2D m1=slmath::outer(k,hist); //m1 is symmetric
+ vec2D m2=slmath::mul(m1,P);
+
+ for (int i=0;i<n;i++)
   for (int j=0;j<n;j++)
-    for (int i=0;i<n;i++) m[j][i]=v1[j]*v2[i];
-  return m;
-}
+    P[i][j]=1./alpha*(P[i][j]-m2[i][j]);
+}*/
 
-SQMatrix MatrixMulMatrix(SQMatrix &m1,SQMatrix &m2)
-{
-  int n=m1[0].size();
-  SQMatrix m(n);
-  for (int i=0;i<n;i++) { // for every row
-    for (int j=0;j<n;j++) { // for every column
-      double sum=0.;
-      for (int k=0;k<n;k++) sum+=m1[i][k]*m2[k][j]; // multiply row*column
-      m[i][j]=sum;
-    }
-  }
-  return m;
-}
 
-RLS::RLS(int n,double alpha)
-:n(n),alpha(alpha),hist(n),w(n),P(n)
+RLS::RLS(int n,double alpha_mu,double nu)
+:n(n),
+px(0.),alpha_mu(alpha_mu),
+hist(n),w(n),
+P(n,vec1D(n)), // inverse covariance matrix
+alc(alpha_mu)
 {
-  for (int i=0;i<n;i++) P[i][i]=1;
+  for (int i=0;i<n;i++)
+    P[i][i]=1.0/nu;
 }
 
 double RLS::Predict()
 {
-  p=0.;
-  for (int i=0;i<n;i++) p+=hist[i]*w[i];
-  return p;
+  px=slmath::dot_scalar(hist,w);
+  return px;
 }
 
-double RLS::Predict(const std::vector<double> &pred)
+double RLS::Predict(const vec1D &input)
 {
-  hist=pred;
+  hist=input;
   return Predict();
 }
 
-void RLS::UpdateGain()
-{
- #if 0
-  vector<double> vt1=MatrixMulVec(P,hist); // P(n-1)*x(n)
-  vector<double> vt2=VecMulMatrix(hist,P); // x^T(n)*P(n-1)
-  double t=VecMulVecInner(vt2,hist); // x^T(n)*P(n-1)*x(n)
-  k=ScalarMulVec(1./(alpha+t),vt1);
- #else
-  std::vector<double> vt1=MatrixMulVec(P,hist);
-  k=ScalarMulVec(1./(alpha+VecMulVecInner(hist,vt1)),vt1);
- #endif
-}
-
-//update inverse of covariance matrix P(n)=1/lambda*P(n-1)-1/lambda * k(n)*x^T(n)*P(n-1)
-void RLS::UpdateP()
-{
- SQMatrix m1=VecMulVecOuter(k,hist); //m1 is symmetric
- SQMatrix m2=MatrixMulMatrix(m1,P);
- for (int i=0;i<n;i++)
- for (int j=0;j<n;j++) P[i][j]=1./alpha*(P[i][j]-m2[i][j]);
-}
 
 void RLS::Update(double val)
 {
-  UpdateGain();
-  UpdateP();
+  double err=val-px;
 
-  for (int i=0;i<n;i++) w[i]=w[i]+(val-p)*k[i]; //apply gain to the weights
+  vec1D vt1=slmath::mul(P,hist); //phi=hist P hist
+  // a priori variance of prediction
+  double phi=slmath::dot_scalar(hist,vt1);
+
+  // Normalized Innovation Squared
+  // quantifies how "unexpected" the observation is
+  // relative to the current uncertainty
+  double metric = (err*err);///(phi+1.0);
+  double alpha=alc.update(metric);
+
+  //update inverse of covariance matrix
+  //P(n)=1/lambda*P(n-1)-1/lambda * k(n)*x^T(n)*P(n-1)
+  double denom=1./(alpha+phi);
+  for (int i=0;i<n;i++)
+    for (int j=0;j<n;j++) {
+      double m=vt1[i]*vt1[j]; // outer product of vt1
+      P[i][j] = (P[i][j] - denom * m) / alpha;
+    }
+
+  // update weights
+  for (int i=0;i<n;i++)
+      w[i]+=err*(denom*vt1[i]);
 }
 
 void RLS::UpdateHist(double val)
 {
   Update(val);
-  for (int i=n-1;i>0;i--) hist[i]=hist[i-1];
-  hist[0]=val;
+  miscUtils::RollBack(hist,val);
 }

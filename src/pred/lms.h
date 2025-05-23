@@ -114,7 +114,7 @@ class NLMS_Stream : public LS_Stream
       }
       x.push(val);
     };
-    ~NLMS_Stream(){};
+    ~NLMS_Stream() override {} ;
   protected:
     std::vector<double,align_alloc<double>> mutab,powtab;
     double sum_powtab;
@@ -200,10 +200,11 @@ class LMS_ADA : public LMS
     :LMS(n,mu),eg(n),beta(beta),nu(nu)
     {
     }
-    virtual void Update(double val) {
+    void Update(double val) override {
       const double err=val-pred; // prediction error
       for (int i=0;i<n;i++) {
         double const grad=err*x[i]-nu*MathUtils::sgn(w[i]); // gradient + l1-regularization
+
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
         double g=grad*1.0/(sqrt(eg[i])+1E-5);// update weights
         w[i]+=mu*g;
@@ -214,17 +215,62 @@ class LMS_ADA : public LMS
     double beta,nu;
 };
 
+//#define ADA_BIAS_CORR
 class LAD_ADA : public LMS
 {
   public:
     LAD_ADA(int n,double mu,double beta=0.95)
     :LMS(n,mu),eg(n),beta(beta)
     {
+      #ifdef ADA_BIAS_CORR
+        power_beta=1.0;
+      #endif
     }
-    virtual void Update(double val) {
+    void Update(double val) override
+    {
       const double serr=MathUtils::sgn(val-pred); // prediction error
+      #ifdef ADA_BIAS_CORR
+        power_beta*=beta;
+      #endif
       for (int i=0;i<n;i++) {
         double const grad=serr*x[i];
+
+        eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
+        #ifdef ADA_BIAS_CORR
+          const double eg_hat=eg[i]/(1.0-power_beta);
+        #else
+          const double eg_hat=eg[i];
+        #endif
+        double g=grad*1.0/(sqrt(eg_hat)+1E-5);// update weights
+        w[i]+=mu*g;
+      }
+    }
+  protected:
+    vec1D eg;
+    double beta;
+    #ifdef ADA_BIAS_CORR
+      double power_beta;
+    #endif
+};
+
+// Huber loss + ADA-Grad
+class HBR_ADA : public LMS
+{
+  public:
+    HBR_ADA(int n,double mu,double beta=0.95,double delta=1)
+    :LMS(n,mu),eg(n),beta(beta),delta(delta)
+    {
+    }
+    void Update(double val) override {
+      const double err_g=val-pred; // prediction error
+      double grad_loss;
+      if (std::abs(err_g) <= delta)
+        grad_loss=err_g;
+      else
+        grad_loss=delta*MathUtils::sgn(err_g);
+
+      for (int i=0;i<n;i++) {
+        double const grad=grad_loss*x[i];
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
         double g=grad*1.0/(sqrt(eg[i])+1E-5);// update weights
         w[i]+=mu*g;
@@ -232,7 +278,7 @@ class LAD_ADA : public LMS
     }
   protected:
     vec1D eg;
-    double beta;
+    double beta,delta;
 };
 
 class LMS_ADAM : public LMS
@@ -245,7 +291,7 @@ class LMS_ADAM : public LMS
       power_beta11=beta1;
       power_beta2=1.0;
     }
-    void Update(double val) {
+    void Update(double val) override {
       power_beta1*=beta1;
       power_beta11*=beta1;
       power_beta2*=beta2;
@@ -275,7 +321,7 @@ class SSLMS : public LMS {
       :LMS(n,mu)
       {
       }
-      void Update(double val)
+      void Update(double val) override
       {
         double e=val-pred;
         const double wf=mu*MathUtils::sgn(e);

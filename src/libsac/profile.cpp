@@ -58,14 +58,19 @@ int SacProfile::LoadBaseProfile()
   profile.Set(35,0.1,2,0.8);
   profile.Set(36,0,10,2);
 
-  profile.Set(37,2,1<<(wbits_lms-3),4);
+  profile.Set(37,2,1<<(wbits_lms-3),4); //stage 4
   profile.Set(38,2,1<<(wbits_lms-3),4);
 
   profile.Set(39,0.98,1,1.0); // mu-decay
   profile.Set(40,0.98,1,1.0); // mu-decay
 
-  profile.Set(41,0.0,0.0,0.0);
-  profile.Set(42,0.0,0.0,0.0);
+  profile.Set(41,1,10,4); //stage-5 lm
+  //profile.Set(42,0.99,0.999,0.997);
+  //profile.Set(42,0.001,0.1,0.01);
+  profile.Set(42,0.1,10.0,5);
+  //profile.Set(42,0.05,0.9,0.25);
+  //profile.Set(42,0.9,0.99,0.95);
+  //profile.Set(42,0.005,1.0,0.05);
 
   profile.Set(43,0.001,0.005,0.0015);//bc-mu0
   profile.Set(44,0.001,0.005,0.0015);//bc-mu1

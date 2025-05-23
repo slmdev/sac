@@ -58,7 +58,7 @@ Wav::Wav(bool verbose)
 };
 
 Wav::Wav(AudioFile &file,bool verbose)
-:AudioFile(file),chunkpos(0),verbose(verbose)
+:AudioFile(file),chunkpos(0),samplesleft(0),verbose(verbose)
 {
   kbps=(samplerate*numchannels*bitspersample)/1000;
   int csize=static_cast<int>(ceil(static_cast<double>(bitspersample)/8.));

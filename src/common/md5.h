@@ -11,20 +11,6 @@ namespace MD5 {
     uint8_t digest[16];   // Result of algorithm
   } MD5Context;
 
-#define A 0x67452301
-#define B 0xefcdab89
-#define C 0x98badcfe
-#define D 0x10325476
-
-
-/*
- * Bit-manipulation functions defined by the MD5 algorithm
- */
-#define F(X, Y, Z) ((X & Y) | (~X & Z))
-#define G(X, Y, Z) ((X & Z) | (Y & ~Z))
-#define H(X, Y, Z) (X ^ Y ^ Z)
-#define I(X, Y, Z) (Y ^ (X | ~Z))
-
 /*
  * Rotates a 32-bit word left by n bits
  */

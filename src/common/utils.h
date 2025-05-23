@@ -5,7 +5,7 @@
 
 #include <algorithm>
 #include <numeric>
-#include <string>
+#include <cstring>
 #include <cmath>
 #include <immintrin.h>
 
@@ -367,6 +367,18 @@ class Cholesky
 
 namespace miscUtils {
 
+  enum class MapMode {rec,exp,tanh,power,sigmoid};
+
+  template <MapMode mode>
+  double decay_map(double gamma, double val)
+  {
+    if constexpr (mode == MapMode::rec) return 1.0 / (1.0 + gamma * val);
+    else if constexpr (mode == MapMode::exp) return std::exp(-gamma * val);
+    else if constexpr (mode == MapMode::tanh) return 1.0 - std::tanh(gamma * val);
+    else if constexpr (mode == MapMode::power) return std::pow(gamma, val);
+    else if constexpr (mode == MapMode::sigmoid) return 1.0 / (1.0 + std::exp(gamma*(val-1.0)));
+  }
+
 /*static float rsqrt(float __x)
 {
     float reciprocal;
@@ -392,8 +404,10 @@ namespace miscUtils {
   inline void RollBack(vec1D &data,double input)
   {
     if (data.size()) {
-      for (int i=(int)(data.size()-1);i>0;i--)
-        data[i]=data[i-1];
+      /*for (int i=(int)(data.size()-1);i>0;i--)
+        data[i]=data[i-1];*/
+
+      std::memmove(&data[1],&data[0],(data.size()-1)*sizeof(double));
       data[0]=input;
     }
   }

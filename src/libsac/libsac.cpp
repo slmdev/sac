@@ -8,6 +8,7 @@
 #include "../common/timer.h"
 #include "../opt/dds.h"
 #include "../opt/de.h"
+#include "../opt/cma.h"
 
 FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 :numchannels_(numchannels),framesize_(framesize),opt(opt)
@@ -74,6 +75,9 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow1=profile.Get(35);
   param.beta_add1=profile.Get(36);
 
+  param.lm_n=std::round(profile.Get(41));
+  param.lm_alpha=profile.Get(42);
+
   param.bias_mu0=profile.Get(43);
   param.bias_mu1=profile.Get(44);
 
@@ -83,7 +87,7 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   if (param.nS1 < 0) {
     param.nS1 = -param.nS1;
     param.ch_ref=1;
-  };// else if (param.nS1==0) param.nS1=1;
+  } //else if (param.nS1==0) param.nS1=1;
 }
 
 void FrameCoder::PredictFrame(const SacProfile &profile,tch_samples &error,int from,int numsamples,bool optimize)
@@ -311,7 +315,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
       std::cout << (param.vmu0[i]*param.vn0[i]) << ' ';
     std::cout << '\n';
     std::cout << "mu_decay ";
-    for (auto &x : param.vmudecay0)
+    for (const auto &x : param.vmudecay0)
       std::cout << x << ' ';
     std::cout << '\n';
     std::cout << "pow_decay ";
@@ -322,6 +326,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
     std::cout << "ch-ref " << param.ch_ref << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale0) << ' ' << (1<<param.bias_scale1) << '\n';
+    std::cout << "lm " << param.lm_n << " alpha " << param.lm_alpha << '\n';
 }
 
 double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
@@ -409,7 +414,7 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
   delete CostFunc;
 }
 
-void FrameCoder::CnvError_S2U(tch_samples &error,int numsamples)
+void FrameCoder::CnvError_S2U(const tch_samples &error,int numsamples)
 {
   for (int ch=0;ch<numchannels_;ch++)
   {

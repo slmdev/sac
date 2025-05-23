@@ -104,11 +104,11 @@ int CmdLine::Parse(int argc,char *argv[])
   }
 
   bool first=true;
-  std::string param,uparam;
+  std::string param;
   int k=1;
   while (k<argc) {
     param=argv[k];
-    uparam=StrUtils::str_up(param);
+    std::string uparam=StrUtils::str_up(param);
     std::string key,val;
     Split(uparam,key,val);
 
@@ -194,10 +194,10 @@ int CmdLine::Parse(int argc,char *argv[])
          std::vector<std::string>vs;
          StrUtils::SplitToken(val,vs,",");
          if (vs.size()>=1) {
-            std::string val=StrUtils::str_up(vs[0]);
-            if (val=="DDS") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DDS;
-            else if (val=="DE") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
-            else std::cerr << "  warning: invalid val='"<<val<<"'\n";
+            std::string cval=StrUtils::str_up(vs[0]);
+            if (cval=="DDS") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DDS;
+            else if (cval=="DE") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
+            else std::cerr << "  warning: invalid opt='"<<cval<<"'\n";
          }
          if (vs.size()>=2) opt.ocfg.num_threads = std::clamp(std::stoi(vs[1]),0,256);
          if (vs.size()>=3) opt.ocfg.sigma=std::clamp(stod_safe(vs[2]),0.,1.);
