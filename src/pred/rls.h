@@ -43,14 +43,14 @@ class ALC
 // Recursive Least Squares algorithm
 class RLS {
   public:
-    explicit RLS(int n,double alpha,double nu=1);
+    explicit RLS(int n,double gamma,double nu=1);
     double Predict();
     double Predict(const vec1D &pred);
     void Update(double val);
     void UpdateHist(double val);
     int n;
   private:
-    double px,alpha_mu;
+    double px;
     vec1D hist,w;
     vec2D P;
     ALC <miscUtils::MapMode::exp> alc;

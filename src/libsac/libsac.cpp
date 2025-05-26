@@ -332,7 +332,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
 double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
 {
   // return a span over samples
-  const auto span_ch = [=,this](int ch){
+  const auto span_ch = [=](int ch){
     return std::span{&samples[ch][0],samples_to_optimize};
   };
 

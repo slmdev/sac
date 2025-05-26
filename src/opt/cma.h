@@ -15,7 +15,7 @@ class OptCMA : public Opt {
       double d,p_target_succ,cp;
       double cc,ccov,ccovm,pthres;
       double psucc,sigma;
-    } p;
+    };
     OptCMA(const CMACfg &cfg,const box_const &parambox,bool verbose=false);
     ppoint run(opt_func func,const vec1D &xstart) override;
   protected:

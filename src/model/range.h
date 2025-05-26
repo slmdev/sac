@@ -25,7 +25,7 @@ class RangeCoderBase {
 // derived from Dimitry Subbotin (public domain)
 class RangeCoder : public RangeCoderBase
 {
-  enum {NUM=4,TOP=0x01000000U,BOT=0x00010000U};
+  enum : uint32_t {NUM=4,TOP=0x01000000U,BOT=0x00010000U};
   public:
     using RangeCoderBase::RangeCoderBase;
     void Init();
@@ -43,7 +43,7 @@ class RangeCoder : public RangeCoderBase
 // Binary RangeCoder with Carry and 64-bit low
 // derived from rc_v3 by Eugene Shelwien
 class RangeCoderSH : public RangeCoderBase {
-  enum { NUM=4,TOP=0x01000000U,Thres=0xFF000000U};
+  enum : uint32_t { NUM=4,TOP=0x01000000U,Thres=0xFF000000U};
   public:
     using RangeCoderBase::RangeCoderBase;
     void Init();

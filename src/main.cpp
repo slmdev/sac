@@ -4,7 +4,7 @@
 
 #define SAC_VERSION "0.7.21"
 
-int main(int argc,char *argv[])
+int main(int argc,const char *argv[])
 {
 
   std::cout << "Sac v" << SAC_VERSION << " - Lossless Audio Coder (c) Sebastian Lehmann\n";

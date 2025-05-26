@@ -2,12 +2,12 @@
 #include "../common/math.h"
 #include "../common/utils.h"
 
-RLS::RLS(int n,double alpha_mu,double nu)
+RLS::RLS(int n,double gamma,double nu)
 :n(n),
-px(0.),alpha_mu(alpha_mu),
+px(0.),
 hist(n),w(n),
 P(n,vec1D(n)), // inverse covariance matrix
-alc(alpha_mu)
+alc(gamma)
 {
   for (int i=0;i<n;i++)
     P[i][i]=1.0/nu;
@@ -37,7 +37,7 @@ void RLS::Update(double val)
   // Normalized Innovation Squared
   // quantifies how "unexpected" the observation is
   // relative to the current uncertainty
-  double metric = (err*err);//(phi+1.0);
+  double metric = (err*err);///(phi+1E-5);
   double alpha=alc.update(metric);
 
   //update inverse of covariance matrix

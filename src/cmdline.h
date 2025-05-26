@@ -32,7 +32,7 @@ class CmdLine {
   enum CMODE {ENCODE,DECODE,LIST,LISTFULL};
   public:
     CmdLine();
-    int Parse(int argc,char *argv[]);
+    int Parse(int argc,const char *argv[]);
     int Process();
   private:
     double stod_safe(const std::string& str);

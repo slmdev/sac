@@ -96,7 +96,7 @@ double CmdLine::stod_safe(const std::string& str)
     return d;
 }
 
-int CmdLine::Parse(int argc,char *argv[])
+int CmdLine::Parse(int argc,const char *argv[])
 {
   if (argc < 2) {
     std::cout << SACHelp;
