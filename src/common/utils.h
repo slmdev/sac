@@ -111,8 +111,7 @@ namespace StrUtils {
 
 namespace MathUtils {
 
-#if defined(USE_AVX512)
-inline double dot(const double* x,const double* y, std::size_t n)
+inline double dot_avx512(const double* x,const double* y, std::size_t n)
 {
   __m512d sum = _mm512_setzero_pd();
 
@@ -131,9 +130,8 @@ inline double dot(const double* x,const double* y, std::size_t n)
 
   return total;
 }
-#elif defined(USE_AVX256)
 
-inline double dot(const double* x,const double* y, std::size_t n)
+inline double dot_avx256(const double* x,const double* y, std::size_t n)
 {
   double total=0.0;
   std::size_t i=0;
@@ -175,16 +173,25 @@ inline double dot(const double* x,const double* y, std::size_t n)
     total += x[i] * y[i];
   return total;
 }
-#else
-inline double dot(const double* x,const double* y, std::size_t n)
+
+inline double dot_noavx(const double* x,const double* y, std::size_t n)
 {
   double sum=0.0;
   for (std::size_t i=0;i<n;i++)
     sum+=x[i]*y[i];
   return sum;
 }
-#endif
 
+inline double dot(const double* x,const double* y, std::size_t n) {
+  if constexpr(AVX_STATE == "AVX-512") {
+    return dot_avx512(x, y, n);
+  }
+  if constexpr(AVX_STATE == "AVX2") {
+    return dot_avx256(x, y, n);
+  }
+  
+  return dot_noavx(x, y, n);
+}
 
 class Cholesky
   {
