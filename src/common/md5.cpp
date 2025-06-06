@@ -1,3 +1,5 @@
+using namespace std;
+
 #include "md5.h"
 
 #define A 0x67452301
