@@ -1,6 +1,5 @@
-using namespace std;
-
 #include "md5.h"
+#include <cstddef>
 
 #define A 0x67452301
 #define B 0xefcdab89
