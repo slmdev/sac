@@ -50,7 +50,7 @@ class RLS {
     void UpdateHist(double val);
     int n;
   private:
-    double px;
+    double px,gamma;
     vec1D hist,w;
     vec2D P;
     ALC <miscUtils::MapMode::exp> alc;

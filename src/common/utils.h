@@ -50,14 +50,16 @@ class RunMeanVar {
         first_ = false;
       } else*/
       {
-        /*double delta = val - mean_;
-        mean_ += (1 - alpha_) * delta;
-        var_ = alpha_ * var_ + (1 - alpha_) * delta * (val - mean_);*/
-
-        // Welford
-        double old_mean = mean_;
-        mean_=alpha_*mean_+(1.0-alpha_)*val;
-        var_=alpha_*var_+(1.0-alpha_)*((val-old_mean)*(val-mean_));
+        #if 0
+          double delta = val - mean_;
+          mean_ += (1 - alpha_) * delta;
+          var_ = alpha_ * var_ + (1 - alpha_) * delta * delta;
+        #else // slightly more stable
+          // Welford
+          double old_mean = mean_;
+          mean_=alpha_*mean_+(1.0-alpha_)*val;
+          var_=alpha_*var_+(1.0-alpha_)*((val-old_mean)*(val-mean_));
+        #endif
       }
     }
     auto get()
@@ -185,32 +187,35 @@ inline double dot(const double* x,const double* y, std::size_t n)
 }
 #endif
 
-
+// inplace cholesky
+// matrix must be positive definite and symmetric
 class Cholesky
   {
     public:
       const double ftol=1E-8;
       Cholesky(int n)
-      :n(n),mchol(n,vec1D(n))
+      :n(n),G(n,vec1D(n))
       {
 
       }
-      int Factor(const vec2D &matrix,const double nu=0.0)
+      int Factor(const vec2D &matrix,const double nu)
       {
-        mchol=matrix; // copy matrix
+        for (int i=0;i<n;i++) //copy lower triangular matrix
+          std::copy_n(begin(matrix[i]),i+1,begin(G[i]));
+
         for (int i=0;i<n;i++) {
 
           // off-diagonal
           for (int j=0;j<i;j++) {
-            double sum=mchol[i][j];
-            for (int k=0;k<j;k++) sum-=(mchol[i][k]*mchol[j][k]);
-            mchol[i][j]=sum/mchol[j][j];
+            double sum=G[i][j];
+            for (int k=0;k<j;k++) sum-=(G[i][k]*G[j][k]);
+            G[i][j]=sum/G[j][j];
           }
 
           // diagonal
-          double sum=mchol[i][i]+nu; //add regularization
-          for (int k=0;k<i;k++) sum-=(mchol[i][k]*mchol[i][k]);
-          if (sum>ftol) mchol[i][i]=std::sqrt(sum);
+          double sum=G[i][i]+nu; //add regularization
+          for (int k=0;k<i;k++) sum-=(G[i][k]*G[i][k]);
+          if (sum>ftol) G[i][i]=std::sqrt(sum);
           else return 1;
         }
         return 0;
@@ -219,18 +224,17 @@ class Cholesky
       {
         for (int i=0;i<n;i++) {
           double sum=b[i];
-          for (int j=0;j<i;j++) sum-=(mchol[i][j]*x[j]);
-          x[i]=sum/mchol[i][i];
+          for (int j=0;j<i;j++) sum-=(G[i][j]*x[j]);
+          x[i]=sum/G[i][i];
         }
         for (int i=n-1;i>=0;i--) {
           double sum=x[i];
-          for (int j=i+1;j<n;j++) sum-=(mchol[j][i]*x[j]);
-          x[i]=sum/mchol[i][i];
+          for (int j=i+1;j<n;j++) sum-=(G[j][i]*x[j]);
+          x[i]=sum/G[i][i];
         }
       }
-    protected:
       int n;
-      vec2D mchol;
+      vec2D G;
   };
 
   // inverse of pos. def. symmetric matrix
@@ -374,7 +378,7 @@ namespace miscUtils {
   {
     if constexpr (mode == MapMode::rec) return 1.0 / (1.0 + gamma * val);
     else if constexpr (mode == MapMode::exp) return std::exp(-gamma * val);
-    else if constexpr (mode == MapMode::tanh) return 1.0 - std::tanh(gamma * val);
+    else if constexpr (mode == MapMode::tanh) return 1.0-std::tanh(gamma * val);
     else if constexpr (mode == MapMode::power) return std::pow(gamma, val);
     else if constexpr (mode == MapMode::sigmoid) return 1.0 / (1.0 + std::exp(gamma*(val-1.0)));
     return 0;
@@ -405,9 +409,6 @@ namespace miscUtils {
   inline void RollBack(vec1D &data,double input)
   {
     if (data.size()) {
-      /*for (int i=(int)(data.size()-1);i>0;i--)
-        data[i]=data[i-1];*/
-
       std::memmove(&data[1],&data[0],(data.size()-1)*sizeof(double));
       data[0]=input;
     }

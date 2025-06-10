@@ -49,15 +49,15 @@ std::string CmdLine::SearchStr(const FrameCoder::SearchMethod search_func)
 
 void CmdLine::PrintMode()
 {
-  const FrameCoder::toptim_cfg &ocfg = opt.ocfg;
+  const FrameCoder::toptim_cfg &ocfg = cfg.ocfg;
   std::cout << "  Profile: ";
-  std::cout << "mt" << opt.mt_mode;
-  std::cout << " " << opt.max_framelen << "s";
-  if (opt.adapt_block) std::cout << " ab";
-  if (opt.zero_mean) std::cout << " zero-mean";
-  if (opt.sparse_pcm) std::cout << " sparse-pcm";
+  std::cout << "mt" << cfg.mt_mode;
+  std::cout << " " << cfg.max_framelen << "s";
+  if (cfg.adapt_block) std::cout << " ab";
+  if (cfg.zero_mean) std::cout << " zero-mean";
+  if (cfg.sparse_pcm) std::cout << " sparse-pcm";
   std::cout << '\n';
-  if (opt.optimize) {
+  if (cfg.optimize) {
       std::cout << "  Optimize: ";
       std::cout << SearchStr(ocfg.optimize_search);
       std::cout << " " << std::format("{:.1f}%", ocfg.fraction*100.0);
@@ -119,94 +119,95 @@ int CmdLine::Parse(int argc,const char *argv[])
        else if (key=="--LIST") mode=LIST;
        else if (key=="--LISTFULL") mode=LISTFULL;
        else if (key=="--VERBOSE") {
-          if (val.length()) opt.verbose_level=std::max(0,stoi(val));
-          else opt.verbose_level=1;
+          if (val.length()) cfg.verbose_level=std::max(0,stoi(val));
+          else cfg.verbose_level=1;
        }
        else if (key=="--NORMAL") {
-         opt.optimize=0;
+         cfg.optimize=0;
        } else if (key=="--HIGH") {
-         opt.optimize=1;
-         opt.ocfg.fraction=0.075;
-         opt.ocfg.maxnfunc=100;
-         opt.ocfg.sigma=0.2;
-         opt.ocfg.dds_cfg.c_fail_max=30;
+         cfg.optimize=1;
+         cfg.ocfg.fraction=0.075;
+         cfg.ocfg.maxnfunc=100;
+         cfg.ocfg.sigma=0.2;
+         cfg.ocfg.dds_cfg.c_fail_max=30;
        } else if (key=="--VERYHIGH") {
-         opt.optimize=1;
-         opt.ocfg.fraction=0.2;
-         opt.ocfg.maxnfunc=250;
-         opt.ocfg.sigma=0.2;
+         cfg.optimize=1;
+         cfg.ocfg.fraction=0.2;
+         cfg.ocfg.maxnfunc=250;
+         cfg.ocfg.sigma=0.25;
        } else if (key=="--EXTRAHIGH") {
-         opt.optimize=1;
-         opt.ocfg.fraction=0.25;
-         opt.ocfg.maxnfunc=500;
-         opt.ocfg.sigma=0.2;
+         cfg.optimize=1;
+         cfg.ocfg.fraction=0.25;
+         cfg.ocfg.maxnfunc=500;
+         cfg.ocfg.sigma=0.25;
        } else if (key=="--BEST") {
-         opt.optimize=1;
-         opt.ocfg.fraction=0.50;
-         opt.ocfg.maxnfunc=1000;
-         opt.ocfg.sigma=0.20;
-         opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
+         cfg.optimize=1;
+         cfg.ocfg.fraction=0.50;
+         cfg.ocfg.maxnfunc=1000;
+         cfg.ocfg.sigma=0.25;
+         cfg.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
-         opt.optimize=1;
-         opt.ocfg.fraction=0.5;
-         opt.ocfg.maxnfunc=1500;
-         opt.ocfg.sigma=0.25;
-         opt.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
+         cfg.optimize=1;
+         cfg.ocfg.fraction=0.5;
+         cfg.ocfg.maxnfunc=1500;
+         cfg.ocfg.sigma=0.25;
+         cfg.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--OPTIMIZE") {
-         if (val=="NO" || val=="0") opt.optimize=0;
+         if (val=="NO" || val=="0") cfg.optimize=0;
          else {
           std::vector<std::string>vs;
           StrUtils::SplitToken(val,vs,",");
           if (vs.size()>=2)  {
-            opt.ocfg.fraction=std::clamp(stod_safe(vs[0]),0.,1.);
-            opt.ocfg.maxnfunc=std::clamp(std::stoi(vs[1]),0,50000);
+            cfg.ocfg.fraction=std::clamp(stod_safe(vs[0]),0.,1.);
+            cfg.ocfg.maxnfunc=std::clamp(std::stoi(vs[1]),0,50000);
             if (vs.size()>=3) {
               std::string cf=StrUtils::str_up(vs[2]);
-              if (cf=="L1") opt.ocfg.optimize_cost = FrameCoder::SearchCost::L1;
-              else if (cf=="RMS") opt.ocfg.optimize_cost = FrameCoder::SearchCost::RMS;
-              else if (cf=="GLB") opt.ocfg.optimize_cost = FrameCoder::SearchCost::Golomb;
-              else if (cf=="ENT") opt.ocfg.optimize_cost = FrameCoder::SearchCost::Entropy; //default
-              else if (cf=="BPN") opt.ocfg.optimize_cost = FrameCoder::SearchCost::Bitplane;
+              if (cf=="L1") cfg.ocfg.optimize_cost = FrameCoder::SearchCost::L1;
+              else if (cf=="RMS") cfg.ocfg.optimize_cost = FrameCoder::SearchCost::RMS;
+              else if (cf=="GLB") cfg.ocfg.optimize_cost = FrameCoder::SearchCost::Golomb;
+              else if (cf=="ENT") cfg.ocfg.optimize_cost = FrameCoder::SearchCost::Entropy; //default
+              else if (cf=="BPN") cfg.ocfg.optimize_cost = FrameCoder::SearchCost::Bitplane;
               else std::cerr << "warning: unknown cost function '" << vs[2] << "'\n";
             }
             if (vs.size()>=4) {
-              opt.ocfg.optk=std::clamp(stoi(vs[3]),1,32);
+              cfg.ocfg.optk=std::clamp(stoi(vs[3]),1,32);
             }
-            if (opt.ocfg.fraction>0. && opt.ocfg.maxnfunc>0) opt.optimize=1;
-            else opt.optimize=0;
+            if (cfg.ocfg.fraction>0. && cfg.ocfg.maxnfunc>0) cfg.optimize=1;
+            else cfg.optimize=0;
           } else std::cerr << "unknown option: " << val << '\n';
          }
        }
        else if (key=="--FRAMELEN") {
-         if (val.length()) opt.max_framelen=std::max(0,stoi(val));
+         if (val.length()) cfg.max_framelen=std::max(0,stoi(val));
        }
        else if (key=="--MT-MODE") {
-         if (val.length()) opt.mt_mode=std::max(0,stoi(val));
+         if (val.length()) cfg.mt_mode=std::max(0,stoi(val));
        }
        else if (key=="--SPARSE-PCM") {
-          if (val=="NO" || val=="0") opt.sparse_pcm=0;
-          else opt.sparse_pcm=1;
+          if (val=="NO" || val=="0") cfg.sparse_pcm=0;
+          else cfg.sparse_pcm=1;
        } else if (key=="--STEREO-MS") {
-         opt.stereo_ms=1;
+         cfg.stereo_ms=1;
        } else if (key=="--OPT-RESET") {
-         opt.ocfg.reset=1;
+         cfg.ocfg.reset=1;
        } else if (key=="--OPT-CFG") {
          std::vector<std::string>vs;
          StrUtils::SplitToken(val,vs,",");
          if (vs.size()>=1) {
             std::string cval=StrUtils::str_up(vs[0]);
-            if (cval=="DDS") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DDS;
-            else if (cval=="DE") opt.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
+            if (cval=="DDS") cfg.ocfg.optimize_search=FrameCoder::SearchMethod::DDS;
+            else if (cval=="DE") cfg.ocfg.optimize_search=FrameCoder::SearchMethod::DE;
+            else if (cval=="CMA") cfg.ocfg.optimize_search=FrameCoder::SearchMethod::CMA;
             else std::cerr << "  warning: invalid opt='"<<cval<<"'\n";
          }
-         if (vs.size()>=2) opt.ocfg.num_threads = std::clamp(std::stoi(vs[1]),0,256);
-         if (vs.size()>=3) opt.ocfg.sigma=std::clamp(stod_safe(vs[2]),0.,1.);
+         if (vs.size()>=2) cfg.ocfg.num_threads = std::clamp(std::stoi(vs[1]),0,256);
+         if (vs.size()>=3) cfg.ocfg.sigma=std::clamp(stod_safe(vs[2]),0.,1.);
        } else if (key=="--ADAPT-BLOCK") {
-         if (val=="NO" || val=="0") opt.adapt_block=0;
-         else opt.adapt_block=1;
+         if (val=="NO" || val=="0") cfg.adapt_block=0;
+         else cfg.adapt_block=1;
        } else if (key=="--ZERO-MEAN") {
-         if (val=="NO" || val=="0") opt.zero_mean=0;
-         else opt.zero_mean=1;
+         if (val=="NO" || val=="0") cfg.zero_mean=0;
+         else cfg.zero_mean=1;
        }
        else std::cerr << "warning: unknown option '" << param << "'\n";
     } else {
@@ -216,16 +217,21 @@ int CmdLine::Parse(int argc,const char *argv[])
     k++;
   }
   // configure opt method
-  if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
+  if (cfg.ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
   {
-    opt.ocfg.dds_cfg.nfunc_max=opt.ocfg.maxnfunc;
-    opt.ocfg.dds_cfg.num_threads=opt.ocfg.num_threads; // also accepts zero
-    opt.ocfg.dds_cfg.sigma_init=opt.ocfg.sigma;
-  } else if (opt.ocfg.optimize_search==FrameCoder::SearchMethod::DE)
+    cfg.ocfg.dds_cfg.nfunc_max=cfg.ocfg.maxnfunc;
+    cfg.ocfg.dds_cfg.num_threads=cfg.ocfg.num_threads; // also accepts zero
+    cfg.ocfg.dds_cfg.sigma_init=cfg.ocfg.sigma;
+  } else if (cfg.ocfg.optimize_search==FrameCoder::SearchMethod::DE)
   {
-    opt.ocfg.de_cfg.nfunc_max=opt.ocfg.maxnfunc;
-    opt.ocfg.de_cfg.num_threads=std::max(opt.ocfg.num_threads,1);
-    opt.ocfg.de_cfg.sigma_init=opt.ocfg.sigma;
+    cfg.ocfg.de_cfg.nfunc_max=cfg.ocfg.maxnfunc;
+    cfg.ocfg.de_cfg.num_threads=std::max(cfg.ocfg.num_threads,1);
+    cfg.ocfg.de_cfg.sigma_init=cfg.ocfg.sigma;
+  } else if (cfg.ocfg.optimize_search==FrameCoder::SearchMethod::CMA)
+  {
+    cfg.ocfg.cma_cfg.nfunc_max=cfg.ocfg.maxnfunc;
+    cfg.ocfg.cma_cfg.num_threads=std::max(cfg.ocfg.num_threads,1);
+    cfg.ocfg.cma_cfg.sigma_init=cfg.ocfg.sigma;
   }
 
   return 0;
@@ -237,7 +243,7 @@ int CmdLine::Process()
   myTimer.start();
 
   if (mode==ENCODE) {
-    Wav myWav(opt.verbose_level>0);
+    Wav myWav(cfg.verbose_level>0);
     std::cout << "Open: '" << sinputfile << "': ";
     if (myWav.OpenRead(sinputfile)==0) {
       std::cout << "ok (" << myWav.getFileSize() << " Bytes)\n";
@@ -257,7 +263,7 @@ int CmdLine::Process()
          if (mySac.OpenWrite(soutputfile)==0) {
            std::cout << "ok\n";
            PrintMode();
-           Codec myCodec(opt);
+           Codec myCodec(cfg);
 
            Timer time;
            time.start();
@@ -297,7 +303,7 @@ int CmdLine::Process()
         mySac.setKBPS(kbps);
         PrintWav(mySac);
         std::cout << "  Profile: ";
-        std::cout << "mt" << opt.mt_mode;
+        std::cout << "mt" << cfg.mt_mode;
         std::cout << " " << static_cast<int>(mySac.mcfg.max_framelen) << "s";
         std::cout << std::endl;
         std::cout << "  Ratio:   " << std::fixed << std::setprecision(3) << bps << " bps\n\n";
@@ -319,7 +325,7 @@ int CmdLine::Process()
             Timer time;
             time.start();
 
-            Codec myCodec(opt);
+            Codec myCodec(cfg);
             myCodec.DecodeFile(mySac,myWav);
             MD5::Finalize(&myWav.md5ctx);
             time.stop();

@@ -63,12 +63,8 @@ int SacProfile::LoadBaseProfile()
   profile.Set(40,0.98,1,1.0); // mu-decay
 
   profile.Set(41,1,10,4); //stage-5 lm
-  //profile.Set(42,0.99,0.999,0.997);
-  //profile.Set(42,0.001,0.1,0.01);
-  profile.Set(42,0.1,10.0,5);
-  //profile.Set(42,0.05,0.9,0.25);
-  //profile.Set(42,0.9,0.99,0.95);
-  //profile.Set(42,0.005,1.0,0.05);
+  profile.Set(42,0.1,10.0,5); // shape parameter gamma
+
 
   profile.Set(43,0.001,0.005,0.0015);//bc-mu0
   profile.Set(44,0.001,0.005,0.0015);//bc-mu1
@@ -82,6 +78,8 @@ int SacProfile::LoadBaseProfile()
   profile.Set(49,0.98,1,1.0); // mu_decay
   profile.Set(51,0.0,1.0,0.8); //pow_decay
   profile.Set(52,0.0,1.0,0.8); //pow_decay
+
+  //profile.Set(53,1.0,32.0,4.0); //hbr-delta
 
   return profile.coefs.size();
 }

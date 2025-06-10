@@ -7,17 +7,19 @@
 #include "profile.h"
 #include "../opt/dds.h"
 #include "../opt/de.h"
+#include "../opt/cma.h"
 
 class FrameCoder {
   public:
     enum SearchCost {L1,RMS,Entropy,Golomb,Bitplane};
-    enum SearchMethod {DDS,DE};
+    enum SearchMethod {DDS,DE,CMA};
 
     typedef std::vector <std::vector<int32_t>> tch_samples;
 
     struct toptim_cfg {
       OptDDS::DDSCfg dds_cfg;
       OptDE::DECfg de_cfg;
+      OptCMA::CMACfg cma_cfg;
       int reset=0;
       double fraction=0;
       int maxnfunc=0;
@@ -27,7 +29,7 @@ class FrameCoder {
       SearchMethod optimize_search=SearchMethod::DDS;
       SearchCost optimize_cost=SearchCost::Entropy;
     };
-    struct coder_ctx {
+    struct tsac_cfg {
       int optimize=0;
       int sparse_pcm=1;
       int zero_mean=1;
@@ -40,7 +42,7 @@ class FrameCoder {
       toptim_cfg ocfg;
       SacProfile profiledata;
     };
-    FrameCoder(int numchannels,int framesize,const coder_ctx &opt);
+    FrameCoder(int numchannels,int framesize,const tsac_cfg &sac_cfg);
     void SetNumSamples(int nsamples){numsamples_=nsamples;};
     int GetNumSamples(){return numsamples_;};
     void Predict();
@@ -77,10 +79,11 @@ class FrameCoder {
     int numchannels_,framesize_,numsamples_;
     int profile_size_bytes_;
     SacProfile base_profile;
-    coder_ctx opt;
+    tsac_cfg cfg;
 };
 
 class Codec {
+  enum ErrorCode {COULD_NOT_WRITE};
   struct tsub_frame {
     int state=-1;
     int start=0;
@@ -88,8 +91,8 @@ class Codec {
   };
   public:
     Codec(){};
-    Codec(FrameCoder::coder_ctx &opt):opt_(opt) {};
-    void EncodeFile(Wav &myWav,Sac &mySac);
+    Codec(FrameCoder::tsac_cfg &cfg):opt_(cfg) {};
+    int EncodeFile(Wav &myWav,Sac &mySac);
     //void EncodeFile(Wav &myWav,Sac &mySac,int profile,int optimize,int sparse_pcm);
     void DecodeFile(Sac &mySac,Wav &myWav);
     void ScanFrames(Sac &mySac);
@@ -98,7 +101,7 @@ class Codec {
     void PushState(std::vector<Codec::tsub_frame> &sub_frames,Codec::tsub_frame &curframe,int min_frame_length,int block_state,int samples_block);
     std::pair<double,double> AnalyseSparse(std::span<const int32_t> buf);
     void PrintProgress(int samplesprocessed,int totalsamples);
-    FrameCoder::coder_ctx opt_;
+    FrameCoder::tsac_cfg opt_;
     //int framesize;
 };
 
