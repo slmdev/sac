@@ -22,7 +22,10 @@ class OLS {
     }
     double Predict()
     {
-      pred=MathUtils::dot(x.data(),w.data(),n);
+      pred = MathUtils::dot(
+        std::span<const double>(x.data(), n),
+        std::span<const double>(w.data(), n)
+      );
       return pred;
     }
 
