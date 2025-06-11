@@ -27,14 +27,4 @@ using span_cf64=std::span<const double>;
 //#define UNROLL_AVX256
 //#define USE_AVX512
 
-#ifdef __AVX512F__
-constexpr std::string_view AVX_STATE = "AVX-512";
-#elifdef __AVX2__
-constexpr std::string_view AVX_STATE = "AVX2";
-#elifdef __AVX__
-constexpr std::string_view AVX_STATE = "AVX";
-#else
-constexpr std::string_view AVX_STATE = "OFF";
-#endif
-
 #endif
