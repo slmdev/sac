@@ -112,16 +112,17 @@ namespace StrUtils {
 };
 
 namespace MathUtils {
-        inline double dot(const span_cf64 &v1,const span_cf64 &v2) {
-            if (v1.size() != v2.size()) throw std::invalid_argument("invalid_argument");
-            return std::transform_reduce(
-                v1.begin(), v1.end(),
-                v2.begin(),
-                0.0,
-                std::plus<>(),
-                std::multiplies<>()
-            );
-        }
+inline double dot(const span_cf64 &v1,const span_cf64 &v2) {
+  if (v1.size() != v2.size()) throw std::invalid_argument("invalid_argument");
+  return std::transform_reduce(
+      v1.begin(), v1.end(),
+      v2.begin(),
+      0.0,
+      std::plus<>(),
+      std::multiplies<>()
+  );
+}
+
 class Cholesky
   {
     public:
