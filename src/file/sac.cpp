@@ -2,16 +2,14 @@
 #include "../common/utils.h"
 #include <iostream>
 
-std::streamsize Sac::WriteMD5(uint8_t digest[16])
+void Sac::WriteMD5(uint8_t digest[16])
 {
   file.write(reinterpret_cast<char*>(digest),16);
-  return file.gcount();
 }
 
-std::streamsize Sac::ReadMD5(uint8_t digest[16])
+void Sac::ReadMD5(uint8_t digest[16])
 {
   file.read(reinterpret_cast<char*>(digest), 16);
-  return file.gcount();
 }
 
 int Sac::WriteSACHeader(Wav &myWav)

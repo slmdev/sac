@@ -111,7 +111,7 @@ vec1D Opt::unscale(const vec1D &x)
 double Opt::gen_norm(const double x,const tboxconst &box,const double r)
 {
   double sigma=r*(box.xmax-box.xmin);
-  double xnew=x+sigma*rand.r_norm(0,1);
+  double xnew=x+sigma*rand.r_norm();
   return reflect(xnew,box.xmin,box.xmax);
 }
 double Opt::unscale(double r,const tboxconst &box)

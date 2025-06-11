@@ -40,21 +40,23 @@ class SSC0
 class SSC1
 {
   public:
-    SSC1(double p_target=0.10,double p_a=0.05,double r=0.01)
-    :p_target(p_target),p_a(p_a),r_sigma(r)
+    SSC1(double p_target=0.10,double p_c=0.10,double p_d=0.05,double lambda_min=0.05,double lambda_max=0.25)
+    :p_target(p_target),p_c(p_c),p_d(p_d),
+    lmin(lambda_min),lmax(lambda_max)
     {
       p_succ = p_target;
     }
     double update(double sigma,double lambda)
     {
       // update empirical success prob by exp. smoothing
-      p_succ=(1.0-p_a)*p_succ + p_a*lambda;
-      sigma = sigma * std::exp(r_sigma * (p_succ-p_target) / (1.0-p_target));
-      return std::clamp(sigma,0.05,0.25);
+      p_succ=(1.0-p_c)*p_succ + p_c*lambda;
+      sigma = sigma * std::exp(p_d * (p_succ-p_target) / (1.0-p_target));
+      return std::clamp(sigma,lmin,lmax);
     }
     double p_succ;
   protected:
-    double p_target,p_a,r_sigma;
+    double p_target,p_c,p_d;
+    double lmin,lmax;
 };
 
 #if 0

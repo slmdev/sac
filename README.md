@@ -1,5 +1,6 @@
 ![Version](https://img.shields.io/github/release/slmdev/sac)
 ![Repo size](https://img.shields.io/github/repo-size/slmdev/sac)
+![Loc](https://sloc.xyz/github/slmdev/sac)
 ![License](https://img.shields.io/github/license/slmdev/sac)
 
 # Sac

@@ -43,7 +43,7 @@ class CmdLine {
     void Split(const std::string &str,std::string &key,std::string &val,const char splitval='=');
     std::string sinputfile,soutputfile;
     CMODE mode;
-    FrameCoder::coder_ctx opt;
+    FrameCoder::tsac_cfg cfg;
 };
 
 

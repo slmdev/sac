@@ -7,7 +7,7 @@
 namespace slmath
 {
 
-  double dot_scalar(const vec1D &v1,const vec1D &v2)
+  inline double dot_scalar(const vec1D &v1,const vec1D &v2)
   {
     assert(v1.size()==v2.size());
     double sum=0.0;
@@ -17,7 +17,7 @@ namespace slmath
   }
 
   // vector = matrix * vector
-  vec1D mul(const vec2D &m,const vec1D &v)
+  inline vec1D mul(const vec2D &m,const vec1D &v)
   {
     vec1D v_out(m.size());
     for (std::size_t i=0;i<m.size();i++)
@@ -26,7 +26,7 @@ namespace slmath
   }
 
   // vector = scalar * vector
-  vec1D mul(const double s,const vec1D &v)
+  inline vec1D mul(const double s,const vec1D &v)
   {
     vec1D v_out(v.size());
     for (std::size_t i=0;i<v.size();i++)
@@ -35,7 +35,7 @@ namespace slmath
   }
 
   // matrix = matrix  * matrix
-  vec2D mul(const vec2D &m1, const vec2D &m2)
+  inline vec2D mul(const vec2D &m1, const vec2D &m2)
   {
     vec2D m_out(m1.size(), vec1D(m2[0].size()));
     for (int j=0;j<(int)m_out.size();j++)
@@ -49,8 +49,30 @@ namespace slmath
     return m_out;
   }
 
+  //vector s1*v1 + s2*v2
+  inline vec1D mul_add(double s1,const vec1D &v1,double s2,const vec1D &v2)
+  {
+    assert(v1.size()==v2.size());
+    vec1D v_out(v1.size());
+    for (std::size_t i=0;i<v1.size();i++) {
+      v_out[i] = s1*v1[i] + s2*v2[i];
+    }
+    return v_out;
+  }
+
+  // matrix s1*m1 + s2*m2
+  inline vec2D mul_add(double s1,const vec2D &m1,double s2,const vec2D &m2)
+  {
+   assert(m1.size()==m2.size());
+   vec2D m_out(m1.size());
+   for (std::size_t j=0;j<m1.size();j++)
+     m_out[j] = mul_add(s1,m1[j],s2,m2[j]);
+
+   return m_out;
+  }
+
   // outer product of u*v^T
-  vec2D outer(const vec1D &u,const vec1D &v)
+  inline vec2D outer(const vec1D &u,const vec1D &v)
   {
     int nrows=u.size();
     int ncols=v.size();

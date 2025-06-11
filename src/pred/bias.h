@@ -10,6 +10,7 @@
 #define BIAS_MIX_NUMCTX 4
 #define BIAS_MIX 0
 #define BIAS_NAVG 5
+#define BIAS_CLAMPW 0
 
 class BiasEstimator {
   class CntAvg {
@@ -74,6 +75,7 @@ class BiasEstimator {
       int b6=hist_delta[2]<hist_delta[1]?0:1;
       int b7=hist_delta[3]<hist_delta[2]?0:1;
       int b8=hist_delta[4]<hist_delta[3]?0:1;
+
       int b9=(fabs(hist_delta[0]))>32?0:1;
       int b10=2*hist_input[0]-hist_input[1]>p?0:1;
       int b11=3*hist_input[0]-3*hist_input[1]+hist_input[2]>p?0:1;
@@ -85,6 +87,7 @@ class BiasEstimator {
 
       int t=0;
       if (sum>512) t=2;
+      //else if (sum>128) t=2;
       else if (sum>32) t=1;
 
       ctx0=0;
@@ -112,14 +115,15 @@ class BiasEstimator {
     }
     double Predict(double pred)
     {
+      px=pred;
+
       CalcContext(pred);
 
-      const double bias0=cnt0[ctx0].get();
-      const double bias1=cnt1[ctx1].get();
-      const double bias2=cnt2[ctx2].get();
-      const double pbias=mix_ada[mix_ctx].Predict({bias0,bias1,bias2});
-      px=pred;
-      return pred+pbias;
+      vec1D pb(BIAS_MIX_N);
+      pb[0]=cnt0[ctx0].get();
+      pb[1]=cnt1[ctx1].get();
+      pb[2]=cnt2[ctx2].get();
+      return pred+mix_ada[mix_ctx].Predict(pb);
     }
     void Update(double val) {
       #ifdef BIAS_ROUND_PRED
@@ -144,8 +148,11 @@ class BiasEstimator {
       }
 
       run_mv.Update(delta);
-
       mix_ada[mix_ctx].Update(delta);
+      #if BIAS_CLAMPW == 1
+        for (int i=0;i<BIAS_MIX_N;i++)
+          mix_ada[mix_ctx].w[i] = std::max(mix_ada[mix_ctx].w[i],0.);
+      #endif
     }
   private:
     #if BIAS_MIX == 0

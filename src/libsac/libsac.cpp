@@ -10,8 +10,8 @@
 #include "../opt/de.h"
 #include "../opt/cma.h"
 
-FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
-:numchannels_(numchannels),framesize_(framesize),opt(opt)
+FrameCoder::FrameCoder(int numchannels,int framesize,const tsac_cfg &cfg)
+:numchannels_(numchannels),framesize_(framesize),cfg(cfg)
 {
   profile_size_bytes_=base_profile.LoadBaseProfile()*4;
 
@@ -38,7 +38,7 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const coder_ctx &opt)
 
 void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
-  if (optimize) param.k=opt.ocfg.optk;
+  if (optimize) param.k=cfg.ocfg.optk;
   else param.k=1;
 
   param.lambda0=param.lambda1=profile.Get(0);
@@ -240,13 +240,13 @@ double FrameCoder::CalcRemapError(int ch, int numsamples)
     double ent2 = cost.Calc(std::span{&emap[0],static_cast<unsigned>(numsamples)});
     double r=1.0;
     if (ent2!=0.0) r=ent1/ent2;
-    if (opt.verbose_level>0) std::cout << "  cost pcm-model: " << ent1 << ' ' << ent2 << ' ' << r << '\n';
+    if (cfg.verbose_level>0) std::cout << "  cost pcm-model: " << ent1 << ' ' << ent2 << ' ' << r << '\n';
     return r;
 }
 
 void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
 {
-  if (opt.sparse_pcm==0) {
+  if (cfg.sparse_pcm==0) {
     EncodeMonoFrame_Normal(ch,numsamples,enc_temp1[ch]);
     framestats[ch].enc_mapped=false;
     encoded[ch]=enc_temp1[ch];
@@ -261,7 +261,7 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
       int size_mapped=EncodeMonoFrame_Mapped(ch,numsamples,enc_temp2[ch]);
       if (size_mapped<size_normal)
       {
-        if (opt.verbose_level>0) {
+        if (cfg.verbose_level>0) {
           std::cout << "  sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_mapped-size_normal) << ")\n";
         }
         framestats[ch].enc_mapped=true;
@@ -323,10 +323,11 @@ void FrameCoder::PrintProfile(SacProfile &profile)
       std::cout << x << ' ';
     std::cout << '\n';
 
+    std::cout << "mu mix mu " << param.mu_mix0 << " " << param.mu_mix1 << '\n';
     std::cout << "mu mix beta " << param.mu_mix_beta0 << " " << param.mu_mix_beta1 << '\n';
     std::cout << "ch-ref " << param.ch_ref << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale0) << ' ' << (1<<param.bias_scale1) << '\n';
-    std::cout << "lm " << param.lm_n << " alpha " << param.lm_alpha << '\n';
+    std::cout << "lm " << param.lm_n << " gamma " << param.lm_alpha << '\n';
 }
 
 double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
@@ -337,7 +338,7 @@ double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,s
   };
 
   double cost=0.0;
-  if (opt.mt_mode>1 && numchannels_>1) {
+  if (cfg.mt_mode>1 && numchannels_>1) {
 
     std::vector <std::future<double>> threads;
     for (int ch=0;ch<numchannels_;ch++)
@@ -388,18 +389,22 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
     return GetCost(CostFunc,tmp_error,samples_to_optimize);
   };
 
-  if (opt.verbose_level>0) {
-    std::string opt_str="DDS";
+  if (cfg.verbose_level>0) {
+    std::string opt_str="";
+    if (ocfg.optimize_search==FrameCoder::SearchMethod::DDS) opt_str="DDS";
     if (ocfg.optimize_search==FrameCoder::SearchMethod::DE) opt_str="DE";
+    else if (ocfg.optimize_search==FrameCoder::SearchMethod::CMA) opt_str="CMA";
     std::cout << "\n " << opt_str << " " << ocfg.maxnfunc << "= ";
   }
 
   std::unique_ptr<Opt> myOpt;
 
   if (ocfg.optimize_search==FrameCoder::SearchMethod::DDS)
-    myOpt = std::make_unique<OptDDS>(ocfg.dds_cfg,pb,opt.verbose_level);
+    myOpt = std::make_unique<OptDDS>(ocfg.dds_cfg,pb,cfg.verbose_level);
   else if (ocfg.optimize_search==FrameCoder::SearchMethod::DE)
-    myOpt = std::make_unique<OptDE>(ocfg.de_cfg,pb,opt.verbose_level);
+    myOpt = std::make_unique<OptDE>(ocfg.de_cfg,pb,cfg.verbose_level);
+  else if (ocfg.optimize_search==FrameCoder::SearchMethod::CMA)
+    myOpt = std::make_unique<OptCMA>(ocfg.cma_cfg,pb,cfg.verbose_level);
 
   Opt::ppoint ret = myOpt->run(cost_func,xstart);
 
@@ -407,7 +412,7 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
   for (int i=0;i<ndim;i++)
     profile.coefs[params_to_optimize[i]].vdef=ret.second[i];
 
-  if (opt.verbose_level>0) {
+  if (cfg.verbose_level>0) {
     PrintProfile(profile);
   }
 
@@ -433,11 +438,11 @@ void FrameCoder::Predict()
   for (int ch=0;ch<numchannels_;ch++)
   {
     AnalyseMonoChannel(ch,numsamples_);
-    if (opt.sparse_pcm) {
+    if (cfg.sparse_pcm) {
       framestats[ch].mymap.Reset();
       framestats[ch].mymap.Analyse(&(samples[ch][0]),numsamples_);
     }
-    if (opt.zero_mean==0) {
+    if (cfg.zero_mean==0) {
       framestats[ch].mean = 0;
     } else if (framestats[ch].mean!=0) {
       for (int i=0;i<numsamples_;i++) samples[ch][i] -= framestats[ch].mean;
@@ -446,18 +451,18 @@ void FrameCoder::Predict()
     }
   }
 
-  if (opt.optimize)
+  if (cfg.optimize)
   {
     // reset profile params
     // otherwise: starting point for optimization is the best point from the last frame
-    if (opt.ocfg.reset)
+    if (cfg.ocfg.reset)
       base_profile.LoadBaseProfile();
 
     // optimize all params
     std::vector<int>lparam_base(base_profile.coefs.size());
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
 
-    Optimize(opt.ocfg,base_profile,lparam_base);
+    Optimize(cfg.ocfg,base_profile,lparam_base);
   }
   PredictFrame(base_profile,error,0,numsamples_,false);
   CnvError_S2U(error,numsamples_);
@@ -470,7 +475,7 @@ void FrameCoder::Unpredict()
 
 void FrameCoder::Encode()
 {
-  if (opt.mt_mode && numchannels_>1)  {
+  if (cfg.mt_mode && numchannels_>1)  {
     std::vector <std::jthread> threads;
     for (int ch=0;ch<numchannels_;ch++)
       threads.emplace_back(std::jthread(&FrameCoder::EncodeMonoFrame,this,ch,numsamples_));
@@ -480,7 +485,7 @@ void FrameCoder::Encode()
 
 void FrameCoder::Decode()
 {
-  if (opt.mt_mode && numchannels_>1) {
+  if (cfg.mt_mode && numchannels_>1) {
     std::vector <std::jthread> threads;
     for (int ch=0;ch<numchannels_;ch++)
       threads.emplace_back(std::jthread(&FrameCoder::DecodeMonoFrame,this,ch,numsamples_));
@@ -628,7 +633,7 @@ void FrameCoder::AnalyseMonoChannel(int ch, int numsamples)
     }
     framestats[ch].minval = minval;
     framestats[ch].maxval = maxval;
-    if (opt.verbose_level>0) {
+    if (cfg.verbose_level>0) {
       std::cout << "  ch" << ch << " samples=" << numsamples;
       std::cout << ",mean=" << framestats[ch].mean << ",min=" << framestats[ch].minval << ",max=" << framestats[ch].maxval << "\n";
     }
@@ -764,7 +769,7 @@ std::vector<Codec::tsub_frame> Codec::Analyse(const std::vector <std::vector<int
   return sub_frames;
 }
 
-void Codec::EncodeFile(Wav &myWav,Sac &mySac)
+int Codec::EncodeFile(Wav &myWav,Sac &mySac)
 {
   uint32_t max_framesize=static_cast<uint32_t>(opt_.max_framelen)*myWav.getSampleRate();
 
@@ -836,17 +841,18 @@ void Codec::EncodeFile(Wav &myWav,Sac &mySac)
   mySac.file.seekg(hdrpos);
   mySac.WriteMD5(myWav.md5ctx.digest);
   mySac.file.seekg(eofpos);
+  return 0;
 }
 
 void Codec::DecodeFile(Sac &mySac,Wav &myWav)
 {
-  const Sac::sac_cfg &cfg=mySac.mcfg;
-  myWav.InitFileBuf(cfg.max_framesize);
+  const Sac::sac_cfg &file_cfg=mySac.mcfg;
+  myWav.InitFileBuf(file_cfg.max_framesize);
   mySac.UnpackMetaData(myWav);
   myWav.WriteHeader();
 
-  opt_.max_framelen=cfg.max_framelen;
-  FrameCoder myFrame(mySac.getNumChannels(),cfg.max_framesize,opt_);
+  opt_.max_framelen=file_cfg.max_framelen;
+  FrameCoder myFrame(mySac.getNumChannels(),file_cfg.max_framesize,opt_);
 
   int64_t data_nbytes=0;
   int samplestodecode=mySac.getNumSamples();

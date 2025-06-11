@@ -22,7 +22,7 @@ class Random {
     uint32_t ru_int(uint32_t imin,uint32_t imax) { //int in [imin,imax]
       return std::uniform_int_distribution<uint32_t>{imin, imax}(engine);
     };
-    double r_norm(double mu,double sigma) { // normal
+    double r_norm(double mu=0.0,double sigma=1.0) { // normal
       return std::normal_distribution<double>{mu,sigma}(engine);
     }
     double r_cauchy(double mu,double sigma) { // normal
