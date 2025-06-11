@@ -112,6 +112,7 @@ namespace StrUtils {
 };
 
 namespace MathUtils {
+
 inline double dot(const span_cf64 &v1,const span_cf64 &v2) {
   if (v1.size() != v2.size()) throw std::invalid_argument("invalid_argument");
   return std::transform_reduce(
