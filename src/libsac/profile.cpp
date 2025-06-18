@@ -79,7 +79,5 @@ int SacProfile::LoadBaseProfile()
   profile.Set(51,0.0,1.0,0.8); //pow_decay
   profile.Set(52,0.0,1.0,0.8); //pow_decay
 
-  //profile.Set(53,1.0,32.0,4.0); //hbr-delta
-
   return profile.coefs.size();
 }

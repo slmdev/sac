@@ -2,6 +2,7 @@
 #define LPC_H
 
 #include "../common/utils.h"
+#include "../common/math.h"
 
 //#define INIT_COV
 
@@ -46,7 +47,7 @@ class OLS {
     }
     vec1D x;
   protected:
-    MathUtils::Cholesky chol;
+    slmath::Cholesky chol;
     vec1D w,b;
     vec2D mcov;
     int n,kmax,km;

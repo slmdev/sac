@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include "../global.h"
+#include "math.h"
 
 #include <algorithm>
 #include <numeric>
@@ -187,55 +188,14 @@ inline double dot(const double* x,const double* y, std::size_t n)
 }
 #endif
 
-// inplace cholesky
-// matrix must be positive definite and symmetric
-class Cholesky
+  inline double calc_loglik_L1(double abs_e,double b)
   {
-    public:
-      const double ftol=1E-8;
-      Cholesky(int n)
-      :n(n),G(n,vec1D(n))
-      {
-
-      }
-      int Factor(const vec2D &matrix,const double nu)
-      {
-        for (int i=0;i<n;i++) //copy lower triangular matrix
-          std::copy_n(begin(matrix[i]),i+1,begin(G[i]));
-
-        for (int i=0;i<n;i++) {
-
-          // off-diagonal
-          for (int j=0;j<i;j++) {
-            double sum=G[i][j];
-            for (int k=0;k<j;k++) sum-=(G[i][k]*G[j][k]);
-            G[i][j]=sum/G[j][j];
-          }
-
-          // diagonal
-          double sum=G[i][i]+nu; //add regularization
-          for (int k=0;k<i;k++) sum-=(G[i][k]*G[i][k]);
-          if (sum>ftol) G[i][i]=std::sqrt(sum);
-          else return 1;
-        }
-        return 0;
-      }
-      void Solve(const vec1D &b,vec1D &x)
-      {
-        for (int i=0;i<n;i++) {
-          double sum=b[i];
-          for (int j=0;j<i;j++) sum-=(G[i][j]*x[j]);
-          x[i]=sum/G[i][i];
-        }
-        for (int i=n-1;i>=0;i--) {
-          double sum=x[i];
-          for (int j=i+1;j<n;j++) sum-=(G[j][i]*x[j]);
-          x[i]=sum/G[i][i];
-        }
-      }
-      int n;
-      vec2D G;
-  };
+    return -std::log(2*b) - abs_e / b;
+  }
+  inline double calc_loglik_L2(double sq_e,double sigma2)
+  {
+    return -0.5*std::log(2*M_PI*sigma2) - 0.5 * sq_e / sigma2;
+  }
 
   // inverse of pos. def. symmetric matrix
   class InverseSym
@@ -257,7 +217,7 @@ class Cholesky
         };
       }
     protected:
-      Cholesky chol;
+      slmath::Cholesky chol;
       int n;
       vec1D b;
   };
@@ -363,9 +323,10 @@ class Cholesky
       }
     template <typename T>
     T sgn(T x) {
-      if (x>0) return 1;
+      return (x > 0) - (x < 0);
+      /*if (x>0) return 1;
       if (x<0) return -1;
-      return 0;
+      return 0;*/
     }
 };
 

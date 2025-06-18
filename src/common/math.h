@@ -3,9 +3,60 @@
 
 #include "../global.h"
 #include <cassert>
+#include <cmath>
 
 namespace slmath
 {
+
+  // inplace cholesky
+  // matrix must be positive definite and symmetric
+  class Cholesky
+  {
+    public:
+      const double ftol=1E-8;
+      Cholesky(int n)
+      :n(n),G(n,vec1D(n))
+      {
+
+      }
+      int Factor(const vec2D &matrix,const double nu)
+      {
+        for (int i=0;i<n;i++) //copy lower triangular matrix
+          std::copy_n(begin(matrix[i]),i+1,begin(G[i]));
+
+        for (int i=0;i<n;i++) {
+
+          // off-diagonal
+          for (int j=0;j<i;j++) {
+            double sum=G[i][j];
+            for (int k=0;k<j;k++) sum-=(G[i][k]*G[j][k]);
+            G[i][j]=sum/G[j][j];
+          }
+
+          // diagonal
+          double sum=G[i][i]+nu; //add regularization
+          for (int k=0;k<i;k++) sum-=(G[i][k]*G[i][k]);
+          if (sum>ftol) G[i][i]=std::sqrt(sum);
+          else return 1;
+        }
+        return 0;
+      }
+      void Solve(const vec1D &b,vec1D &x)
+      {
+        for (int i=0;i<n;i++) {
+          double sum=b[i];
+          for (int j=0;j<i;j++) sum-=(G[i][j]*x[j]);
+          x[i]=sum/G[i][i];
+        }
+        for (int i=n-1;i>=0;i--) {
+          double sum=x[i];
+          for (int j=i+1;j<n;j++) sum-=(G[j][i]*x[j]);
+          x[i]=sum/G[i][i];
+        }
+      }
+      int n;
+      vec2D G;
+  };
 
   inline double dot_scalar(const vec1D &v1,const vec1D &v2)
   {

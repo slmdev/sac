@@ -3,6 +3,7 @@
 
 #include "opt.h"
 #include "../common/utils.h"
+#include "../common/math.h"
 
 class OptCMA : public Opt {
   public:
@@ -40,7 +41,7 @@ class OptCMA : public Opt {
     void update_cov(vec2D &mcov, vec1D &pc,const vec1D &az);
     const CMACfg &cfg;
     CMAParams p;
-    MathUtils::Cholesky chol;
+    slmath::Cholesky chol;
     bool verbose;
 
 };

@@ -180,8 +180,7 @@ class LMS {
     double Predict(const vec1D &inp)
     {
       x=inp;
-      pred=0.0;
-      for (int i=0;i<n;i++) pred+=w[i]*x[i];
+      pred=slmath::dot_scalar(x,w);
       return pred;
     }
     virtual void Update(double)=0;
@@ -195,14 +194,14 @@ class LMS {
 class LMS_ADA : public LMS
 {
   public:
-    LMS_ADA(int n,double mu,double beta=0.95,double nu=0.0)
+    LMS_ADA(int n,double mu,double beta=0.95,double nu=0.001)
     :LMS(n,mu),eg(n),beta(beta),nu(nu)
     {
     }
     void Update(double val) override {
       const double err=val-pred; // prediction error
       for (int i=0;i<n;i++) {
-        double const grad=err*x[i]-nu*MathUtils::sgn(w[i]); // gradient + l1-regularization
+        double const grad=err*x[i] - nu*MathUtils::sgn(w[i]); // gradient + l1-regularization
 
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
         double g=grad*1.0/(sqrt(eg[i])+1E-5);// update weights
