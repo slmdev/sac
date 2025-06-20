@@ -23,7 +23,10 @@ class OLS {
     }
     double Predict()
     {
-      pred=MathUtils::dot(x.data(),w.data(),n);
+      pred = slmath::dot_scalar(
+        span_cf64(x.data(), n),
+        span_cf64(w.data(), n)
+      );
       return pred;
     }
 
