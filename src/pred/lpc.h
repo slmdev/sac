@@ -23,7 +23,7 @@ class OLS {
     }
     double Predict()
     {
-      pred = MathUtils::dot(
+      pred = slmath::dot_scalar(
         std::span<const double>(x.data(), n),
         std::span<const double>(w.data(), n)
       );
