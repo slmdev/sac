@@ -59,7 +59,7 @@ namespace slmath
       vec2D G;
   };
 
-  inline double dot_scalar(const std::span<const double> &v1,const std::span<const double> &v2) {
+  inline double dot_scalar(const span_cf64 &v1,const span_cf64 &v2) {
     if (v1.size() != v2.size()) throw std::invalid_argument("invalid_argument");
       return std::transform_reduce(
       v1.begin(), v1.end(),
