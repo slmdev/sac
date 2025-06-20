@@ -14,7 +14,7 @@ class LS_Stream {
     }
     double Predict()
     {
-      slmath::dot_scalar(
+      pred = slmath::dot_scalar(
         span_cf64(x.data(), n),
         span_cf64(w.data(), n)
       );
