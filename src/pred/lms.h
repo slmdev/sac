@@ -1,7 +1,6 @@
 #ifndef LMS_H
 #define LMS_H
 
-#include <cmath>
 #include "../global.h"
 #include "../common/histbuf.h"
 #include "../common/utils.h"
@@ -15,7 +14,7 @@ class LS_Stream {
     }
     double Predict()
     {
-      pred = MathUtils::dot(
+      pred = slmath::dot_scalar(
         std::span<const double>(x.data(), n),
         std::span<const double>(w.data(), n)
       );
