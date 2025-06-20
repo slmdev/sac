@@ -6,7 +6,7 @@
 #include <cmath>
 
 // adaptive lambda control
-template <miscUtils::MapMode map_mode,int bias_corr=0>
+template <miscUtils::MapMode tmap_mode,int tbias_corr=0>
 class ALC
 {
   public:
@@ -22,7 +22,7 @@ class ALC
       eg=beta*eg+(1.0-beta)*metric; // EMA
 
       double eg_hat=eg;
-      if constexpr (bias_corr) { // bias correction
+      if constexpr (tbias_corr) { // bias correction
         power_beta*=beta;
         eg_hat=eg/(1.0-power_beta);
       };
@@ -31,7 +31,7 @@ class ALC
       double mnorm = metric/(eg_hat + 1E-5);
       // map with decay function
       // high mnorm -> low alpha (faster adaption), low mnorm -> high alpha
-      double m=miscUtils::decay_map<map_mode>(gamma,mnorm);
+      double m=miscUtils::decay_map<tmap_mode>(gamma,mnorm);
       return lambda_min + (lambda_max-lambda_min)*m;
     }
   protected:
@@ -53,7 +53,7 @@ class RLS {
     double px,gamma;
     vec1D hist,w;
     vec2D P;
-    ALC <miscUtils::MapMode::exp> alc;
+    ALC<miscUtils::MapMode::exp> alc;
 };
 
 

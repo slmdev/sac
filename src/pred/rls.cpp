@@ -35,12 +35,12 @@ void RLS::Update(double val)
   // a priori variance of prediction
   double phi=slmath::dot_scalar(hist,ph);
 
-  // Normalized Innovation Squared
-  // quantifies how "unexpected" the observation is
-  // relative to the current uncertainty
   double alpha=gamma;
   if constexpr(RLS_ALC) {
-    double metric = (err*err);
+    // Normalized Innovation Squared
+    // quantifies how "unexpected" the observation is
+    // relative to the models uncertainty phi
+    double metric = (err*err);//(phi+1E-3);
     alpha=alc.update(metric);
   };
 
@@ -52,8 +52,7 @@ void RLS::Update(double val)
     for (int j=0;j<=i;j++) {
       double m=ph[i]*ph[j]; // outer product of ph
       double v=(P[i][j] - denom * m) * inv_alpha;
-      P[i][j] = v;
-      P[j][i] = v;
+      P[i][j] = P[j][i] = v;
     }
 
   // update weights
