@@ -23,9 +23,9 @@ class OLS {
     }
     double Predict()
     {
-      pred = slmath::dot_scalar(
-        std::span<const double>(x.data(), n),
-        std::span<const double>(w.data(), n)
+      slmath::dot_scalar(
+        span_cf64(x.data(), n),
+        span_cf64(w.data(), n)
       );
       return pred;
     }
