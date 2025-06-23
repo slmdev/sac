@@ -36,6 +36,37 @@ class RunWeight {
     double alpha;
 };
 
+template <int tEMA=1,int tbias_corr=0>
+class RunSum {
+  public:
+    RunSum(double alpha)
+    :alpha(alpha),power_alpha(1.0),sum(0.0)
+    {
+    }
+    inline void Update(double val)
+    {
+      if constexpr(tEMA)
+        sum = alpha*sum + (1.0-alpha)*val;
+      else
+        sum = alpha*sum + val;
+
+      if constexpr(tbias_corr)
+        power_alpha*=alpha;
+    }
+    inline double Get() const
+    {
+      if constexpr(tbias_corr)
+      {
+        const double denom=1.0-power_alpha;
+        assert(denom>0); // must call Update() before first Get()
+        return sum/denom;
+      } else
+        return sum;
+    }
+  protected:
+    double alpha,power_alpha,sum;
+};
+
 class RunMeanVar {
   public:
     RunMeanVar(double alpha)
