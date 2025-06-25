@@ -23,7 +23,7 @@ using span_i32=std::span<int32_t>;
 using span_ci32=std::span<const int32_t>;
 using span_cf64=std::span<const double>;
 
-#define USE_AVX256
+//#define USE_AVX256
 //#define UNROLL_AVX256
 //#define USE_AVX512
 

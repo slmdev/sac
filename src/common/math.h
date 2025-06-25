@@ -4,6 +4,7 @@
 #include "../global.h"
 #include <cassert>
 #include <cmath>
+#include <numeric>
 
 namespace slmath
 {
@@ -58,13 +59,15 @@ namespace slmath
       vec2D G;
   };
 
-  inline double dot_scalar(const vec1D &v1,const vec1D &v2)
-  {
-    assert(v1.size()==v2.size());
-    double sum=0.0;
-    for (std::size_t i=0;i<v1.size();++i)
-      sum+=v1[i]*v2[i];
-    return sum;
+  inline double dot_scalar(const span_cf64 &v1,const span_cf64 &v2) {
+    if (v1.size() != v2.size()) throw std::invalid_argument("invalid_argument");
+      return std::transform_reduce(
+      v1.begin(), v1.end(),
+      v2.begin(),
+      0.0,
+      std::plus<>(),
+      std::multiplies<>()
+    );
   }
 
   // vector = matrix * vector
@@ -137,4 +140,3 @@ namespace slmath
 };
 
 #endif
-
