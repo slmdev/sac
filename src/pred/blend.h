@@ -4,17 +4,32 @@
 #include "lms.h"
 
 // blend two expert outputs via sigmoid
-template <int lower_better=1>
+template <int log_regression=0>
 class Blend2 {
   public:
-    Blend2(double beta=0.95,double alpha=1.0,double scale=5)
-    :alpha(alpha),scale(scale),w(0.5),
+    Blend2(double beta=0.95,double theta_mu=0.005,double scale=5)
+    :scale(scale),mu(theta_mu),
+     w(0.5),theta0(0),theta1(1.),
      m0(beta),m1(beta)
-    {}
+    {
+    }
     double Predict(double p0,double p1) const
     {
       return w*p0 + (1.0-w)*p1;
     }
+
+    void AdaptTheta(double mu,double delta)
+    {
+      // pseudo label
+      double y = (delta>0)?1.0:0.0;
+      double error = y - w;
+      double grad0 = error;
+      double grad1 = error * delta;
+
+      theta0 += mu*grad0;
+      theta1 += mu*grad1;
+    }
+
     void Update(double score0,double score1)
     {
       m0.Update(score0);
@@ -23,17 +38,22 @@ class Blend2 {
       double ss0_t=m0.Get();
       double ss1_t=m1.Get();
 
-      double z=0.0;
-      if constexpr(lower_better) // lower score better
-        z = alpha * (ss1_t - ss0_t);
-      else
-        z = alpha * (ss0_t - ss1_t);
+      // lower score better
+      double delta=(ss1_t - ss0_t);
+
+      if constexpr(log_regression) {
+        AdaptTheta(mu,delta);
+      }
+
+      double z = theta1*delta + theta0;
       z = std::clamp(z,-scale,scale);
-      w = 1.0/(1.0+std::exp(-z));
-    }
+      w = 1.0 / (1.0 + std::exp(-z));
+
+   }
   protected:
-    double alpha,scale,w;
-    RunSum <> m0,m1;
+    double scale,mu;
+    double w,theta0,theta1;
+    RunSumEMA_NoBC m0,m1;
 };
 
 #endif

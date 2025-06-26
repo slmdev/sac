@@ -53,7 +53,7 @@ class OLS {
     int n,kmax,km;
     double lambda,nu,pred;
     double beta_pow,beta_add;
-    RunWeight esum;
+    RunSumGEO_NoBC esum;
 };
 
 

@@ -67,6 +67,11 @@ class RunSum {
     double alpha,power_alpha,sum;
 };
 
+using RunSumEMA_NoBC = RunSum<1,0>;
+using RunSumEMA_BC = RunSum<1,1>;
+using RunSumGEO_NoBC = RunSum<0,0>;
+using RunSumGEO_BC = RunSum<0,1>;
+
 class RunMeanVar {
   public:
     RunMeanVar(double alpha)
