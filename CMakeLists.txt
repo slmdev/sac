@@ -19,15 +19,20 @@ if(ENABLE_AVX512)
         -mavx512bw
         -mavx512vl
         -mfma
+        -O3
     )
     target_compile_definitions(sac PRIVATE USE_AVX512=1)
 elseif(ENABLE_AVX256)
     target_compile_options(sac PRIVATE
         -mavx2
         -mfma
+        -O3
     )
     target_compile_definitions(sac PRIVATE USE_AVX256=1)
 else()
+    target_compile_options(sac PRIVATE
+        -O3
+    )
     target_compile_definitions(sac PRIVATE)
 endif()
 
