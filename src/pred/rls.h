@@ -6,38 +6,30 @@
 #include <cmath>
 
 // adaptive lambda control
-template <miscUtils::MapMode tmap_mode,int tbias_corr=0>
+template <miscUtils::MapMode tmap_mode>
 class ALC
 {
   public:
     ALC(double gamma=1.0,double beta=0.95)
-    :gamma(gamma),beta(beta),power_beta(1.0),
-    lambda_min(0.99),lambda_max(0.999),
-    eg(0.)
+    :gamma(gamma),lambda_min(0.99),lambda_max(0.999),
+     msum(beta)
     {
     }
 
     double update(double metric)
     {
-      eg=beta*eg+(1.0-beta)*metric; // EMA
-
-      double eg_hat=eg;
-      if constexpr (tbias_corr) { // bias correction
-        power_beta*=beta;
-        eg_hat=eg/(1.0-power_beta);
-      };
+      msum.Update(metric);
 
       // normalize metric by average
-      double mnorm = metric/(eg_hat + 1E-5);
+      double mnorm = metric/(msum.Get() + 1E-5);
       // map with decay function
       // high mnorm -> low alpha (faster adaption), low mnorm -> high alpha
       double m=miscUtils::decay_map<tmap_mode>(gamma,mnorm);
       return lambda_min + (lambda_max-lambda_min)*m;
     }
   protected:
-    double gamma,beta,power_beta;
-    double lambda_min,lambda_max;
-    double eg;
+    double gamma,lambda_min,lambda_max;
+    RunSum <> msum;
 };
 
 // Recursive Least Squares algorithm

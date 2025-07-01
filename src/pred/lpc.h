@@ -34,7 +34,7 @@ class OLS {
     {
       // update estimate of covariance matrix
       esum.Update(fabs(val-pred));
-      double c0=pow(esum.sum+beta_add,-beta_pow);
+      double c0=pow(esum.Get()+beta_add,-beta_pow);
 
       for (int j=0;j<n;j++) {
         // only update lower triangular
@@ -56,7 +56,7 @@ class OLS {
     int n,kmax,km;
     double lambda,nu,pred;
     double beta_pow,beta_add;
-    RunWeight esum;
+    RunSumGEO_NoBC esum;
 };
 
 
