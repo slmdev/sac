@@ -29,11 +29,11 @@ constexpr int LMS_MIX_CLAMPW=1;
 // using absolute error as scoring function
 class Blend2LMS_L1 {
   public:
-    Blend2LMS_L1(int n,double lms_mu,double lms_beta,double blend_beta=0.95,double blend_mu=0.005)
+    Blend2LMS_L1(int n,double lms_mu,double lms_beta,double blend_beta=0.95)
     :n(n),px0(0.0),px1(0.0),
      mix0(n,lms_mu,lms_beta),
      mix1(n,lms_mu,lms_beta),
-     cw2(blend_beta,blend_mu)
+     cw2(blend_beta)
     {
       if constexpr(LMS_MIX_INIT)
         for (int i=0;i<n-1;i++)
@@ -69,7 +69,7 @@ class Blend2LMS_L1 {
     double px0,px1;
     LAD_ADA mix0;
     LMS_ADA mix1;
-    Blend2<>cw2;
+    Blend2 cw2;
 };
 
 

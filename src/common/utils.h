@@ -67,9 +67,9 @@ class RunSum {
     double alpha,power_alpha,sum;
 };
 
-using RunSumEMA_NoBC = RunSum<1,0>;
+using RunSumEMA = RunSum<1,0>;
 using RunSumEMA_BC = RunSum<1,1>;
-using RunSumGEO_NoBC = RunSum<0,0>;
+using RunSumGEO = RunSum<0,0>;
 using RunSumGEO_BC = RunSum<0,1>;
 
 class RunMeanVar {
@@ -282,88 +282,88 @@ inline double dot(const double* x,const double* y, std::size_t n)
   };
 
 
-      template <typename T>
-      T med3(T a,T b,T c)
-      {
-        if ((a<b && b<c) || (c<b && b<a)) {
-          return b;
-        } else if ((b < a && a < c) || (c < a && a < b)) {
-          return a;
-        } else
-          return c;
-      }
+  template <typename T>
+  T med3(T a,T b,T c)
+  {
+    if ((a<b && b<c) || (c<b && b<a)) {
+      return b;
+    } else if ((b < a && a < c) || (c < a && a < b)) {
+      return a;
+    } else
+      return c;
+  }
 
-      inline int iLog2(int val) {
-        int nbits=0;
-        while (val>>=1) nbits++;
-        return nbits;
-      }
-      inline double SumDiff(const std::vector<double> &v1,const std::vector<double> &v2)
-      {
-         if (v1.size()!=v2.size()) return -1;
-         else {
-           double sum=0.;
-           for (size_t i=0;i<v1.size();i++) sum+=fabs(v1[i]-v2[i]);
-           return sum;
-         }
-      }
-      inline int32_t S2U(int32_t val)
-      {
-        if (val<0) val=2*(-val);
-        else if (val>0) val=(2*val)-1;
-        return val;
-      }
-      inline int32_t U2S(int32_t val)
-      {
-        if (val&1) val=((val+1)>>1);
-        else val=-(val>>1);
-        return val;
-      }
-      inline double norm2(const std::vector<double> &vec1,const std::vector<double> &vec2)
-      {
-         if (vec1.size()!=vec2.size()) return 0;
-         else {
-           double sum=0.;
-           for (size_t i=0;i<vec1.size();i++) {double t=vec1[i]-vec2[i];sum+=t*t;};
-           return sqrt(sum);
-         }
-      }
-      inline double mean(const std::vector<double> &vec)
-      {
-        if (vec.size()) {
-          double sum=std::accumulate(begin(vec),end(vec),0.0);
-          return sum/static_cast<double>(vec.size());
-        }
-        return 0;
-      }
-      //contraharmonic mean
-      inline double meanL(const std::vector<double> &vec)
-      {
-        if (vec.size()) {
-          double sum0=0.0;
-          double sum1=0.0;
-          for (size_t i=0;i<vec.size();++i) {
-            sum0+=(vec[i]*vec[i]);
-            sum1+=vec[i];
-          }
-          if (sum1>0.0) return sum0 / sum1;
-          else return 0.;
-        }
-        return 0.;
-      }
-      inline double linear_map_n(int n0,int n1,double y0,double y1,int idx)
-      {
-        double dx = static_cast<double>(n1-n0);
-        double dy = y1-y0;
-        return idx*(dy/dx)+y0;
-      }
-    template <typename T>
-    T sgn(T x) {
-      return (x > 0) - (x < 0);
-      /*if (x>0) return 1;
-      if (x<0) return -1;
-      return 0;*/
+  inline int iLog2(int val) {
+    int nbits=0;
+    while (val>>=1) nbits++;
+    return nbits;
+  }
+  inline double SumDiff(const std::vector<double> &v1,const std::vector<double> &v2)
+  {
+     if (v1.size()!=v2.size()) return -1;
+     else {
+       double sum=0.;
+       for (size_t i=0;i<v1.size();i++) sum+=fabs(v1[i]-v2[i]);
+       return sum;
+     }
+  }
+  inline int32_t S2U(int32_t val)
+  {
+    if (val<0) val=2*(-val);
+    else if (val>0) val=(2*val)-1;
+    return val;
+  }
+  inline int32_t U2S(int32_t val)
+  {
+    if (val&1) val=((val+1)>>1);
+    else val=-(val>>1);
+    return val;
+  }
+  inline double norm2(const std::vector<double> &vec1,const std::vector<double> &vec2)
+  {
+     if (vec1.size()!=vec2.size()) return 0;
+     else {
+       double sum=0.;
+       for (size_t i=0;i<vec1.size();i++) {double t=vec1[i]-vec2[i];sum+=t*t;};
+       return sqrt(sum);
+     }
+  }
+  inline double mean(const std::vector<double> &vec)
+  {
+    if (vec.size()) {
+      double sum=std::accumulate(begin(vec),end(vec),0.0);
+      return sum/static_cast<double>(vec.size());
     }
+    return 0;
+  }
+  //contraharmonic mean
+  inline double meanL(const std::vector<double> &vec)
+  {
+    if (vec.size()) {
+      double sum0=0.0;
+      double sum1=0.0;
+      for (size_t i=0;i<vec.size();++i) {
+        sum0+=(vec[i]*vec[i]);
+        sum1+=vec[i];
+      }
+      if (sum1>0.0) return sum0 / sum1;
+      else return 0.;
+    }
+    return 0.;
+  }
+  inline double linear_map_n(int n0,int n1,double y0,double y1,int idx)
+  {
+    double dx = static_cast<double>(n1-n0);
+    double dy = y1-y0;
+    return idx*(dy/dx)+y0;
+  }
+  template <typename T>
+  T sgn(T x) {
+    return (x > 0) - (x < 0);
+    /*if (x>0) return 1;
+    if (x<0) return -1;
+    return 0;*/
+  }
 };
 
 namespace miscUtils {
