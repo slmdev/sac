@@ -1,6 +1,7 @@
 #ifndef MD5_H
 #define MD5_H
 
+#include <cstddef>
 #include <cstdint>
 
 namespace MD5 {
