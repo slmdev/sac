@@ -22,7 +22,7 @@ if(ENABLE_AVX512)
         -O3
     )
     target_compile_definitions(sac PRIVATE USE_AVX512=1)
-elseif(ENABLE_AVX256)
+elseif(ENABLE_AVX2)
     target_compile_options(sac PRIVATE
         -mavx2
         -mfma
