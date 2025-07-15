@@ -1,6 +1,7 @@
+#include <format>
+#include "../common/math.h"
 #include "cma.h"
 #include "ssc.h"
-#include "../common/math.h"
 
 OptCMA::OptCMA(const CMACfg &cfg,const box_const &parambox,bool verbose)
 :Opt(parambox),cfg(cfg),p(ndim),

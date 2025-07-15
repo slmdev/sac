@@ -1,4 +1,5 @@
 #include <cassert>
+#include <format>
 #include "de.h"
 #include "../common/utils.h"
 

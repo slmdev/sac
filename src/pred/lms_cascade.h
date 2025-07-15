@@ -21,9 +21,7 @@
   cv2.Update(nbits0,nbits1);
 */
 
-// increase stability
-constexpr int LMS_MIX_INIT=1;
-constexpr int LMS_MIX_CLAMPW=1;
+
 
 // Blend 2xLMS-ADA using L1 + L2 loss
 // using absolute error as scoring function
@@ -35,7 +33,7 @@ class Blend2LMS_L1 {
      mix1(n,lms_mu,lms_beta),
      cw2(blend_beta)
     {
-      if constexpr(LMS_MIX_INIT)
+      if constexpr(SACGlobalCfg::LMS_MIX_INIT)
         for (int i=0;i<n-1;i++)
           mix0.w[i] = mix1.w[i] = 1.0/(i+1);
     }
@@ -53,7 +51,7 @@ class Blend2LMS_L1 {
     {
       mix0.Update(target);
       mix1.Update(target);
-      if constexpr(LMS_MIX_CLAMPW)
+      if constexpr(SACGlobalCfg::LMS_MIX_CLAMPW)
         for (int i=0;i<n;i++) {
           mix0.w[i]=std::max(mix0.w[i],0.0);
           mix1.w[i]=std::max(mix1.w[i],0.0);

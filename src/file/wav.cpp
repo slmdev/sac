@@ -1,6 +1,7 @@
-#include "wav.h"
-#include "../common/utils.h"
 #include <iostream>
+#include <format>
+#include "../common/utils.h"
+#include "wav.h"
 
 int word_align(int numbytes)
 {

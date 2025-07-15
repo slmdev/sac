@@ -150,7 +150,8 @@ namespace StrUtils {
 
 namespace MathUtils {
 
-#if defined(USE_AVX512)
+
+/*#if defined(USE_AVX512)
 inline double dot(const double* x,const double* y, std::size_t n)
 {
   __m512d sum = _mm512_setzero_pd();
@@ -222,7 +223,7 @@ inline double dot(const double* x,const double* y, std::size_t n)
     sum+=x[i]*y[i];
   return sum;
 }
-#endif
+#endif*/
 
   inline double calc_loglik_L1(double abs_e,double b)
   {

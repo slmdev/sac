@@ -4,6 +4,7 @@
 #include "../global.h"
 #include <cassert>
 #include <cmath>
+#include <immintrin.h>
 
 namespace slmath
 {
@@ -58,13 +59,52 @@ namespace slmath
       vec2D G;
   };
 
-  inline double dot_scalar(const vec1D &v1,const vec1D &v2)
+
+  inline double dot(span_cf64 x,span_cf64 y)
   {
-    assert(v1.size()==v2.size());
-    double sum=0.0;
-    for (std::size_t i=0;i<v1.size();++i)
-      sum+=v1[i]*v2[i];
-    return sum;
+    assert(x.size()==y.size());
+    const std::size_t n=x.size();
+    double total=0.0;
+    std::size_t i=0;
+
+    if constexpr(SACGlobalCfg::USE_AVX2) {
+      if constexpr(SACGlobalCfg::UNROLL_AVX2) {
+        if (n>=8)
+        {
+          __m256d sum1 = _mm256_setzero_pd();
+          __m256d sum2 = _mm256_setzero_pd();
+          for (;i + 8 <= n;i += 8)
+          {
+            __m256d vx1 = _mm256_loadu_pd(&x[i]);
+            __m256d vy1 = _mm256_loadu_pd(&y[i]);
+            sum1 = _mm256_fmadd_pd(vx1, vy1, sum1);
+            __m256d vx2 = _mm256_loadu_pd(&x[i + 4]);
+            __m256d vy2 = _mm256_loadu_pd(&y[i + 4]);
+            sum2 = _mm256_fmadd_pd(vx2, vy2, sum2);
+          }
+          sum1 = _mm256_add_pd(sum1, sum2);
+          alignas(32) double buffer[4];
+          _mm256_store_pd(buffer, sum1);
+          total = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+        }
+      } else if (n>=4)
+      {
+        __m256d sum = _mm256_setzero_pd();
+        for (;i + 4 <= n;i += 4)
+        {
+          __m256d vx = _mm256_loadu_pd(&x[i]);
+          __m256d vy = _mm256_loadu_pd(&y[i]);
+          sum = _mm256_fmadd_pd(vx, vy, sum);
+        }
+        alignas(32) double buffer[4];
+        _mm256_store_pd(buffer, sum);
+        total = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+      }
+    }
+
+    for (;i<n;i++)
+      total+=x[i]*y[i];
+    return total;
   }
 
   // vector = matrix * vector
@@ -72,7 +112,7 @@ namespace slmath
   {
     vec1D v_out(m.size());
     for (std::size_t i=0;i<m.size();i++)
-      v_out[i]=slmath::dot_scalar(m[i],v);
+      v_out[i]=slmath::dot(m[i],v);
     return v_out;
   }
 

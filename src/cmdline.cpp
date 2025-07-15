@@ -1,8 +1,10 @@
+#include <format>
+#include <cstring>
 #include "cmdline.h"
 #include "common/utils.h"
 #include "common/timer.h"
 #include "file/sac.h"
-#include <cstring>
+
 
 CmdLine::CmdLine()
 :mode(ENCODE)

@@ -7,7 +7,6 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <chrono>
 #include <vector>
 #include <span>
 
@@ -23,8 +22,14 @@ using span_i32=std::span<int32_t>;
 using span_ci32=std::span<const int32_t>;
 using span_cf64=std::span<const double>;
 
-#define USE_AVX256
-//#define UNROLL_AVX256
-//#define USE_AVX512
+struct SACGlobalCfg {
+  static constexpr bool USE_AVX2=true;
+  static constexpr bool UNROLL_AVX2=true;
+  static constexpr double NLMS_POW_EPS=1.0;
+  static constexpr double LMS_ADA_EPS=1E-5;
+  static constexpr bool LMS_MIX_INIT=true;// increase stability
+  static constexpr bool LMS_MIX_CLAMPW=true;
+  static constexpr bool RLS_ALC=true; //adaptive lambda control
+};
 
 #endif

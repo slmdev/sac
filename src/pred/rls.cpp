@@ -2,8 +2,6 @@
 #include "../common/math.h"
 #include "../common/utils.h"
 
-constexpr int RLS_ALC=1;
-
 RLS::RLS(int n,double gamma,double nu)
 :n(n),
 px(0.),gamma(gamma),
@@ -17,7 +15,7 @@ alc(gamma)
 
 double RLS::Predict()
 {
-  px=slmath::dot_scalar(hist,w);
+  px=slmath::dot(hist,w);
   return px;
 }
 
@@ -33,10 +31,10 @@ void RLS::Update(double val)
 
   vec1D ph=slmath::mul(P,hist); //phi=hist P hist
   // a priori variance of prediction
-  double phi=slmath::dot_scalar(hist,ph);
+  double phi=slmath::dot(hist,ph);
 
   double alpha=gamma;
-  if constexpr(RLS_ALC) {
+  if constexpr(SACGlobalCfg::RLS_ALC) {
     // Normalized Innovation Squared
     // quantifies how "unexpected" the observation is
     // relative to the models uncertainty phi

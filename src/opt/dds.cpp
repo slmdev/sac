@@ -1,5 +1,7 @@
+#include <format>
 #include "dds.h"
 #include "ssc.h"
+
 
 OptDDS::OptDDS(const DDSCfg &cfg,const box_const &parambox,bool verbose)
 :Opt(parambox),cfg(cfg),

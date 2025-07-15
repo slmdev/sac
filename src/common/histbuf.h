@@ -76,7 +76,7 @@ class RollBuffer2 {
       return buf[pos + index];
     }
 
-    const std::span<T> get_span() const {
+    const std::span<const T> get_span() const {
       return std::span<const T>{buf.data() + pos,n};
     }
     const T* data() const {
