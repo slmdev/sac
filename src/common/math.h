@@ -4,6 +4,7 @@
 #include "../global.h"
 #include <cassert>
 #include <cmath>
+#include <numeric>
 #include <immintrin.h>
 
 namespace slmath
@@ -59,7 +60,7 @@ namespace slmath
       vec2D G;
   };
 
-
+  // inner-product of x and y
   inline double dot(span_cf64 x,span_cf64 y)
   {
     assert(x.size()==y.size());
@@ -102,10 +103,40 @@ namespace slmath
       }
     }
 
-    for (;i<n;i++)
-      total+=x[i]*y[i];
+    total += std::transform_reduce(begin(x)+i,end(x),begin(y)+i,0.0,
+                                   std::plus<>(),std::multiplies<>());
     return total;
   }
+
+  // calculate powersum for NLMS
+  inline double calc_s2pow(span_cf64 x,span_cf64 powtab)
+  {
+    const std::size_t n=x.size();
+    double spow=0.0;
+    std::size_t i=0;
+
+    if constexpr(SACGlobalCfg::USE_AVX2) {
+      if (n>=4) {
+        __m256d sum_vec = _mm256_setzero_pd();
+        for (; i + 4 <= n; i += 4) {
+          __m256d x_vec = _mm256_loadu_pd(&x[i]);
+          __m256d pow_vec = _mm256_load_pd(&powtab[i]);
+          __m256d x_squared = _mm256_mul_pd(x_vec, x_vec);
+          sum_vec = _mm256_fmadd_pd(pow_vec, x_squared, sum_vec);
+        }
+
+        alignas(32) double buffer[4];
+        _mm256_store_pd(buffer, sum_vec);
+        spow = buffer[0] + buffer[1] + buffer[2] + buffer[3];
+      }
+    }
+
+    spow += std::transform_reduce(begin(x)+i,end(x),begin(powtab)+i,0.0,
+                                  std::plus<>(),[](double xi, double pi) { return pi * (xi * xi);});
+
+    return spow;
+  }
+
 
   // vector = matrix * vector
   inline vec1D mul(const vec2D &m,const vec1D &v)
