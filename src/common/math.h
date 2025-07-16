@@ -69,41 +69,27 @@ namespace slmath
     std::size_t i=0;
 
     if constexpr(SACGlobalCfg::USE_AVX2) {
-      if constexpr(SACGlobalCfg::UNROLL_AVX2) {
-        if (n>=8)
-        {
-          __m256d sum1 = _mm256_setzero_pd();
-          __m256d sum2 = _mm256_setzero_pd();
-          for (;i + 8 <= n;i += 8)
-          {
-            __m256d vx1 = _mm256_loadu_pd(&x[i]);
-            __m256d vy1 = _mm256_loadu_pd(&y[i]);
-            sum1 = _mm256_fmadd_pd(vx1, vy1, sum1);
-            __m256d vx2 = _mm256_loadu_pd(&x[i + 4]);
-            __m256d vy2 = _mm256_loadu_pd(&y[i + 4]);
-            sum2 = _mm256_fmadd_pd(vx2, vy2, sum2);
-          }
-          sum1 = _mm256_add_pd(sum1, sum2);
-          alignas(32) double buffer[4];
-          _mm256_store_pd(buffer, sum1);
-          total = buffer[0] + buffer[1] + buffer[2] + buffer[3];
-        }
-      } else if (n>=4)
+      if (n>=SACGlobalCfg::AVX2_MINN)
       {
-        __m256d sum = _mm256_setzero_pd();
-        for (;i + 4 <= n;i += 4)
+        __m256d sum1 = _mm256_setzero_pd();
+        __m256d sum2 = _mm256_setzero_pd();
+        for (;i + 8 <= n;i += 8)
         {
-          __m256d vx = _mm256_loadu_pd(&x[i]);
-          __m256d vy = _mm256_loadu_pd(&y[i]);
-          sum = _mm256_fmadd_pd(vx, vy, sum);
+          __m256d vx1 = _mm256_loadu_pd(&x[i]);
+          __m256d vy1 = _mm256_loadu_pd(&y[i]);
+          sum1 = _mm256_fmadd_pd(vx1, vy1, sum1);
+          __m256d vx2 = _mm256_loadu_pd(&x[i + 4]);
+          __m256d vy2 = _mm256_loadu_pd(&y[i + 4]);
+          sum2 = _mm256_fmadd_pd(vx2, vy2, sum2);
         }
+        sum1 = _mm256_add_pd(sum1, sum2);
         alignas(32) double buffer[4];
-        _mm256_store_pd(buffer, sum);
+        _mm256_store_pd(buffer, sum1);
         total = buffer[0] + buffer[1] + buffer[2] + buffer[3];
       }
     }
 
-    total += std::transform_reduce(begin(x)+i,end(x),begin(y)+i,0.0,
+    total += std::transform_reduce(cbegin(x)+i,cend(x),cbegin(y)+i,0.0,
                                    std::plus<>(),std::multiplies<>());
     return total;
   }
@@ -116,7 +102,8 @@ namespace slmath
     std::size_t i=0;
 
     if constexpr(SACGlobalCfg::USE_AVX2) {
-      if (n>=4) {
+      //powtab is assumed to be correctly aligned
+      if (n>=SACGlobalCfg::AVX2_MINN) {
         __m256d sum_vec = _mm256_setzero_pd();
         for (; i + 4 <= n; i += 4) {
           __m256d x_vec = _mm256_loadu_pd(&x[i]);
@@ -131,7 +118,7 @@ namespace slmath
       }
     }
 
-    spow += std::transform_reduce(begin(x)+i,end(x),begin(powtab)+i,0.0,
+    spow += std::transform_reduce(cbegin(x)+i,cend(x),cbegin(powtab)+i,0.0,
                                   std::plus<>(),[](double xi, double pi) { return pi * (xi * xi);});
 
     return spow;
