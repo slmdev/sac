@@ -2,10 +2,6 @@
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
 name: CMake on multiple platforms
 
-run: |
-  sudo apt-get update
-  sudo apt-get install -y mingw-w64
-
 on:
   push:
     branches: [ "master" ]
@@ -27,7 +23,7 @@ jobs:
       #
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         c_compiler: [gcc, clang, x86_64-w64-mingw32-gcc]
         include:
           - os: ubuntu-latest
@@ -39,15 +35,14 @@ jobs:
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
-        exclude:
-          - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
-            c_compiler: clang
-          - os: ubuntu-latest
-            c_compiler: cl
 
     steps:
+    - name: Install MinGW-w64
+      #Installs MinGW
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64
+
     - uses: actions/checkout@v4
 
     - name: Set reusable strings
