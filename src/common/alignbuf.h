@@ -23,7 +23,7 @@ struct align_alloc {
     }
 
     void deallocate(T* p, std::size_t n) noexcept {
-        ::operator delete(p, n * sizeof(T), std::align_val_t(align_t));
+        ::operator delete(p, std::align_val_t(align_t));
     }
 };
 
