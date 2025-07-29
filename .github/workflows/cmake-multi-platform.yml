@@ -26,7 +26,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         c_compiler: [gcc, clang, x86_64-w64-mingw32-gcc]
         include:
-          - os: windows-latest
+          - os: ubuntu-latest
             c_compiler: x86_64-w64-mingw32-gcc
             cpp_compiler: x86_64-w64-mingw32-g++
           - os: ubuntu-latest
