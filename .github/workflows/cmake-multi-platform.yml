@@ -68,7 +68,7 @@ jobs:
       uses: actions/upload-artifact@v4.6.2
       with:
         name: sac
-        path: ./sac
+        path: ./build/
         if-no-files-found: warn
         overwrite: false
         include-hidden-files: false
