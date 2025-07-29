@@ -65,10 +65,10 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
     - name: Upload a Build Artifact
-    uses: actions/upload-artifact@v4.6.2
-    with:
-      name: sac
-      path: ./sac
-      if-no-files-found: warn
-      overwrite: false
-      include-hidden-files: false
+      uses: actions/upload-artifact@v4.6.2
+      with:
+        name: sac
+        path: ./sac
+        if-no-files-found: warn
+        overwrite: false
+        include-hidden-files: false
