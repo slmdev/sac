@@ -1,6 +1,5 @@
 #include "cmdline.h"
 #include "opt/opt.h"
-//#include <cfenv>
 
 #define SAC_VERSION "0.7.22"
 
@@ -14,9 +13,8 @@ int main(int argc,const char *argv[])
   #else
     std::cout << "(32-bit";
   #endif
-  #if defined(USE_AVX256)
+  if constexpr(SACGlobalCfg::USE_AVX2)
     std::cout << ",AVX2";
-  #endif
   std::cout << ")";
   #ifdef __clang__
     std::cout << " clang " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << "\n";

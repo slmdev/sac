@@ -24,7 +24,7 @@ using span_cf64=std::span<const double>;
 
 struct SACGlobalCfg {
   static constexpr bool USE_AVX2=true;
-  static constexpr bool UNROLL_AVX2=true;
+  static constexpr int AVX2_MINN=8;
   static constexpr double NLMS_POW_EPS=1.0;
   static constexpr double LMS_ADA_EPS=1E-5;
   static constexpr bool LMS_MIX_INIT=true;// increase stability
