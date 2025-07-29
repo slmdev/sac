@@ -5,10 +5,11 @@
 #include "math.h"
 
 #include <algorithm>
-#include <numeric>
 #include <cstring>
 #include <cmath>
+#include <cstdint>
 #include <immintrin.h>
+#include <numeric>
 
 // running exponential smoothing
 // sum=alpha*sum+(1.0-alpha)*val, where 1/(1-alpha) is the mean number of samples considered
