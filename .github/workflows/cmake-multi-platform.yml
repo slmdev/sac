@@ -1,6 +1,12 @@
 # This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
 name: CMake on multiple platforms
+uses: egor-tensin/setup-mingw@v2
+  with:
+    platform: x64
+    cygwin: 0
+    static: 0
+    cc: 0
 
 on:
   push:
@@ -28,8 +34,8 @@ jobs:
         c_compiler: [gcc, clang, cl]
         include:
           - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
+            c_compiler: x86_64-w64-mingw32-gcc
+            cpp_compiler: x86_64-w64-mingw32-g++
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
