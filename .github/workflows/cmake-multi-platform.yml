@@ -70,5 +70,5 @@ jobs:
         name: sac
         path: ./build/
         if-no-files-found: warn
-        overwrite: false
+        overwrite: true
         include-hidden-files: false
