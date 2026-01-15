@@ -70,8 +70,7 @@ class SparsePCM {
     }
 
     // map error "val" (relative to prediction p) to the rank distance among only used symbols
-    // mapping is bijective over valid target values val+p in [minval,maxval]
-    // multiple p outside the support are semantically identical with respect to ranking inside support
+    // mapping is bijective, val+p must be in [minval,maxval], p can be outside
     int val2rank_fast(const int32_t val,const int32_t p=0)
     {
         const int tidx = (val+p) - minval; // target index
@@ -84,7 +83,7 @@ class SparsePCM {
         const int pidx = p - minval; // pivot/prediction index
 
         if (val>0) {
-          // range (p,target) -> prefix[tidx+1] - prefix[clamp(pidx+1)]
+          // range (p,target] -> prefix[tidx+1] - prefix[clamp(pidx+1)]
           int pidx_clamp = std::clamp(pidx+1,0,N); // no violation of reversibility
           return prefix[tidx+1] - prefix[pidx_clamp];
         } else {

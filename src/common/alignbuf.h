@@ -4,6 +4,8 @@
 template <typename T, std::size_t align_t=64>
 struct align_alloc {
     using value_type = T;
+    using propagate_on_container_move_assignment = std::true_type;
+    using is_always_equal = std::true_type;
 
     template <typename U>
     struct rebind {
@@ -11,8 +13,9 @@ struct align_alloc {
     };
 
     constexpr align_alloc() noexcept = default;
-    constexpr align_alloc(const align_alloc &) noexcept = default;
 
+    // explicit default-copy-ctor is redundant
+    constexpr align_alloc(const align_alloc &) noexcept = default;
 
     template <typename U>
     constexpr align_alloc(const align_alloc<U, align_t> &) noexcept {}
@@ -23,7 +26,7 @@ struct align_alloc {
     }
 
     void deallocate(T* p, std::size_t n) noexcept {
-        ::operator delete(p, n * sizeof(T), std::align_val_t(align_t));
+        ::operator delete(p, n * sizeof(T),std::align_val_t(align_t));
     }
 };
 
@@ -33,8 +36,8 @@ bool operator==(const align_alloc<T, align_t>&, const align_alloc<U, align_t>&) 
 }
 
 template <typename T, typename U, std::size_t align_t>
-bool operator!=(const align_alloc<T, align_t>&, const align_alloc<U, align_t>&) noexcept {
-    return false;
+bool operator!=(const align_alloc<T, align_t>& lhs, const align_alloc<U, align_t>& rhs) noexcept {
+    return !(lhs == rhs);
 }
 
 #endif
