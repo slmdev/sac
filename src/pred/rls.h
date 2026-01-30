@@ -27,13 +27,14 @@ class ALC
       double m=miscUtils::decay_map<tmap_mode>(gamma,mnorm);
       return lambda_min + (lambda_max-lambda_min)*m;
     }
-  protected:
+  private:
     double gamma,lambda_min,lambda_max;
-    RunSum <> msum;
+    RunSumEMA msum;
 };
 
 // Recursive Least Squares algorithm
 class RLS {
+  static constexpr double PHI_FLOOR=1E-8;
   public:
     explicit RLS(int n,double gamma,double nu=1);
     double Predict();
