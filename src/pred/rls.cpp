@@ -5,7 +5,7 @@
 RLS::RLS(int n,double gamma,double nu)
 :n(n),
 px(0.),gamma(gamma),
-hist(n),w(n),
+x(n),w(n),
 P(n,vec1D(n)), // inverse covariance matrix
 alc(gamma)
 {
@@ -15,13 +15,13 @@ alc(gamma)
 
 double RLS::Predict()
 {
-  px=slmath::dot(hist,w);
+  px=slmath::dot(x,w);
   return px;
 }
 
 double RLS::Predict(const vec1D &input)
 {
-  hist=input;
+  x=input;
   return Predict();
 }
 
@@ -29,16 +29,16 @@ void RLS::Update(double val)
 {
   const double err=val-px;
 
-  vec1D ph=slmath::mul(P,hist); //phi=hist P hist
+  vec1D ph=slmath::mul(P,x); //phi=x^T P x
   // a priori variance of prediction
-  double phi=std::max(slmath::dot(hist,ph),PHI_FLOOR);
+  double phi=std::max(slmath::dot(x,ph),PHI_FLOOR);
 
   double alpha=gamma;
   if constexpr(SACGlobalCfg::RLS_ALC) {
     // Normalized Innovation Squared
     // quantifies how "unexpected" the observation is
     // relative to the models uncertainty phi
-    double metric = (err*err);//(phi+1E-3);
+    double metric = (err*err);//(phi+1E-1);
     alpha=alc.update(metric);
   };
 
@@ -61,5 +61,5 @@ void RLS::Update(double val)
 void RLS::UpdateHist(double val)
 {
   Update(val);
-  miscUtils::RollBack(hist,val);
+  miscUtils::RollBack(x,val);
 }

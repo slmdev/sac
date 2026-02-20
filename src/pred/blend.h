@@ -26,7 +26,7 @@ class Blend2 {
       z = std::clamp(z,-scale,scale);
       w = 1.0 / (1.0 + std::exp(-z));
    }
-  protected:
+  private:
     double w,th0,th1,scale;
     RunSumEMA rsum;
 };

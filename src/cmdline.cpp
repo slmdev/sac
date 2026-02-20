@@ -145,12 +145,12 @@ int CmdLine::Parse(int argc,const char *argv[])
        } else if (key=="--BEST") {
          cfg.optimize=1;
          cfg.ocfg.fraction=0.50;
-         cfg.ocfg.maxnfunc=1000;
+         cfg.ocfg.maxnfunc=1250;
          cfg.ocfg.sigma=0.25;
          cfg.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
          cfg.optimize=1;
-         cfg.ocfg.fraction=0.5;
+         cfg.ocfg.fraction=0.6;
          cfg.ocfg.maxnfunc=1500;
          cfg.ocfg.sigma=0.25;
          cfg.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;

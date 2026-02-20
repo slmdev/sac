@@ -38,13 +38,13 @@ class RLS {
   public:
     explicit RLS(int n,double gamma,double nu=1);
     double Predict();
-    double Predict(const vec1D &pred);
     void Update(double val);
+    double Predict(const vec1D &input);
     void UpdateHist(double val);
     int n;
   private:
     double px,gamma;
-    vec1D hist,w;
+    vec1D x,w;
     vec2D P;
     ALC<miscUtils::MapMode::exp> alc;
 };

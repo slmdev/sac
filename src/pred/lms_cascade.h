@@ -27,11 +27,11 @@
 // using absolute error as scoring function
 class Blend2LMS_L1 {
   public:
-    Blend2LMS_L1(int n,double lms_mu,double lms_beta,double blend_beta=0.95)
+    Blend2LMS_L1(int n,double lms_mu,double lms_beta)
     :n(n),px0(0.0),px1(0.0),
      mix0(n,lms_mu,lms_beta),
      mix1(n,lms_mu,lms_beta),
-     cw2(blend_beta)
+     cw2(lms_beta)
     {
       if constexpr(SACGlobalCfg::LMS_MIX_INIT)
         for (int i=0;i<n-1;i++)
