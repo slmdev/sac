@@ -13,7 +13,7 @@ int main(int argc,const char *argv[])
   #else
     std::cout << "(32-bit";
   #endif
-  if constexpr(SACGlobalCfg::USE_AVX2)
+  if constexpr(SACCfg::USE_AVX2)
     std::cout << ",AVX2";
   std::cout << ")";
   #ifdef __clang__

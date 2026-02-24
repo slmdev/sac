@@ -34,7 +34,7 @@ void RLS::Update(double val)
   double phi=std::max(slmath::dot(x,ph),PHI_FLOOR);
 
   double alpha=gamma;
-  if constexpr(SACGlobalCfg::RLS_ALC) {
+  if constexpr(SACCfg::RLS_ALC) {
     // Normalized Innovation Squared
     // quantifies how "unexpected" the observation is
     // relative to the models uncertainty phi

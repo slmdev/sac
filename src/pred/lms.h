@@ -44,7 +44,7 @@ class NLMS_Stream : public LS_Stream
     void Update(double val) override
     {
       const double spow=slmath::calc_s2pow(x.get_span(),powtab);
-      const double wgrad=mu*(val-pred)*sum_powtab/(spow+SACGlobalCfg::NLMS_POW_EPS);
+      const double wgrad=mu*(val-pred)*sum_powtab/(spow+SACCfg::NLMS_POW_EPS);
       for (int i=0;i<n;i++) {
         w[i]+=mutab[i]*(wgrad*x[i]);
       }
@@ -71,7 +71,7 @@ class LADADA_Stream : public LS_Stream
       for (int i=0;i<n;i++) {
         double const grad=serr*x[i];
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
-        double g=grad*1.0/(sqrt(eg[i])+SACGlobalCfg::LMS_ADA_EPS);// update weights
+        double g=grad*1.0/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);// update weights
         w[i]+=mu*g;
       }
       x.push(val);
@@ -95,7 +95,7 @@ class LMSADA_Stream : public LS_Stream
       for (int i=0;i<n;i++) {
         double const grad=err*x[i]-nu*MathUtils::sgn(w[i]);
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
-        double g=grad*1.0/(sqrt(eg[i])+SACGlobalCfg::LMS_ADA_EPS);// update weights
+        double g=grad*1.0/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);// update weights
         w[i]+=mu*g;
       }
       x.push(val);
@@ -140,7 +140,7 @@ class LMS_ADA : public LMS
         double const grad=err*x[i] - nu*MathUtils::sgn(w[i]); // gradient + l1-regularization
 
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
-        double g=grad*1.0/(sqrt(eg[i])+SACGlobalCfg::LMS_ADA_EPS);// update weights
+        double g=grad*1.0/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);// update weights
         w[i]+=mu*g;
       }
     }
@@ -162,7 +162,7 @@ class LAD_ADA : public LMS
       for (int i=0;i<n;i++) {
         double const grad=serr*x[i];
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
-        double scaled_grad=grad*1.0/(sqrt(eg[i])+SACGlobalCfg::LMS_ADA_EPS);// update weights
+        double scaled_grad=grad*1.0/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);// update weights
         w[i]+=mu*scaled_grad;
       }
     }
@@ -200,7 +200,7 @@ class HBR_ADA : public LMS
       for (int i=0;i<n;i++) {
         double const grad=grad_loss*x[i];
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //accumulate gradients
-        const double g=grad*1.0/(sqrt(eg[i])+SACGlobalCfg::LMS_ADA_EPS);// update weights
+        const double g=grad*1.0/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);// update weights
         w[i]+=mu*g;
       }
     }
@@ -234,7 +234,7 @@ class LMS_ADAM : public LMS
         double n_hat=beta2*S[i]/(1.0-power_beta2);*/
         double m_hat=M[i]/(1.0-power_beta1);
         double n_hat=S[i]/(1.0-power_beta2);
-        w[i]+=mu*m_hat/(sqrt(n_hat)+SACGlobalCfg::LMS_ADA_EPS);
+        w[i]+=mu*m_hat/(sqrt(n_hat)+SACCfg::LMS_ADA_EPS);
       }
     }
   private:

@@ -20,7 +20,7 @@ int SacProfile::LoadBaseProfile()
   profile.Set(7,0.0,1.0,0.8);   // pow-decay
   profile.Set(8,0.0,1.0,0.8);   // pow-decay
 
-  profile.Set(10,0.0001,0.008,0.002);//mu-mix
+  profile.Set(10,0.0005,0.05,0.005);//mu-mix
   profile.Set(11,0.8,0.9999,0.95);//mu-mix-beta
 
   profile.Set(12,0.99,0.9999,0.998);
@@ -35,7 +35,7 @@ int SacProfile::LoadBaseProfile()
   profile.Set(19,0.0,1.0,0.8);   // pow-decay
   profile.Set(20,0.0,1.0,0.8);   // pow-decay
   profile.Set(21,0.0,1.0,0.8);   // pow-decay
-  profile.Set(22,0.0001,0.008,0.002);//mu-mix
+  profile.Set(22,0.0005,0.05,0.005);//mu-mix
   profile.Set(23,0.8,0.9999,0.95);//mu-mix-beta*/
 
   profile.Set(24,4,mo_lpc,16);//nA

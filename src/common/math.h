@@ -68,8 +68,8 @@ namespace slmath
     double total=0.0;
     std::size_t i=0;
 
-    if constexpr(SACGlobalCfg::USE_AVX2) {
-      if (n>=SACGlobalCfg::AVX2_MINN)
+    if constexpr(SACCfg::USE_AVX2) {
+      if (n>=SACCfg::AVX2_MINN)
       {
         __m256d sum1 = _mm256_setzero_pd();
         __m256d sum2 = _mm256_setzero_pd();
@@ -101,9 +101,9 @@ namespace slmath
     double spow=0.0;
     std::size_t i=0;
 
-    if constexpr(SACGlobalCfg::USE_AVX2) {
+    if constexpr(SACCfg::USE_AVX2) {
       //powtab is assumed to be correctly aligned
-      if (n>=SACGlobalCfg::AVX2_MINN) {
+      if (n>=SACCfg::AVX2_MINN) {
         __m256d sum_vec = _mm256_setzero_pd();
         for (; i + 4 <= n; i += 4) {
           __m256d x_vec = _mm256_loadu_pd(&x[i]);
