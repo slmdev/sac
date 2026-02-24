@@ -47,6 +47,8 @@ class NLMS_Stream : public LS_Stream
       const double wgrad=mu*(val-pred)*sum_powtab/(spow+SACCfg::NLMS_POW_EPS);
       for (int i=0;i<n;i++) {
         w[i]+=mutab[i]*(wgrad*x[i]);
+        if constexpr(SACCfg::NLMS_CLAMPW)
+          w[i]=std::clamp(w[i],-SACCfg::NLMS_SCALE,SACCfg::NLMS_SCALE);
       }
       x.push(val);
     };
