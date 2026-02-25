@@ -99,7 +99,7 @@ class RunMeanVar {
         #endif
       }
     }
-    auto get()
+    inline auto Get() const
     {
       return std::pair{mean_,std::max(0.0,var_)};
     }

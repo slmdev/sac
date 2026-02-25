@@ -134,7 +134,7 @@ class BiasEstimator {
       miscUtils::RollBack(hist_input,val);
       miscUtils::RollBack(hist_delta,delta);
 
-      const auto [mean,var] = run_mv.get();
+      const auto [mean,var] = run_mv.Get();
 
       const double q=sigma*sqrt(var);
       const double lb=mean-q;
