@@ -9,7 +9,7 @@ int SacProfile::LoadBaseProfile()
   profile.Init(53);
 
   profile.Set(0,0.99,0.9999,0.998);
-  profile.Set(1,0.01,10.0,0.1);
+  profile.Set(1,0.1,10.0,1);
 
   profile.Set(2,0.001,1.0,0.1);//mu0
   profile.Set(3,0.001,1.0,0.12);//mu1
@@ -24,7 +24,7 @@ int SacProfile::LoadBaseProfile()
   profile.Set(11,0.8,0.9999,0.95);//mu-mix-beta
 
   profile.Set(12,0.99,0.9999,0.998);
-  profile.Set(13,0.01,10.0,0.1);
+  profile.Set(13,0.1,10.0,1);
 
   profile.Set(14,0.001,1.0,0.1);//mu0
   profile.Set(15,0.001,1.0,0.12);//mu1

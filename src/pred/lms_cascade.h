@@ -99,8 +99,7 @@ class BlendLMS {
         }
       }
 
-      sm.UpdateRegret(target);
-      sm.UpdateWeights();
+      sm.Update(target);
     }
 
 private:
@@ -110,7 +109,7 @@ private:
     //std::vector <RunMeanVar> rsum;
     //double beta;
     //double px;
-    BlendRegret sm;
+    BlendExp sm;
 };
 
 

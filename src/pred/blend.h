@@ -31,15 +31,34 @@ class Blend2 {
     RunSumEMA rsum;
 };
 
+      #if 0
+        double hr=0.5,beta_nu=0.05;
+        const double Hmax = std::log(np);
+        const double Htarget = Hmax*hr;
+        double H = 0.0;
+        for (std::size_t i=0;i<np;i++) {
+          if (w[i]>1E-8) H-=w[i]*log(w[i]);
+        }
+        beta += beta_nu*(H-Htarget);
+        beta = std::clamp(beta,1.0,15.0);
+        //std::cout << H << ' ' << Htarget << ' ' << beta << '\n';
+      #endif
 
-class BlendRegret
+
+#define BLEND_MV
+
+class BlendExp
 {
   static constexpr double EPS=1E-8;
   public:
-    BlendRegret(std::size_t n,double alpha,double beta)
+    BlendExp(std::size_t n,double alpha,double beta)
     :n_(n),beta(beta),px(0.0),
     x(n),w(n),zm(n),
-    rsum(n,RunMeanVar(alpha))
+    #ifdef BLEND_MV
+      rsum(n,RunMeanVar(alpha))
+    #else
+      rsum(n,RunSumEMA(alpha))
+    #endif
     {
       if (n)
         std::fill(begin(w),end(w),1.0/n); //init equal weight
@@ -51,14 +70,21 @@ class BlendRegret
       px=slmath::dot(x,w);
       return px;
     }
-    void UpdateRegret(double target)
+    void Update(double target)
+    {
+      UpdateScores(target);
+      UpdateWeights();
+    }
+    const vec1D &Weights()const {return w;}
+  private:
+    void UpdateScores(double target)
     {
       double loss_px = std::abs(target-px);
       for (std::size_t i=0;i<n_;i++) {
         double loss_pi=std::abs(target-x[i]);
-        // if regret < 0 -> expert better then blend
-        double regret=(loss_pi - loss_px);
-        rsum[i].Update(regret);
+        // if score > 0 -> expert better then blend
+        double score=(loss_px - loss_pi);
+        rsum[i].Update(score);
       }
     }
     // softmax w_i = exp(-beta * normalized_regret)
@@ -66,10 +92,15 @@ class BlendRegret
     {
       double max_z = -std::numeric_limits<double>::infinity();
       for (std::size_t i=0;i<n_;i++) {
-        auto [mean,var] = rsum[i].Get(); //regret
+        #ifdef BLEND_MV
+          auto [mean,var] = rsum[i].Get();
+          // scaled signal-to-noise
+          zm[i]= beta*mean/(std::sqrt(var)+EPS);
+        #else
+          double mean=rsum[i].Get();
+          zm[i]= beta*mean;
+        #endif
 
-        // scaled signal-to-noise
-        zm[i]= -beta*mean/(std::sqrt(var)+EPS);
         max_z = std::max(max_z,zm[i]);
       }
 
@@ -83,26 +114,16 @@ class BlendRegret
       const double inv_total=1.0/total;
       for (double &val : w) val *= inv_total;
     }
-    const vec1D &Weights()const {return w;}
-  private:
+
     std::size_t n_;
     double beta,px;
     vec1D x,w,zm;
-    std::vector <RunMeanVar> rsum;
+    #ifdef BLEND_MV
+      std::vector <RunMeanVar> rsum;
+    #else
+      std::vector <RunSumEMA> rsum;
+    #endif
 };
-
-      #if 0
-        double hr=0.5,beta_nu=0.05;
-        const double Hmax = std::log(np);
-        const double Htarget = Hmax*hr;
-        double H = 0.0;
-        for (std::size_t i=0;i<np;i++) {
-          if (w[i]>1E-8) H-=w[i]*log(w[i]);
-        }
-        beta += beta_nu*(H-Htarget);
-        beta = std::clamp(beta,1.0,15.0);
-        //std::cout << H << ' ' << Htarget << ' ' << beta << '\n';
-      #endif
 
 
 #endif
