@@ -44,25 +44,26 @@ class Blend2 {
         //std::cout << H << ' ' << Htarget << ' ' << beta << '\n';
       #endif
 
+template<class T>
+concept StatType = requires(T s, double v) {
+    s.Update(v);
+    { s.Get() };
+};
 
-#define BLEND_MV
-
+template <StatType Stats>
 class BlendExp
 {
   static constexpr double EPS=1E-8;
   public:
     BlendExp(std::size_t n,double alpha,double beta)
-    :n_(n),beta(beta),px(0.0),
+    :n(n),beta(beta),px(0.0),
     x(n),w(n),zm(n),
-    #ifdef BLEND_MV
-      rsum(n,RunMeanVar(alpha))
-    #else
-      rsum(n,RunSumEMA(alpha))
-    #endif
+    rsum(n,Stats(alpha))
     {
-      if (n)
+      if (n==0)
+        throw std::invalid_argument("BlendExp: n must be >0");
+      else
         std::fill(begin(w),end(w),1.0/n); //init equal weight
-
     };
     double Predict(const vec1D &input)
     {
@@ -80,51 +81,49 @@ class BlendExp
     void UpdateScores(double target)
     {
       double loss_px = std::abs(target-px);
-      for (std::size_t i=0;i<n_;i++) {
+      for (std::size_t i=0;i<n;i++) {
         double loss_pi=std::abs(target-x[i]);
         // if score > 0 -> expert better then blend
         double score=(loss_px - loss_pi);
         rsum[i].Update(score);
       }
     }
+    double calculate_z(const Stats &st) const
+    {
+      if constexpr (std::is_same_v<Stats, RunMeanVar>) {
+        auto [mean,var] = st.Get();
+        return beta*mean/(std::sqrt(var)+EPS);
+      } else {
+        return beta*st.Get();
+      }
+    }
     // softmax w_i = exp(-beta * normalized_regret)
     void UpdateWeights()
     {
       double max_z = -std::numeric_limits<double>::infinity();
-      for (std::size_t i=0;i<n_;i++) {
-        #ifdef BLEND_MV
-          auto [mean,var] = rsum[i].Get();
-          // scaled signal-to-noise
-          zm[i]= beta*mean/(std::sqrt(var)+EPS);
-        #else
-          double mean=rsum[i].Get();
-          zm[i]= beta*mean;
-        #endif
-
+      for (std::size_t i=0;i<n;i++) {
+        zm[i] = calculate_z(rsum[i]);
         max_z = std::max(max_z,zm[i]);
       }
 
       //best expert has highest z-score -> weight=exp(0)=1
       double total=0.0;
-      for (std::size_t i=0;i<n_;i++) {
+      for (std::size_t i=0;i<n;i++) {
         w[i] = std::exp(zm[i]-max_z);
         total += w[i];
       }
       //normalize weights, total >= 1 from max-trick
       const double inv_total=1.0/total;
-      for (double &val : w) val *= inv_total;
+      for (double &val : w) {
+          val *= inv_total;
+      }
     }
 
-    std::size_t n_;
+    std::size_t n;
     double beta,px;
     vec1D x,w,zm;
-    #ifdef BLEND_MV
-      std::vector <RunMeanVar> rsum;
-    #else
-      std::vector <RunSumEMA> rsum;
-    #endif
+    std::vector <Stats> rsum;
 };
-
 
 #endif
 

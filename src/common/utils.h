@@ -159,6 +159,14 @@ namespace MathUtils {
     return -0.5*std::log(2*M_PI*sigma2) - 0.5 * sq_e / sigma2;
   }
 
+  inline double hbr_loss(double err_g,double delta)
+  {
+    if (std::abs(err_g) <= delta)
+      return 0.5*err_g*err_g;
+    else
+      return delta*(std::abs(err_g) - 0.5*delta);
+  }
+
   // inverse of pos. def. symmetric matrix
   class InverseSym
   {

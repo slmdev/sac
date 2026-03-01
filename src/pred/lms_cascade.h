@@ -109,7 +109,7 @@ private:
     //std::vector <RunMeanVar> rsum;
     //double beta;
     //double px;
-    BlendExp sm;
+    BlendExp<RunMeanVar> sm;
 };
 
 
