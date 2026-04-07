@@ -34,8 +34,6 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const tsac_cfg &cfg)
   numsamples_=0;
 }
 
-#define OPT_COV2
-
 void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
   if (optimize) param.k=cfg.ocfg.optk;
@@ -71,16 +69,10 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow0=profile.Get(35);
   param.beta_add0=profile.Get(36);
 
-  if (cfg.optimize==1)
-  {
-    param.beta_sum1=param.beta_sum0;
-    param.beta_pow1=param.beta_pow0;
-    param.beta_add1=param.beta_add0;
-  } else {
-    param.beta_sum1=profile.Get(53);
-    param.beta_pow1=profile.Get(54);
-    param.beta_add1=profile.Get(55);
-  }
+  param.beta_sum1=profile.Get(53);
+  param.beta_pow1=profile.Get(54);
+  param.beta_add1=profile.Get(55);
+
 
   param.lm_n=std::round(profile.Get(41));
   param.lm_alpha=profile.Get(42);
@@ -392,6 +384,11 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
     SacProfile tmp_profile=profile;
 
     for (int i=0;i<ndim;i++) tmp_profile.coefs[params_to_optimize[i]].vdef=x[i];
+    if (cfg.optimize==1) { //ugly hack
+      tmp_profile.coefs[53] = tmp_profile.coefs[34];
+      tmp_profile.coefs[54] = tmp_profile.coefs[35];
+      tmp_profile.coefs[55] = tmp_profile.coefs[36];
+    }
 
     PredictFrame(tmp_profile,tmp_error,start_pos,samples_to_optimize,true);
     return GetCost(CostFunc,tmp_error,samples_to_optimize);
@@ -419,6 +416,12 @@ void FrameCoder::Optimize(const FrameCoder::toptim_cfg &ocfg,SacProfile &profile
   // save optimal vector to baseprofile
   for (int i=0;i<ndim;i++)
     profile.coefs[params_to_optimize[i]].vdef=ret.second[i];
+
+  if (cfg.optimize==1) {
+    profile.coefs[53] = profile.coefs[34];
+    profile.coefs[54] = profile.coefs[35];
+    profile.coefs[55] = profile.coefs[36];
+  }
 
   if (cfg.verbose_level>0) {
     PrintProfile(profile);

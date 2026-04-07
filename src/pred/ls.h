@@ -110,21 +110,20 @@ class LMSADA_Stream : public LS_Stream
 };
 
 enum class LSInitType {Zero,One,Uniform,Decay};
-
-// linear systems using ADAgrad/RMSprop style updates
+// linear systems using ADAgrad/RMSprop style batch-updates
 class LS {
   protected:
   public:
-    LS(int n,double mu)
-    :n(n),x(n),w(n),mu(mu),pred(0)
+    LS(std::size_t n,double mu)
+    :n(n),w(n),mu(mu)
     {
     }
-    virtual double Predict(const vec1D &inp)
+    virtual double Predict(span_cf64 x)
     {
-      x=inp;
-      return (pred=slmath::dot(x,w));
+      assert(x.size() == static_cast<size_t>(n));
+      return slmath::dot(x,w);
     }
-    virtual void Update(double)=0;
+    virtual void Update(span_cf64,double)=0;
     virtual double GetWeight(int idx) const
     {
       return w[idx];
@@ -149,9 +148,9 @@ class LS {
           break;
       }
     }
-    int n;
-    vec1D x,w;
-    double mu,pred;
+    std::size_t n;
+    vec1D w;
+    double mu;
 };
 
 //LossFunction
@@ -159,14 +158,14 @@ namespace Loss {
 
 template<typename T>
 concept LossFunction = requires(double err) {
-  { T::delta(err) } -> std::same_as<double>;
+  { T::grad(err) } -> std::same_as<double>;
 };
 
-struct L1 {static inline double delta(double err) {return MathUtils::sgn(err);}};
-struct L2 {static inline double delta(double err) {return err;}};
-template <int d=4>
-  struct HBR {static inline double delta(double err) {
-    return MathUtils::hbr_grad(err,static_cast<double>(d));}
+struct L1 {static inline double grad(double err) {return MathUtils::sgn(err);}};
+struct L2 {static inline double grad(double err) {return err;}};
+template <double d=4>
+  struct HBR {static inline double grad(double err) {
+    return MathUtils::hbr_grad(err,d);}
   };
 
 };
@@ -214,9 +213,9 @@ class LS_ADA : public LS
     {
       InitWeights(w,init_type);
     }
-    void Update(double val) override {
-      const double loss=LF::delta(val-pred);
-      for (int i=0;i<n;i++) {
+    void Update(span_cf64 x,double error) override {
+      const double loss=LF::grad(error);
+      for (std::size_t i=0;i<n;++i) {
         double const grad=loss*x[i];
 
         eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //ema gradients
@@ -224,8 +223,8 @@ class LS_ADA : public LS
         double mu_scaled = mu/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);
         w[i]+=mu_scaled*grad;
 
-        //decoupled weight decay, proximal step
-        w[i]=WD::apply(w[i],mu);
+        //weight decay (proximal step for L1)
+        w[i]=WD::apply(w[i],mu_scaled);
       }
     }
   private:
@@ -244,11 +243,11 @@ class LS_ADAM : public LS
       power_beta1=1.0;
       power_beta2=1.0;
     }
-    void Update(double val) override {
+    void Update(span_cf64 x,double error) override {
       power_beta1*=beta1;
       power_beta2*=beta2;
-      const double loss=LF::delta(val-pred);
-      for (int i=0;i<n;i++) {
+      const double loss=LF::grad(error);
+      for (std::size_t i=0;i<n;++i) {
         double const grad=loss*x[i]; // gradient
 
         M[i]=beta1*M[i]+(1.0-beta1)*grad;
@@ -272,11 +271,10 @@ class SSLMS : public LS {
       :LS(n,mu)
       {
       }
-      void Update(double val) override
+      void Update(span_cf64 x,double error) override
       {
-        double e=val-pred;
-        const double wf=mu*MathUtils::sgn(e);
-        for (int i=0;i<n;i++) {
+        const double wf=mu*MathUtils::sgn(error);
+        for (std::size_t i=0;i<n;++i) {
            w[i]+=wf*MathUtils::sgn(x[i]);
         }
       }

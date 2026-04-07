@@ -5,6 +5,7 @@
 #include <vector>
 #include <type_traits>
 #include <algorithm>
+#include "ls.h"
 
 /*
   Hierarchical mixer using different gatings f
@@ -120,18 +121,6 @@ struct Gate3 {
   static double inject(const GateInput&,const GateParam &gp) {return gp.b;}
 };
 
-//LossFunction
-template<typename T>
-concept LossFunction = requires(double err) {
-  { T::delta(err) } -> std::same_as<double>;
-};
-struct L1 {static double delta(double err) {return MathUtils::sgn(err);}};
-struct L2 {static double delta(double err) {return err;}};
-template <int d=4>
-  struct HBR {static double delta(double err) {
-    return MathUtils::hbr_grad(err,static_cast<double>(d));}
-  };
-
 //Regularization
 template<typename T>
 concept WeightDecay = requires(double w) {
@@ -154,7 +143,7 @@ struct is_gate2 : std::false_type {};
 template<Activation A>
 struct is_gate2<Gate2<A>> : std::true_type {};
 
-template<LossFunction Lf,class Gate,WeightDecay Reg=NoReg,int init_type=0>
+template<Loss::LossFunction LF,class Gate,WeightDecay Reg=NoReg,int init_type=0>
 class HMix : public LS {
 public:
   HMix(int n,double mu,double beta=0.95,double gate_init=0.0)
@@ -177,11 +166,10 @@ public:
     }
   }
 
-  double Predict(const vec1D& inp) override
+  double Predict(span_cf64 x) override
   {
-    x = inp;
-    pred = 0.0;
-    for (int i = 0;i<n;++i) {
+    double pred=0.0;
+    for (std::size_t i = 0;i<n;++i) {
       double mctx=0.0;
 
       if constexpr (is_gate2<Gate>::value)
@@ -199,11 +187,10 @@ public:
     return pred;
   }
 
-  void Update(double target) override
+  void Update(span_cf64,double error) override
   {
     // dL/d(out[n-1])
-    double delta=Lf::delta((target-pred));
-
+    double delta=LF::grad(error);
     //backpropagation
     for (int i=n - 1;i >= 0;--i) {
       // use pre-update value for backprop
@@ -229,7 +216,7 @@ public:
   double GetWeight(int i) const override
   {
     double w = Gate::inject(input[i],param[i]);
-    for (int j=i+1;j<n;++j)
+    for (std::size_t j=i+1;j<n;++j)
       w *= Gate::carry(param[j].a);
     return w;//std::max(w,0.0);
   }

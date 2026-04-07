@@ -8,11 +8,11 @@
 #define BIAS_ROUND_PRED 1
 #define BIAS_MIX_N 3
 #define BIAS_MIX_NUMCTX 4
-#define BIAS_MIX 0
+#define BIAS_MIX 1
 #define BIAS_NAVG 5
-#define BIAS_CLAMPW 0
 
-using LS_mix = LS_ADA<Loss::HBR<32>,LSInitType::Uniform,Reg::L1<>>;
+using LS_mix = LS_ADA<Loss::L1,LSInitType::Uniform>;
+//using LS_mix = HM::HMix<Loss::HBR<32.0>,HM::Gate1<HM::Tanh>,HM::NoReg,2>;
 
 class BiasEstimator {
   class CntAvg {
@@ -52,7 +52,7 @@ class BiasEstimator {
     #elif BIAS_MIX == 1
       mix_ada(BIAS_MIX_NUMCTX,LS_mix(BIAS_MIX_N,lms_mu)),
     #endif
-    hist_input(8),hist_delta(8),
+    hist_input(8),hist_delta(8),pt(BIAS_MIX_N),
     cnt0(1<<6,CntAvg(nb_scale)),
     cnt1(1<<6,CntAvg(nb_scale)),
     cnt2(1<<6,CntAvg(nb_scale)),
@@ -60,7 +60,7 @@ class BiasEstimator {
     run_mv(nd_lambda)
     {
       ctx0=ctx1=ctx2=mix_ctx=0;
-      px=0.0;
+      px=pbias=0.0;
     }
     void CalcContext(double p)
     {
@@ -119,11 +119,11 @@ class BiasEstimator {
 
       CalcContext(pred);
 
-      vec1D pb(BIAS_MIX_N);
-      pb[0]=cnt0[ctx0].get();
-      pb[1]=cnt1[ctx1].get();
-      pb[2]=cnt2[ctx2].get();
-      return pred+mix_ada[mix_ctx].Predict(pb);
+      pt[0]=cnt0[ctx0].get();
+      pt[1]=cnt1[ctx1].get();
+      pt[2]=cnt2[ctx2].get();
+      pbias=mix_ada[mix_ctx].Predict(pt);
+      return px+pbias;
     }
     void Update(double val) {
       #ifdef BIAS_ROUND_PRED
@@ -148,11 +148,7 @@ class BiasEstimator {
       }
 
       run_mv.Update(delta);
-      mix_ada[mix_ctx].Update(delta);
-      #if BIAS_CLAMPW == 1
-        for (int i=0;i<BIAS_MIX_N;i++)
-          mix_ada[mix_ctx].w[i] = std::max(mix_ada[mix_ctx].w[i],0.);
-      #endif
+      mix_ada[mix_ctx].Update(pt,delta-pbias);
     }
   private:
     #if BIAS_MIX == 0
@@ -160,10 +156,9 @@ class BiasEstimator {
     #elif BIAS_MIX == 1
       std::vector<LS_mix> mix_ada;
     #endif
-    vec1D hist_input,hist_delta;
+    vec1D hist_input,hist_delta,pt;
     int ctx0,ctx1,ctx2,mix_ctx;
-    double px;
-    //double alpha,p,bias0,bias1,bias2;
+    double px,pbias;
     std::vector<CntAvg> cnt0,cnt1,cnt2;
     const double sigma;
     RunMeanVar run_mv;

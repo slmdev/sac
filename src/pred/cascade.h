@@ -29,7 +29,7 @@ class BlendLS {
         return std::max(weight,0.0);
     }
     //prediction using blended predictors over input
-    double Predict(const vec1D &input)
+    double Predict(span_cf64 input)
     {
       for (std::size_t i=0;i<np;i++) {
         ep[i]=expert[i]->Predict(input); // call expert i
@@ -38,10 +38,10 @@ class BlendLS {
       }
       return sm.Predict(ep); //blend;
     }
-    void Update(double target)
+    void Update(span_cf64 input,double target)
     {
       for (std::size_t i=0;i<np;i++)
-        expert[i]->Update(target);
+        expert[i]->Update(input,target-ep[i]);
       sm.Update(target);
     }
 
@@ -52,6 +52,7 @@ private:
     BlendExp<RunSumEMA> sm;
 };
 
+#include "hm.h"
 
 static std::vector<std::unique_ptr<LS>>
 make_mix(int n,double mu_mix,double mu_mix_beta)
@@ -93,7 +94,7 @@ class Cascade {
       }
       lm.UpdateHist(t);
 
-      mix.Update(target);
+      mix.Update(p,target);
     }
     ~Cascade()
     {
