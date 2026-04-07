@@ -3,7 +3,7 @@
 
 #include "../global.h"
 #include "../common/utils.h"
-#include "lms.h"
+#include "ls.h"
 
 #define BIAS_ROUND_PRED 1
 #define BIAS_MIX_N 3
@@ -11,6 +11,8 @@
 #define BIAS_MIX 0
 #define BIAS_NAVG 5
 #define BIAS_CLAMPW 0
+
+using LS_mix = LS_ADA<Loss::HBR<32>,LSInitType::Uniform,Reg::L1<>>;
 
 class BiasEstimator {
   class CntAvg {
@@ -48,9 +50,7 @@ class BiasEstimator {
     #if BIAS_MIX == 0
       mix_ada(BIAS_MIX_NUMCTX,SSLMS(BIAS_MIX_N,lms_mu)),
     #elif BIAS_MIX == 1
-      mix_ada(BIAS_MIX_NUMCTX,LAD_ADA(BIAS_MIX_N,lms_mu,0.96)),
-    #elif BIAS_MIX == 2
-      mix_ada(BIAS_MIX_NUMCTX,LMS_ADA(BIAS_MIX_N,lms_mu,0.965,0.005)),
+      mix_ada(BIAS_MIX_NUMCTX,LS_mix(BIAS_MIX_N,lms_mu)),
     #endif
     hist_input(8),hist_delta(8),
     cnt0(1<<6,CntAvg(nb_scale)),
@@ -158,9 +158,7 @@ class BiasEstimator {
     #if BIAS_MIX == 0
       std::vector<SSLMS> mix_ada;
     #elif BIAS_MIX == 1
-      std::vector<LAD_ADA> mix_ada;
-    #elif BIAS_MIX == 2
-      std::vector<LMS_ADA> mix_ada;
+      std::vector<LS_mix> mix_ada;
     #endif
     vec1D hist_input,hist_delta;
     int ctx0,ctx1,ctx2,mix_ctx;
@@ -173,3 +171,4 @@ class BiasEstimator {
 
 
 #endif // BIAS_H
+

@@ -39,9 +39,9 @@ namespace slmath
           double sum=G[i][i]+nu; //add regularization
           for (int k=0;k<i;k++) sum-=(G[i][k]*G[i][k]);
           if (sum>ftol) G[i][i]=std::sqrt(sum);
-          else return 1;
+          else return 0;
         }
-        return 0;
+        return 1;
       }
       void Solve(const vec1D &b,vec1D &x)
       {

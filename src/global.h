@@ -27,8 +27,6 @@ struct SACCfg {
   static constexpr int AVX2_MINN=8;
   static constexpr double NLMS_POW_EPS=1.0;
   static constexpr double LMS_ADA_EPS=1E-5;
-  static constexpr bool LMS_MIX_INIT=true;// increase stability
-  static constexpr bool LMS_MIX_CLAMPW=false;
 
   static constexpr bool NLMS_CLAMPW=true;
   static constexpr double NLMS_SCALE=10;

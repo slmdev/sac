@@ -149,7 +149,13 @@ namespace StrUtils {
 };
 
 namespace MathUtils {
-
+  template <typename T>
+  T sgn(T x) {
+    return (x > 0) - (x < 0);
+    /*if (x>0) return 1;
+    if (x<0) return -1;
+    return 0;*/
+  }
   inline double calc_loglik_L1(double abs_e,double b)
   {
     return -std::log(2*b) - abs_e / b;
@@ -166,6 +172,18 @@ namespace MathUtils {
     else
       return delta*(std::abs(err_g) - 0.5*delta);
   }
+  inline double hbr_grad(double err_g,double delta)
+  {
+    if (std::abs(err_g) <= delta)
+      return err_g;
+    else
+      return delta*MathUtils::sgn(err_g);
+  }
+  inline double hbr_pseudo_grad(double err_g,double delta)
+  {
+    const double t = err_g/delta;
+    return err_g / std::sqrt(1.0+t*t);
+  }
 
   // inverse of pos. def. symmetric matrix
   class InverseSym
@@ -178,7 +196,7 @@ namespace MathUtils {
       }
       void Solve(const vec2D &matrix,vec2D &sol,const double nu=0.0)
       {
-        if (!chol.Factor(matrix,nu)) {
+        if (chol.Factor(matrix,nu)) {
           for (int i=0;i<n;i++) {
              std::fill(std::begin(b),std::end(b),0.0);
              b[i]=1.0;
@@ -290,13 +308,6 @@ namespace MathUtils {
     double dx = static_cast<double>(n1-n0);
     double dy = y1-y0;
     return idx*(dy/dx)+y0;
-  }
-  template <typename T>
-  T sgn(T x) {
-    return (x > 0) - (x < 0);
-    /*if (x>0) return 1;
-    if (x<0) return -1;
-    return 0;*/
   }
 };
 

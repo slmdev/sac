@@ -38,7 +38,7 @@ void RLS::Update(double val)
     // Normalized Innovation Squared
     // quantifies how "unexpected" the observation is
     // relative to the models uncertainty phi
-    double metric = (err*err);//(phi+1E-1);
+    double metric = (err*err);//(phi+1E-5);
     alpha=alc.update(metric);
   };
 

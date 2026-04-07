@@ -6,10 +6,10 @@ int SacProfile::LoadBaseProfile()
   const int wbits_lms=13; // maximum nlms order 2^wbits_lms
   SacProfile &profile=*this;
 
-  profile.Init(53);
+  profile.Init(56);
 
   profile.Set(0,0.99,0.9999,0.998);
-  profile.Set(1,0.1,10.0,1);
+  profile.Set(1,1.0,100.0,25.0);
 
   profile.Set(2,0.001,1.0,0.1);//mu0
   profile.Set(3,0.001,1.0,0.12);//mu1
@@ -24,7 +24,7 @@ int SacProfile::LoadBaseProfile()
   profile.Set(11,0.8,0.9999,0.95);//mu-mix-beta
 
   profile.Set(12,0.99,0.9999,0.998);
-  profile.Set(13,0.1,10.0,1);
+  profile.Set(13,1.0,100.0,25.0);
 
   profile.Set(14,0.001,1.0,0.1);//mu0
   profile.Set(15,0.001,1.0,0.12);//mu1
@@ -52,9 +52,13 @@ int SacProfile::LoadBaseProfile()
   profile.Set(32,32,1<<(wbits_lms-1),256);
   profile.Set(33,4,1<<(wbits_lms-2),32);
 
-  profile.Set(34,0,1,0.6);
+  profile.Set(34,0,1,0.5);
   profile.Set(35,0.1,2,0.8);
   profile.Set(36,0.1,10,2);
+
+  profile.Set(53,0,1,0.5);
+  profile.Set(54,0.1,2,0.8);
+  profile.Set(55,0.1,10,2);
 
   profile.Set(37,2,1<<(wbits_lms-3),4); //stage 4
   profile.Set(38,2,1<<(wbits_lms-3),4);

@@ -34,7 +34,7 @@ FrameCoder::FrameCoder(int numchannels,int framesize,const tsac_cfg &cfg)
   numsamples_=0;
 }
 
-//#define BIAS_SCALE1
+#define OPT_COV2
 
 void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,bool optimize)
 {
@@ -71,9 +71,16 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow0=profile.Get(35);
   param.beta_add0=profile.Get(36);
 
-  param.beta_sum1=profile.Get(34);
-  param.beta_pow1=profile.Get(35);
-  param.beta_add1=profile.Get(36);
+  if (cfg.optimize==1)
+  {
+    param.beta_sum1=param.beta_sum0;
+    param.beta_pow1=param.beta_pow0;
+    param.beta_add1=param.beta_add0;
+  } else {
+    param.beta_sum1=profile.Get(53);
+    param.beta_pow1=profile.Get(54);
+    param.beta_add1=profile.Get(55);
+  }
 
   param.lm_n=std::round(profile.Get(41));
   param.lm_alpha=profile.Get(42);
@@ -302,6 +309,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << ") (nB " << std::round(profile.Get(25)) << " nS0 " << std::round(profile.Get(26)) << " nS1 " << std::round(profile.Get(27)) << ")\n";
     std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
     std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
+    std::cout << "lpc cov1 " << param.beta_sum1 << ' ' << param.beta_pow1 << ' ' << param.beta_add1 << "\n";
     std::cout << "lms0 ";
     for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
     std::cout << std::round(profile.Get(37));
@@ -461,6 +469,20 @@ void FrameCoder::Predict()
     // optimize all params
     std::vector<int>lparam_base(base_profile.coefs.size());
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
+    if (cfg.optimize==1) {
+      std::erase(lparam_base,53);
+      std::erase(lparam_base,54);
+      std::erase(lparam_base,55);
+    }
+    #if 0
+      toptim_cfg tmp_optcfg=cfg.ocfg;
+      cfg.ocfg.fraction=0.1;
+      cfg.ocfg.dds_cfg.nfunc_max=100;
+      cfg.ocfg.optimize_cost=SearchCost::Entropy;
+      cfg.ocfg.optimize_search=SearchMethod::DDS;
+      Optimize(cfg.ocfg,base_profile,lparam_base);
+      cfg.ocfg = tmp_optcfg;
+    #endif
 
     Optimize(cfg.ocfg,base_profile,lparam_base);
   }
@@ -700,7 +722,7 @@ void Codec::PushState(std::vector<Codec::tsub_frame> &sub_frames,Codec::tsub_fra
     {
       sub_frames.back().length+=curframe.length;
     } else {
-      if (opt_.verbose_level>1)
+      if (cfg.verbose_level>1)
         std::cout << "push subframe of length " << curframe.length << " samples\n";
       sub_frames.push_back(curframe);
 
@@ -736,7 +758,7 @@ std::vector<Codec::tsub_frame> Codec::Analyse(const std::vector <std::vector<int
     avg_cost /= (double)samples.size();
     avg_used /= (double)samples.size();
     int block_state=(avg_cost>1.35); // high threshold
-    if (opt_.verbose_level>1) {
+    if (cfg.verbose_level>1) {
       std::cout << "  analyse block " << nblock << ' ' << samples_block << " sparse " << block_state << " (" << avg_cost << "," << avg_used << ")\n";
     }
 
@@ -758,10 +780,10 @@ std::vector<Codec::tsub_frame> Codec::Analyse(const std::vector <std::vector<int
   if (samples_processed != samples_read)
     std::cerr << "  warning: samples_processed != samples_read (" << samples_processed << "," << samples_read << ")\n";
 
-  if (opt_.verbose_level>1) std::cout << "sub_frames\n";
+  if (cfg.verbose_level>1) std::cout << "sub_frames\n";
   int64_t nlen=0;
   for (const auto &frame : sub_frames) {
-    if (opt_.verbose_level>1) std::cout << "  " << frame.start << ' ' << frame.length << ' ' << frame.state << '\n';
+    if (cfg.verbose_level>1) std::cout << "  " << frame.start << ' ' << frame.length << ' ' << frame.state << '\n';
     nlen+=frame.length;
   }
   if (nlen!=samples_read)
@@ -771,13 +793,13 @@ std::vector<Codec::tsub_frame> Codec::Analyse(const std::vector <std::vector<int
 
 int Codec::EncodeFile(Wav &myWav,Sac &mySac)
 {
-  uint32_t max_framesize=static_cast<uint32_t>(opt_.max_framelen)*myWav.getSampleRate();
+  uint32_t max_framesize=static_cast<uint32_t>(cfg.max_framelen)*myWav.getSampleRate();
 
   const int numchannels=myWav.getNumChannels();
 
-  FrameCoder myFrame(numchannels,max_framesize,opt_);
+  FrameCoder myFrame(numchannels,max_framesize,cfg);
 
-  mySac.mcfg.max_framelen = opt_.max_framelen;
+  mySac.mcfg.max_framelen = cfg.max_framelen;
 
   mySac.WriteSACHeader(myWav);
   std::streampos hdrpos = mySac.file.tellg();
@@ -796,7 +818,7 @@ int Codec::EncodeFile(Wav &myWav,Sac &mySac)
       int samplesread=myWav.ReadSamples(csamples,max_framesize);
 
       std::vector<Codec::tsub_frame> sub_frames;
-      if (opt_.adapt_block) {
+      if (cfg.adapt_block) {
         int block_len=myWav.getSampleRate()*3;
         int min_frame_len=myWav.getSampleRate()*3;
         sub_frames=Analyse(csamples,block_len,min_frame_len,samplesread);
@@ -806,7 +828,7 @@ int Codec::EncodeFile(Wav &myWav,Sac &mySac)
 
       for (auto &subframe:sub_frames)
       {
-        if (opt_.verbose_level)
+        if (cfg.verbose_level)
           std::cout << "frame " << subframe.start << " state " << subframe.state << " len " << subframe.length << '\n';
 
         for (int ch=0;ch<myWav.getNumChannels();ch++)
@@ -851,8 +873,8 @@ void Codec::DecodeFile(Sac &mySac,Wav &myWav)
   mySac.UnpackMetaData(myWav);
   myWav.WriteHeader();
 
-  opt_.max_framelen=file_cfg.max_framelen;
-  FrameCoder myFrame(mySac.getNumChannels(),file_cfg.max_framesize,opt_);
+  cfg.max_framelen=file_cfg.max_framelen;
+  FrameCoder myFrame(mySac.getNumChannels(),file_cfg.max_framesize,cfg);
 
   int64_t data_nbytes=0;
   int samplestodecode=mySac.getNumSamples();

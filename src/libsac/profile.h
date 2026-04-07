@@ -71,16 +71,17 @@ class SacProfile {
       float vmin,vmax,vdef;
     };
 
-      SacProfile(){};
+      SacProfile()
+      {};
       void Init(int numcoefs)
       {
          coefs.resize(numcoefs);
       }
-      SacProfile(int numcoefs)
+      /*SacProfile(int numcoefs)
       :coefs(numcoefs)
       {
 
-      }
+      }*/
       int LoadBaseProfile();
       std::size_t get_size() {return coefs.size();};
       void Set(int num,double vmin,double vmax,double vdef)

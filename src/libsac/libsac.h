@@ -91,7 +91,7 @@ class Codec {
   };
   public:
     Codec(){};
-    Codec(FrameCoder::tsac_cfg &cfg):opt_(cfg) {};
+    Codec(FrameCoder::tsac_cfg &sac_cfg):cfg(sac_cfg) {};
     int EncodeFile(Wav &myWav,Sac &mySac);
     //void EncodeFile(Wav &myWav,Sac &mySac,int profile,int optimize,int sparse_pcm);
     void DecodeFile(Sac &mySac,Wav &myWav);
@@ -101,7 +101,7 @@ class Codec {
     void PushState(std::vector<Codec::tsub_frame> &sub_frames,Codec::tsub_frame &curframe,int min_frame_length,int block_state,int samples_block);
     std::pair<double,double> AnalyseSparse(std::span<const int32_t> buf);
     void PrintProgress(int samplesprocessed,int totalsamples);
-    FrameCoder::tsac_cfg opt_;
+    FrameCoder::tsac_cfg cfg;
     //int framesize;
 };
 

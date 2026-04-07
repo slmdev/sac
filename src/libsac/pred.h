@@ -1,9 +1,9 @@
 #ifndef PRED_H
 #define PRED_H
 
-#include "../pred/lms.h"
-#include "../pred/lms_cascade.h"
-#include "../pred/lpc.h"
+#include "../pred/ls.h"
+#include "../pred/cascade.h"
+#include "../pred/ols.h"
 #include "../pred/bias.h"
 
 class Predictor {
