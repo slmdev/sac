@@ -52,8 +52,6 @@ private:
     BlendExp<RunSumEMA> sm;
 };
 
-#include "hm.h"
-
 static std::vector<std::unique_ptr<LS>>
 make_mix(int n,double mu_mix,double mu_mix_beta)
 {

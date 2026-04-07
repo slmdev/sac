@@ -8,11 +8,10 @@
 #define BIAS_ROUND_PRED 1
 #define BIAS_MIX_N 3
 #define BIAS_MIX_NUMCTX 4
-#define BIAS_MIX 1
+#define BIAS_MIX 0
 #define BIAS_NAVG 5
 
 using LS_mix = LS_ADA<Loss::L1,LSInitType::Uniform>;
-//using LS_mix = HM::HMix<Loss::HBR<32.0>,HM::Gate1<HM::Tanh>,HM::NoReg,2>;
 
 class BiasEstimator {
   class CntAvg {
