@@ -138,18 +138,18 @@ int CmdLine::Parse(int argc,const char *argv[])
          cfg.ocfg.maxnfunc=250;
          cfg.ocfg.sigma=0.25;
        } else if (key=="--EXTRAHIGH") {
-         cfg.optimize=2;
+         cfg.optimize=1;
          cfg.ocfg.fraction=0.25;
          cfg.ocfg.maxnfunc=500;
          cfg.ocfg.sigma=0.25;
        } else if (key=="--BEST") {
-         cfg.optimize=2;
+         cfg.optimize=1;
          cfg.ocfg.fraction=0.50;
          cfg.ocfg.maxnfunc=1000;
          cfg.ocfg.sigma=0.25;
          cfg.ocfg.optimize_cost=FrameCoder::SearchCost::Bitplane;
        } else if (key=="--INSANE") {
-         cfg.optimize=2;
+         cfg.optimize=1;
          cfg.ocfg.fraction=0.50;
          cfg.ocfg.maxnfunc=1500;
          cfg.ocfg.sigma=0.25;
@@ -174,7 +174,7 @@ int CmdLine::Parse(int argc,const char *argv[])
             if (vs.size()>=4) {
               cfg.ocfg.optk=std::clamp(stoi(vs[3]),1,32);
             }
-            if (cfg.ocfg.fraction>0. && cfg.ocfg.maxnfunc>0) cfg.optimize=2;
+            if (cfg.ocfg.fraction>0. && cfg.ocfg.maxnfunc>0) cfg.optimize=1;
             else cfg.optimize=0;
           } else std::cerr << "unknown option: " << val << '\n';
          }
