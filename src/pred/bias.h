@@ -6,7 +6,7 @@
 #include "ls.h"
 
 #define BIAS_ROUND_PRED 1
-#define BIAS_MIX_N 4
+#define BIAS_MIX_N 3
 #define BIAS_MIX_NUMCTX 4
 #define BIAS_MIX 0
 #define BIAS_NAVG 5
@@ -121,7 +121,6 @@ class BiasEstimator {
       pt[0]=cnt0[ctx0].get();
       pt[1]=cnt1[ctx1].get();
       pt[2]=cnt2[ctx2].get();
-      pt[3]=(pt[0]+pt[1]+pt[2])/3.0;
       pbias=mix_ada[mix_ctx].Predict(pt);
 
       return px+pbias;
