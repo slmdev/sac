@@ -35,12 +35,12 @@ void OLS::Update(double val)
 
   // update estimate of covariance matrix
   for (int j=0;j<n;j++) {
-
+    const double xj=x[j];
     // only update lower triangular
     for (int i=0;i<=j;i++)
-      mcov[j][i]=lambda*mcov[j][i]+ff*(x[j]*x[i]);
+      mcov[j][i]=lambda*mcov[j][i]+ff*(xj*x[i]);
 
-    b[j]=lambda*b[j]+ff*(x[j]*val);
+    b[j]=lambda*b[j]+ff*(xj*val);
   }
   km++;
   if (km>=kmax) {

@@ -6,17 +6,17 @@
 #include "ls.h"
 
 #define BIAS_ROUND_PRED 1
-#define BIAS_MIX_N 3
+#define BIAS_MIX_N 4
 #define BIAS_MIX_NUMCTX 4
 #define BIAS_MIX 0
 #define BIAS_NAVG 5
 
-using LS_mix = LS_ADA<Loss::L1,LSInitType::Uniform>;
+using LS_mix = LS_ADA<Loss::L1,LSInitType::Zero>;
 
 class BiasEstimator {
   class CntAvg {
     struct bias_cnt {
-      int cnt;
+      double cnt;
       double val;
     };
     public:
@@ -30,12 +30,12 @@ class BiasEstimator {
       {
         return bias.val/double(bias.cnt);
       }
-      void update(double delta) {
-        bias.val+=delta;
-        bias.cnt++;
+      void update(double delta,double w) {
+        bias.val+=w*delta;
+        bias.cnt+=w;
         if (bias.cnt>=nscale) {
-          bias.val/=2.0;
-          bias.cnt>>=1;
+          bias.val*=0.5;
+          bias.cnt*=0.5;
         }
       }
     private:
@@ -121,7 +121,9 @@ class BiasEstimator {
       pt[0]=cnt0[ctx0].get();
       pt[1]=cnt1[ctx1].get();
       pt[2]=cnt2[ctx2].get();
+      pt[3]=(pt[0]+pt[1]+pt[2])/3.0;
       pbias=mix_ada[mix_ctx].Predict(pt);
+
       return px+pbias;
     }
     void Update(double val) {
@@ -135,16 +137,28 @@ class BiasEstimator {
 
       const auto [mean,var] = run_mv.Get();
 
-      const double q=sigma*sqrt(var);
-      const double lb=mean-q;
-      const double ub=mean+q;
+      #if 0
+        //gaussian hard gating
+        const double q=sigma*sqrt(var);
+        const double lb=mean-q;
+        const double ub=mean+q;
+        if ( (delta>lb) && (delta<ub))
+        {
+          cnt0[ctx0].update(delta,1.0);
+          cnt1[ctx1].update(delta,1.0);
+          cnt2[ctx2].update(delta,1.0);
+        }
+      #else
+        //gaussian soft gating
+        double diff=delta-mean;
+        double k=0.5;
+        double z=diff*diff/(var+1E-5);
+        double w=std::exp(-k*z);
 
-      if ( (delta>lb) && (delta<ub))
-      {
-        cnt0[ctx0].update(delta);
-        cnt1[ctx1].update(delta);
-        cnt2[ctx2].update(delta);
-      }
+        cnt0[ctx0].update(delta,w);
+        cnt1[ctx1].update(delta,w);
+        cnt2[ctx2].update(delta,w);
+      #endif
 
       run_mv.Update(delta);
       mix_ada[mix_ctx].Update(pt,delta-pbias);

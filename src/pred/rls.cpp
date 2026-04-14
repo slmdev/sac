@@ -2,12 +2,13 @@
 #include "../common/math.h"
 #include "../common/utils.h"
 
-RLS::RLS(int n,double gamma,double nu)
+
+RLS::RLS(int n,double gamma,double beta,double nu)
 :n(n),
-px(0.),gamma(gamma),
+px(0.),
 x(n),w(n),
 P(n,vec1D(n)), // inverse covariance matrix
-alc(gamma)
+alc(gamma,beta)
 {
   for (int i=0;i<n;i++)
     P[i][i]=1.0/nu;
@@ -29,18 +30,15 @@ void RLS::Update(double val)
 {
   const double err=val-px;
 
-  vec1D ph=slmath::mul(P,x); //phi=x^T P x
-  // a priori variance of prediction
-  double phi=std::max(slmath::dot(x,ph),PHI_FLOOR);
+  // a priori variance of prediction, //phi=x^T P x
+  const vec1D ph=slmath::mul(P,x);
+  const double phi=std::max(slmath::dot(x,ph),PHI_FLOOR);
 
-  double alpha=gamma;
-  if constexpr(SACCfg::RLS_ALC) {
-    // Normalized Innovation Squared
-    // quantifies how "unexpected" the observation is
-    // relative to the models uncertainty phi
-    double metric = (err*err);//(phi+1E-5);
-    alpha=alc.update(metric);
-  };
+  // adaptive lambda control using
+  // Normalized Innovation Squared (NIS)
+  // quantifies how "unexpected" the observation is
+  // relative to the models uncertainty phi
+  double alpha=alc.Get(err*err,phi);
 
   //update inverse of covariance matrix
   //P(n)=1/lambda*P(n-1)-1/lambda * k(n)*x^T(n)*P(n-1)
@@ -56,6 +54,8 @@ void RLS::Update(double val)
   // update weights
   for (int i=0;i<n;i++)
       w[i]+=err*(denom*ph[i]);
+
+  alc.Update(err*err,phi);
 }
 
 void RLS::UpdateHist(double val)

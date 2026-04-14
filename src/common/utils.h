@@ -322,7 +322,7 @@ namespace miscUtils {
     else if constexpr (mode == MapMode::exp) return std::exp(-gamma * val);
     else if constexpr (mode == MapMode::tanh) return 1.0-std::tanh(gamma * val);
     else if constexpr (mode == MapMode::power) return std::pow(gamma, val);
-    else if constexpr (mode == MapMode::sigmoid) return 1.0 / (1.0 + std::exp(gamma*(val-1.0)));
+    else if constexpr (mode == MapMode::sigmoid) return 1.0 / (1.0 + std::exp(gamma*(val)));
     return 0;
   }
 

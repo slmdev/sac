@@ -10,7 +10,7 @@
 // horizontal blend of arbitrary number of (LS-)experts
 class BlendLS {
   public:
-    explicit BlendLS(std::vector<std::unique_ptr<LS>> preds,double mv_alpha=0.9,double mv_beta=1.0)
+    explicit BlendLS(std::vector<std::unique_ptr<LS>> preds,double mv_alpha=0.95,double mv_beta=1.0)
     :expert(std::move(preds)), //pp has ownership of predictors
     np(expert.size()),
     ep(np),ew(np),
@@ -57,6 +57,7 @@ make_mix(int n,double mu_mix,double mu_mix_beta)
 {
     std::vector<std::unique_ptr<LS>> p;
     p.push_back(std::make_unique<LS_ADA<Loss::L1,LSInitType::Uniform>>(n,mu_mix,mu_mix_beta));
+    //p.push_back(std::make_unique<LS_ADA<Loss::HBR<32.0>,LSInitType::Uniform>>(n,mu_mix,mu_mix_beta));
     p.push_back(std::make_unique<LS_ADA<Loss::L2,LSInitType::Uniform>>(n,mu_mix,mu_mix_beta));
     //p.push_back(std::make_unique<HM::HMix<Loss::L1,HM::Gate1<HM::Tanh>,HM::NoReg,2>>(n,mu_mix,mu_mix_beta));
     //p.push_back(std::make_unique<HM::HMix<Loss::L2,HM::Gate1<HM::Tanh>,HM::NoReg,2>>(n,mu_mix,mu_mix_beta));
@@ -70,7 +71,7 @@ class Cascade {
                double mu_mix,double mu_mix_beta,int lm_n,double lm_alpha)
     :n(vn.size()),p(n+1),
      mix(make_mix(n+1,mu_mix,mu_mix_beta)),
-     lm(lm_n,lm_alpha),
+     lm(lm_n,lm_alpha,0.95),
      clms(n)
     {
       for (int i=0;i<n;i++)

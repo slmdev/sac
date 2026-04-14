@@ -130,7 +130,7 @@ int CmdLine::Parse(int argc,const char *argv[])
          cfg.optimize=1;
          cfg.ocfg.fraction=0.075;
          cfg.ocfg.maxnfunc=100;
-         cfg.ocfg.sigma=0.2;
+         cfg.ocfg.sigma=0.20;
          cfg.ocfg.dds_cfg.c_fail_max=30;
        } else if (key=="--VERYHIGH") {
          cfg.optimize=1;

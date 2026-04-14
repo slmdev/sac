@@ -73,7 +73,6 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow1=profile.Get(54);
   param.beta_add1=profile.Get(55);
 
-
   param.lm_n=std::round(profile.Get(41));
   param.lm_alpha=profile.Get(42);
 
@@ -476,6 +475,8 @@ void FrameCoder::Predict()
       std::erase(lparam_base,53);
       std::erase(lparam_base,54);
       std::erase(lparam_base,55);
+
+      std::erase(lparam_base,56);
     }
     #if 0
       toptim_cfg tmp_optcfg=cfg.ocfg;

@@ -109,49 +109,11 @@ class LMSADA_Stream : public LS_Stream
     double mu,beta,nu;
 };
 
+// Linear systems using gradient descent (ADAGrad/RMsprop style)
+// supports: custom loss function, weight decay and init type
+
+
 enum class LSInitType {Zero,One,Uniform,Decay};
-// linear systems using ADAgrad/RMSprop style batch-updates
-class LS {
-  protected:
-  public:
-    LS(std::size_t n,double mu)
-    :n(n),w(n),mu(mu)
-    {
-    }
-    virtual double Predict(span_cf64 x)
-    {
-      assert(x.size() == static_cast<size_t>(n));
-      return slmath::dot(x,w);
-    }
-    virtual void Update(span_cf64,double)=0;
-    virtual double GetWeight(int idx) const
-    {
-      return w[idx];
-    }
-    virtual ~LS() = default ;
-  protected:
-    static void InitWeights(vec1D &weights,LSInitType init_type)
-    {
-      switch (init_type) {
-        case LSInitType::Zero:
-          std::fill(begin(weights),end(weights),0.0);
-          break;
-        case LSInitType::One:
-          std::fill(begin(weights),end(weights),1.0);
-          break;
-        case LSInitType::Uniform:
-          std::fill(begin(weights),end(weights),1.0/weights.size());
-          break;
-        case LSInitType::Decay:
-          for (std::size_t i=0;i<weights.size();++i)
-            weights[i]=1.0/(1.0+i);
-          break;
-      }
-    }
-    std::size_t n;
-    vec1D w;
-    double mu;
-};
 
 //LossFunction
 namespace Loss {
@@ -161,7 +123,8 @@ concept LossFunction = requires(double err) {
   { T::grad(err) } -> std::same_as<double>;
 };
 
-struct L1 {static inline double grad(double err) {return MathUtils::sgn(err);}};
+struct L1 {
+  static inline double grad(double err){return MathUtils::sgn(err);}};
 struct L2 {static inline double grad(double err) {return err;}};
 template <double d=4>
   struct HBR {static inline double grad(double err) {
@@ -169,6 +132,7 @@ template <double d=4>
   };
 
 };
+
 
 //Regularization
 namespace Reg {
@@ -204,21 +168,65 @@ struct L2 {
 };
 };
 
+class LS {
+  protected:
+  public:
+    LS(std::size_t n,double mu)
+    :n(n),w(n),mu(mu)
+    {
+    }
+    virtual double Predict(span_cf64 x)
+    {
+      assert(x.size() == static_cast<size_t>(n));
+      return slmath::dot(x,w);
+    }
+    virtual void Update(span_cf64,double)=0;
+    virtual double GetWeight(int idx) const
+    {
+      return w[idx];
+    }
+    virtual ~LS() = default ;
+  protected:
+    static void InitWeights(vec1D &weights,LSInitType init_type)
+    {
+      switch (init_type) {
+        case LSInitType::Zero:
+          std::ranges::fill(weights,0.0);
+          break;
+        case LSInitType::One:
+          std::ranges::fill(weights,1.0);
+          break;
+        case LSInitType::Uniform:
+          std::ranges::fill(weights,1.0/weights.size());
+          break;
+        case LSInitType::Decay:
+          for (std::size_t i=0;i<weights.size();++i)
+            weights[i]=1.0/(1.0+i);
+          break;
+      }
+    }
+    std::size_t n;
+    vec1D w;
+    double mu;
+};
+
+
 template<Loss::LossFunction LF=Loss::L2,LSInitType init_type=LSInitType::Zero,Reg::WeightDecay WD=Reg::None>
 class LS_ADA : public LS
 {
   public:
     LS_ADA(int n,double mu,double beta=0.95)
-    :LS(n,mu),eg(n),beta(beta)
+    :LS(n,mu),eg(n),beta(beta),beta1(1.0-beta)
     {
       InitWeights(w,init_type);
     }
     void Update(span_cf64 x,double error) override {
       const double loss=LF::grad(error);
+
       for (std::size_t i=0;i<n;++i) {
         double const grad=loss*x[i];
 
-        eg[i]=beta*eg[i]+(1.0-beta)*grad*grad; //ema gradients
+        eg[i]=beta*eg[i]+beta1*grad*grad; //ema gradients
 
         double mu_scaled = mu/(sqrt(eg[i])+SACCfg::LMS_ADA_EPS);
         w[i]+=mu_scaled*grad;
@@ -229,10 +237,10 @@ class LS_ADA : public LS
     }
   private:
     vec1D eg;
-    double beta;
+    double beta,beta1;
 };
 
-template<Loss::LossFunction LF=Loss::L2,LSInitType init_type=LSInitType::Zero>
+template<Loss::LossFunction LF=Loss::L2,LSInitType init_type=LSInitType::Zero,Reg::WeightDecay WD=Reg::None>
 class LS_ADAM : public LS
 {
   public:
@@ -257,6 +265,9 @@ class LS_ADAM : public LS
         double m_hat=M[i]/(1.0-power_beta1);
         double n_hat=S[i]/(1.0-power_beta2);
         w[i]+=mu*m_hat/(sqrt(n_hat)+SACCfg::LMS_ADA_EPS);
+
+        //weight decay
+        w[i]=WD::apply(w[i],mu);
       }
     }
   private:
