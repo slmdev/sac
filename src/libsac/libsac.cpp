@@ -461,7 +461,6 @@ void FrameCoder::Predict()
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
 
     Optimize(cfg.ocfg,base_profile,lparam_base);
-
   }
   PredictFrame(base_profile,error,0,numsamples_,false);
   CnvError_S2U(error,numsamples_);

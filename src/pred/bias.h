@@ -44,7 +44,7 @@ class BiasEstimator {
   };
 
   public:
-    BiasEstimator(double lms_mu=0.003,int nb_scale=5,double nd_sigma=1.5,double nd_lambda=0.998)
+    BiasEstimator(double lms_mu=0.003,int nb_scale=5,double nd_sigma=0.5,double nd_lambda=0.998)
     :
     #if BIAS_MIX == 0
       mix_ada(BIAS_MIX_NUMCTX,SSLMS(BIAS_MIX_N,lms_mu)),
@@ -64,7 +64,7 @@ class BiasEstimator {
     void CalcContext(double p)
     {
       int b0=hist_input[0]>p?0:1;
-      //int b1=hist_input[1]>p?0:1;
+      //int b1=((hist_input[0]+hist_input[1])/2.0)>p?0:1;
 
       int b2=hist_delta[0]<0?0:1;
       int b3=hist_delta[1]<0?0:1;
@@ -91,7 +91,6 @@ class BiasEstimator {
 
       ctx0=0;
       ctx0+=b0<<0;
-      //ctx0+=b1<<1;
       ctx0+=b2<<1;
       ctx0+=b9<<2;
       ctx0+=b10<<3;
@@ -150,9 +149,8 @@ class BiasEstimator {
       #else
         //gaussian soft gating
         double diff=delta-mean;
-        double k=0.5;
         double z=diff*diff/(var+1E-5);
-        double w=std::exp(-k*z);
+        double w=std::exp(-sigma*z);
 
         cnt0[ctx0].update(delta,w);
         cnt1[ctx1].update(delta,w);
