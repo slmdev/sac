@@ -36,7 +36,7 @@ class BlendExp
     }
     const vec1D &Weights()const {return w;}
   private:
-    void UpdateBeta()
+    /*void UpdateBeta()
     {
       const double Hmax = std::log(n);
       const double Htarget = Hmax*0.3;
@@ -46,17 +46,17 @@ class BlendExp
       }
       beta += 0.05*(H-Htarget);
       beta = std::clamp(beta,1.0,10.0);
-    }
+    }*/
     void UpdateScores(double target)
     {
-      double loss_px = std::abs(target-px);
+      //double loss_px = std::abs(target-px);
 
       for (std::size_t i=0;i<n;i++) {
         double loss_pi=std::abs(target-x[i]);
 
         // if score > 0 -> expert better then blend
-        double score=(loss_px - loss_pi);
-        rsum[i].Update(score);
+        //double score=(loss_px - loss_pi);
+        rsum[i].Update(-loss_pi);
       }
     }
     double calculate_z(const Stats &st) const

@@ -12,7 +12,7 @@
 */
 class ALC {
   public:
-    ALC(double gamma=1.0,double beta=0.95)
+    ALC(double gamma,double beta)
     :gamma(gamma),beta(beta),
     lambda_min(0.99),lambda_max(0.999)
     {
