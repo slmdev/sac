@@ -6,15 +6,16 @@
 //on a (weighted) covariance matrix estimate of input vectors
 OLS::OLS(int n,int kmax,double lambda,double nu,double beta_sum,double beta_pow,double beta_add)
 :x(n),
-chol(n),
+chol(n),ldlt(n),
 w(n),b(n),mcov(n,vec1D(n)),
 n(n),kmax(kmax),lambda(lambda),nu((1.0-lambda)*nu),
-beta_pow(beta_pow),beta_add(beta_add),esum(beta_sum),
+beta_pow(beta_pow),beta_add(beta_add),
+esum(beta_sum),
 pred(0.)
 {
   km=0;
   #ifdef INIT_COV
-    for (int i=0;i<n;i++) mcov[i][i]=1.0;
+    for (int i=0;i<n;i++) mcov[i][i]=nu;
   #endif
 }
 
@@ -44,8 +45,13 @@ void OLS::Update(double val)
   }
   km++;
   if (km>=kmax) {
-    if (chol.Factor(mcov,nu))
-      chol.Solve(b,w);
+    if constexpr(SACCfg::USE_LDLT) {
+      if (ldlt.Factor(mcov,nu))
+        ldlt.Solve(b,w);
+    } else {
+      if (chol.Factor(mcov,nu))
+        chol.Solve(b,w);
+    }
     km=0;
   }
 }

@@ -23,6 +23,7 @@ using span_ci32=std::span<const int32_t>;
 using span_cf64=std::span<const double>;
 
 struct SACCfg {
+  static constexpr bool USE_LDLT=true; //LDL^T solver instead of cholesky
   static constexpr bool USE_AVX2=true;
   static constexpr int AVX2_MINN=8;
   static constexpr double NLMS_POW_EPS=1.0;
@@ -30,7 +31,6 @@ struct SACCfg {
 
   static constexpr bool NLMS_CLAMPW=true;
   static constexpr double NLMS_SCALE=10;
-  static constexpr bool RLS_ALC=true; //adaptive lambda control
 };
 
 #endif

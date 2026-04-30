@@ -10,19 +10,85 @@
 namespace slmath
 {
 
-  // inplace cholesky
-  // matrix must be positive definite and symmetric
-  class Cholesky
-  {
+  //LDL^T solver
+  class LDLT {
     public:
-      const double ftol=1E-8;
-      Cholesky(int n)
+      explicit LDLT(int n)
+      :n(n),L(n,vec1D(n)),D(n),invD(n),
+      y(n),z(n)
+      {
+      }
+      bool Factor(const vec2D &A, double nu)
+      {
+        const double eps = 1e-12;
+
+        for (int i = 0; i < n; ++i) {
+          std::fill_n(std::begin(L[i]),i,0.0);
+          //L[i][i] = 1.0;
+          D[i] = 0.0;
+        }
+
+        for (int j = 0; j < n; ++j) {
+          double dj = A[j][j] + nu;
+          for (int k = 0; k < j; ++k)
+            dj -= L[j][k] * L[j][k] * D[k];
+
+          if (dj < eps)
+            return false;
+
+          const double invDj = 1.0/dj;
+          D[j] = dj;
+          invD[j]=invDj;
+
+          for (int i = j + 1; i < n; ++i) {
+            double lij = A[i][j];
+            for (int k = 0; k < j; ++k)
+              lij -= L[i][k] * L[j][k] * D[k];
+            L[i][j] = lij * invDj;
+          }
+        }
+        return true;
+      }
+
+      void Solve(const vec1D& b, vec1D& x) {
+        // Solve L y = b
+        for (int i = 0; i < n; ++i) {
+          double s = b[i];
+          for (int k = 0; k < i; ++k)
+            s -= L[i][k] * y[k];
+          y[i] = s;
+        }
+
+        // Solve D z = y
+        for (int i = 0; i < n; ++i)
+          z[i] = y[i] * invD[i];
+
+        // Solve L^T x = z
+        for (int i = n - 1; i >= 0; --i) {
+          double s = z[i];
+          for (int k = i + 1; k < n; ++k)
+            s -= L[k][i] * x[k];
+          x[i] = s;
+        }
+      }
+      private:
+        int n;
+        vec2D L;
+        vec1D D,invD,y,z;
+    };
+
+  // inplace Cholesky
+  // matrix must be positive definite and symmetric
+  class Cholesky {
+    public:
+      explicit Cholesky(int n)
       :n(n),G(n,vec1D(n))
       {
 
       }
       int Factor(const vec2D &matrix,const double nu)
       {
+        const double ftol=1E-8;
         for (int i=0;i<n;i++) //copy lower triangular matrix
           std::copy_n(begin(matrix[i]),i+1,begin(G[i]));
 
@@ -43,7 +109,7 @@ namespace slmath
         }
         return 1;
       }
-      void Solve(const vec1D &b,vec1D &x)
+      void Solve(const vec1D &b,vec1D &x) const
       {
         for (int i=0;i<n;i++) {
           double sum=b[i];

@@ -73,6 +73,8 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow1=profile.Get(54);
   param.beta_add1=profile.Get(55);
 
+  param.proj_alpha=profile.Get(56);
+
   param.lm_n=std::round(profile.Get(41));
   param.lm_alpha=profile.Get(42);
 
@@ -93,7 +95,10 @@ void FrameCoder::PredictFrame(const SacProfile &profile,tch_samples &error,int f
 
   Predictor::tparam param;
   SetParam(param,profile,optimize);
-  Predictor pr(param);
+  Range r0{.lo=framestats[0].minval,.hi=framestats[0].maxval};
+  Range r1=r0;if (numchannels_==2)r1={.lo=framestats[1].minval,.hi=framestats[1].maxval};
+
+  Predictor pr(r0,r1,param);
 
   auto eprocess=[&](int ch_p,int ch,int32_t val,int idx) {
       double pd=pr.predict(ch_p);
@@ -139,7 +144,9 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
 {
   Predictor::tparam param;
   SetParam(param,profile,false);
-  Predictor pr(param);
+  Range r0{.lo=framestats[0].minval,.hi=framestats[0].maxval};
+  Range r1=r0;if (numchannels_==2)r1={.lo=framestats[1].minval,.hi=framestats[1].maxval};
+  Predictor pr(r0,r1,param);
 
   auto dprocess=[&](int ch_p,int ch,int32_t *dst,int idx) {
     const double pd=pr.predict(ch_p);
@@ -327,6 +334,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << "ch-ref " << param.ch_ref << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale0) << ' ' << (1<<param.bias_scale1) << '\n';
     std::cout << "lm " << param.lm_n << " gamma " << param.lm_alpha << '\n';
+    std::cout << "proj alpha " << param.proj_alpha << '\n';
 }
 
 double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
@@ -459,7 +467,9 @@ void FrameCoder::Predict()
     // optimize all params
     std::vector<int>lparam_base(base_profile.coefs.size());
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
-
+    #if 1
+      std::erase(lparam_base,56);
+    #endif
     Optimize(cfg.ocfg,base_profile,lparam_base);
   }
   PredictFrame(base_profile,error,0,numsamples_,false);

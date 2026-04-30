@@ -13,11 +13,12 @@ class OLS {
     vec1D x;
   private:
     slmath::Cholesky chol;
+    slmath::LDLT ldlt;
     vec1D w,b;
     vec2D mcov;
     int n,kmax,km;
     double lambda,nu;
-    double beta_pow,beta_add;
+    double beta_pow,beta_add,w_decay;
     RunSumGEO esum;
     double pred;
 };

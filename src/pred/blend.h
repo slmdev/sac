@@ -53,7 +53,6 @@ class BlendExp
 
       for (std::size_t i=0;i<n;i++) {
         double loss_pi=std::abs(target-x[i]);
-
         // if score > 0 -> expert better then blend
         //double score=(loss_px - loss_pi);
         rsum[i].Update(-loss_pi);
