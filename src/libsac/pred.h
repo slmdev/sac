@@ -21,7 +21,8 @@ class Predictor {
       double bias_mu0,bias_mu1;
       int bias_scale0,bias_scale1;
       int lm_n;
-      double lm_alpha,proj_alpha;
+      double lm_alpha;
+      double proj_alpha0,proj_alpha1;
     };
     explicit Predictor(Range r0,Range r1,const tparam &p);
 

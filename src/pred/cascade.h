@@ -99,19 +99,15 @@ class Cascade {
     void Update(const double target)
     {
       //project residuals
-      double p_prefix=0.0,p_suffix=0.; //0,p_tot=0.0;
-      //for (int i=0;i<=n;i++)
-      //  p_suffix+=mix.GetWeight(i)*p[i];
+      double p_prefix=0.0; //0,p_tot=0.0;
       for (int i=0;i<=n;i++)
       {
         //target for stage i
         const double w=mix.GetWeight(i);
 
-        //p_suffix-=w*p[i];
         double px=(1.0-p_alpha)*p_prefix+p_alpha*(pred);
         bp[i]=target - std::clamp(px,(double)r.lo,(double)r.hi);
         p_prefix+=w*p[i];
-        //p_tot+=p[i];
       }
 
       for (int i=0;i<n; i++)

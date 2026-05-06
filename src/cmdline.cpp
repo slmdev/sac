@@ -245,7 +245,7 @@ int CmdLine::Process()
   myTimer.start();
 
   if (mode==ENCODE) {
-    Wav myWav(cfg.verbose_level>0);
+    Wav myWav(cfg.verbose_level>1);
     std::cout << "Open: '" << sinputfile << "': ";
     if (myWav.OpenRead(sinputfile)==0) {
       std::cout << "ok (" << myWav.getFileSize() << " Bytes)\n";

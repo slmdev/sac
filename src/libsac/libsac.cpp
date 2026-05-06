@@ -73,7 +73,8 @@ void FrameCoder::SetParam(Predictor::tparam &param,const SacProfile &profile,boo
   param.beta_pow1=profile.Get(54);
   param.beta_add1=profile.Get(55);
 
-  param.proj_alpha=profile.Get(56);
+  param.proj_alpha0=profile.Get(56);
+  param.proj_alpha1=profile.Get(57);
 
   param.lm_n=std::round(profile.Get(41));
   param.lm_alpha=profile.Get(42);
@@ -305,9 +306,9 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << '\n';
     std::cout << "lpc (nA " << std::round(profile.Get(24)) << " nM0 " << std::round(profile.Get(9));
     std::cout << ") (nB " << std::round(profile.Get(25)) << " nS0 " << std::round(profile.Get(26)) << " nS1 " << std::round(profile.Get(27)) << ")\n";
-    std::cout << "lpc nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
-    std::cout << "lpc cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
-    std::cout << "lpc cov1 " << param.beta_sum1 << ' ' << param.beta_pow1 << ' ' << param.beta_add1 << "\n";
+    std::cout << "  nu " << param.ols_nu0 << ' ' << param.ols_nu1 << '\n';
+    std::cout << "  cov0 " << param.beta_sum0 << ' ' << param.beta_pow0 << ' ' << param.beta_add0 << "\n";
+    std::cout << "  cov1 " << param.beta_sum1 << ' ' << param.beta_pow1 << ' ' << param.beta_add1 << "\n";
     std::cout << "lms0 ";
     for (int i=28;i<=30;i++) std::cout << std::round(profile.Get(i)) << ' ';
     std::cout << std::round(profile.Get(37));
@@ -334,7 +335,7 @@ void FrameCoder::PrintProfile(SacProfile &profile)
     std::cout << "ch-ref " << param.ch_ref << "\n";
     std::cout << "bias mu " << param.bias_mu0 << ", " << param.bias_mu1 << " scale " << (1<<param.bias_scale0) << ' ' << (1<<param.bias_scale1) << '\n';
     std::cout << "lm " << param.lm_n << " gamma " << param.lm_alpha << '\n';
-    std::cout << "proj alpha " << param.proj_alpha << '\n';
+    std::cout << "proj alpha " << param.proj_alpha0 << " " << param.proj_alpha1 << '\n';
 }
 
 double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
@@ -469,6 +470,7 @@ void FrameCoder::Predict()
     std::iota(std::begin(lparam_base),std::end(lparam_base),0);
     #if 1
       std::erase(lparam_base,56);
+      std::erase(lparam_base,57);
     #endif
     Optimize(cfg.ocfg,base_profile,lparam_base);
   }
