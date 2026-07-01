@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -Wall -Wextra -Wpedantic -O3 -std=c++20 -march=native -fno-math-errno
+CXXFLAGS := -Wall -Wextra -Wpedantic -O3 -std=c++20 -march=native -fno-math-errno -flto=auto
 LDFLAGS  := -static -s 
 
 # OS detection
