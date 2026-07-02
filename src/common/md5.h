@@ -2,6 +2,7 @@
 #define MD5_H
 
 #include <cstdint>
+#include <cstddef>
 
 namespace MD5 {
   typedef struct{
