@@ -34,32 +34,11 @@ class SparsePCM {
     void BuildPrefixSums();
     int Map(const int32_t val,const int32_t p=0) const;
     int32_t Unmap(const int32_t mrank,const int32_t p=0) const;
-
-    /*
-    //possible oob
-    int val2rank(const int32_t val,const int32_t p=0)
-    {
-      if (val==0) return 0;
-      const int sgn=MathUtils::sgn(val);
-
-      const int pidx=p-minval;
-      int mres=0;
-      if (val>0) {
-        for (int i=pidx+1;i<=pidx+val;i++)
-          mres+=used[i];
-          //if (used[i]) ++mres;
-      } else {
-        for (int i=pidx-1;i>=pidx+val;i--)
-          mres+=used[i];
-         //if (used[i])  ++mres;
-      }
-      return sgn*mres;
-    }*/
     struct Stats {
       double fraction_used=0,fraction_cost=0;
     } st;
     int32_t minval,maxval;
-    std::vector<int>used;
+    std::vector<uint8_t>used;
   private:
     int GetBaseRank(const int32_t p) const;
     std::vector<int>prefix,inv_prefix;

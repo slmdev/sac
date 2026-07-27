@@ -11,12 +11,12 @@
 
 struct BIntMap {
   BIntMap() = default;
-  BIntMap(span_i32 buf,int32_t minval,int32_t maxval)
+  BIntMap(span_u8 buf,int32_t minval,int32_t maxval)
   :buf(buf),minval(minval),maxval(maxval)
   {}
   inline int32_t idx2val(int32_t idx) const {return idx+minval;};
   inline int32_t val2idx(int32_t val) const {return val-minval;};
-  span_i32 buf{};
+  span_u8 buf{};
   int32_t minval=0;
   int32_t maxval=0;
 };
