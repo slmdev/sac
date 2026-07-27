@@ -63,11 +63,31 @@ int SparsePCM::GetBaseRank(const int32_t p) const
   const int N=static_cast<int>(used.size());
   const int pidx = p - minval;// pivot/prediction index
 
-  //base = rank(first used symbol >= p);
-  const int pidx_clamp=std::clamp(pidx,0,N);
-  const int ceil_rank = prefix[pidx_clamp];
+  //rank of the first used symbol >= p
+  const int pidx_ceil=std::clamp(pidx,0,N);
+  const int ceil_rank = prefix[pidx_ceil];
 
-  return ceil_rank;
+  //rank of the last used value <= p
+  const int pidx_floor=std::clamp(pidx+1,0,N);
+  const int floor_rank = prefix[pidx_floor]-1;
+
+  const int M=static_cast<int>(inv_prefix.size());
+
+  if (floor_rank < 0)
+    return ceil_rank;
+  if (ceil_rank >= M)
+    return floor_rank;
+
+  //p is used and ranks collapse
+  if (floor_rank==ceil_rank)
+    return ceil_rank;
+
+  const int ceil_val = minval + inv_prefix[ceil_rank];
+  const int floor_val = minval + inv_prefix[floor_rank];
+  const int ceil_dist = ceil_val - p;
+  const int floor_dist = p - floor_val;
+
+  return floor_dist <= ceil_dist ? floor_rank : ceil_rank;
 }
 
 // map error "val" (relative to prediction p) to the rank distance among only used symbols
