@@ -149,7 +149,7 @@ void BitplaneCoder::CountSig(int n,int &n1,int &n2)
        if (msb[sample-i]) n1+=1;
        if (msb[sample-i]>bpn) n2+=1;
     }
-    if (sample+i<numsamples-1) {
+    if (sample+i<numsamples) {
        if (msb[sample+i]) n1+=1;
        if (msb[sample+i]>bpn) n2+=1;
     }
@@ -245,6 +245,7 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
   for (int i=0;i<numsamples;i++) buf[i]=0;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     state=0;
+    sse_upd_rate = GetDynamicRate(50,300,bpn,maxbpn);
     for (sample=0;sample<numsamples;sample++) {
       uint32_t avg_sum=GetAvgSum(32);
       pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);
