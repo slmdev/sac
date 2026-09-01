@@ -196,11 +196,18 @@ int BitplaneCoder::PredictSSE(int p1)
   return ssemix.Predict({(pr1+pr2+1)>>1,p1});
 }
 
+int GetDynamicRate(int min_rate, int max_rate, int bpn, int maxbpn) {
+  if (maxbpn <= 0) return min_rate;
+  double factor = static_cast<double>(bpn) / maxbpn; // 0.0 at LSB, 1.0 at MSB
+  double rate = min_rate * std::pow(static_cast<double>(max_rate) / min_rate, factor);
+  return std::max(1, static_cast<int>(std::round(rate)));
+}
+
 void BitplaneCoder::UpdateSSE(int bit)
 {
-  psse1->Update(bit,cntsse_upd_rate);
-  psse2->Update(bit,cntsse_upd_rate);
-  ssemix.Update(bit,mixsse_upd_rate);
+  psse1->Update(bit,sse_upd_rate);
+  psse2->Update(bit,sse_upd_rate);
+  ssemix.Update(bit,sse_upd_rate);
 }
 
 void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
@@ -208,6 +215,7 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
   pabuf=abuf;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     state=0;
+    sse_upd_rate = GetDynamicRate(50,300,bpn,maxbpn);
     for (sample=0;sample<numsamples;sample++) {
       uint32_t avg_sum = GetAvgSum(32);
       pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);

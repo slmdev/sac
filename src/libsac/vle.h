@@ -45,8 +45,7 @@ class BitplaneCoder {
   const int cnt_upd_rate_ref=150;
   const int mix_upd_rate_ref=800;
   const int mix_upd_rate_sig=700;
-  const int cntsse_upd_rate=250;
-  const int mixsse_upd_rate=250;
+  int sse_upd_rate=250;
   public:
     BitplaneCoder(int maxbpn,int numsamples);
     void Encode(EncodeP1 encode_p1,int32_t *abuf);
