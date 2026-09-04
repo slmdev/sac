@@ -4,11 +4,10 @@ BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
 p_laplace(32),
-lmixref(256,NMixLogistic(5)),lmixsig(256,NMixLogistic(3)),
+lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(3)),
 ssemix(2),
 msb(numsamples),
-maxbpn(maxbpn),numsamples(numsamples)//,lm(maxbpn)
-//n_laplace(32),weights_laplace(2*n_laplace+1),
+maxbpn(maxbpn),numsamples(numsamples)
 {
   state=0;
   bpn=0;
@@ -23,11 +22,6 @@ maxbpn(maxbpn),numsamples(numsamples)//,lm(maxbpn)
   for (int i=0;i<32;i++) {
     bmask[i]=~((1<<i)-1);
   }
-  /*double s=35;
-  for (int i=0;i<2*n_laplace+1;i++) {
-    int idx=i-n_laplace;
-    weights_laplace[i]=1.0; //exp(-(idx*idx)/(s*s));
-  }*/
 }
 
 void BitplaneCoder::GetSigState(int i)
@@ -196,18 +190,11 @@ int BitplaneCoder::PredictSSE(int p1)
   return ssemix.Predict({(pr1+pr2+1)>>1,p1});
 }
 
-int GetDynamicRate(int min_rate, int max_rate, int bpn, int maxbpn) {
-  if (maxbpn <= 0) return min_rate;
-  double factor = static_cast<double>(bpn) / maxbpn; // 0.0 at LSB, 1.0 at MSB
-  double rate = min_rate * std::pow(static_cast<double>(max_rate) / min_rate, factor);
-  return std::max(1, static_cast<int>(std::round(rate)));
-}
-
 void BitplaneCoder::UpdateSSE(int bit)
 {
-  psse1->Update(bit,sse_upd_rate);
-  psse2->Update(bit,sse_upd_rate);
-  ssemix.Update(bit,sse_upd_rate);
+  psse1->Update(bit,cnt_upd_rate_sse);
+  psse2->Update(bit,cnt_upd_rate_sse);
+  ssemix.Update(bit,mix_upd_rate_sse);
 }
 
 void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
@@ -215,7 +202,6 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
   pabuf=abuf;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     state=0;
-    sse_upd_rate = GetDynamicRate(50,300,bpn,maxbpn);
     for (sample=0;sample<numsamples;sample++) {
       uint32_t avg_sum = GetAvgSum(32);
       pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);
@@ -245,7 +231,6 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
   for (int i=0;i<numsamples;i++) buf[i]=0;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     state=0;
-    sse_upd_rate = GetDynamicRate(50,300,bpn,maxbpn);
     for (sample=0;sample<numsamples;sample++) {
       uint32_t avg_sum=GetAvgSum(32);
       pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);

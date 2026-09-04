@@ -1,57 +1,28 @@
 #ifndef _DOMAIN_H
 #define _DOMAIN_H
 
-#include "../global.h"
-#include <cmath>
+#include "model.h"
+
+using namespace BM;
 
 class LogDomain {
   public:
-    static constexpr int scale=256;
-    static constexpr int dbits=12;
-    static constexpr int dmin=-2047;
-    static constexpr int dmax=2047;
-    static constexpr int dscale=dmax-dmin+1;
     int fmin,fmax;
-    LogDomain()
-    {
-      for (int i=0;i<PSCALE;i++)
-      {
-        double f=std::max(i,1)/(double)PSCALE;
-        double q=std::log(f / (1.0-f))*scale;
-        FwdTbl[i]=(int)std::round(q);
-      };
-      fmin=FwdTbl[0];
-      fmax=FwdTbl[PSCALE-1];
-      // 12-Bit
-      for (int i=dmin;i<=dmax;i++)
-      {
-        double q=PSCALE/(1.0+exp(-double(i)/double(scale)));
-        InvTbl[i-dmin]=(int)std::round(q);
-      };
-    }
-    inline int Fwd(int p)
+    LogDomain();
+    inline int Fwd(int p) const
     {
        return FwdTbl[p];
     }
-    inline int Inv(int x)
+    inline int Inv(int x) const
     {
-       if (x<dmin) return 1;
-       else if (x>dmax) return PSCALEm;
-       else return InvTbl[x-dmin];
+       if (x<DMIN) return 1;
+       else if (x>DMAX) return PSCALEm;
+       else return InvTbl[x-DMIN];
     }
-    void Check()
-    {
-      int sum=0;
-      for (int i=0;i<PSCALE;i++)
-      {
-        int p=Inv(Fwd(i));
-        sum+=(p-i)*(p-i);
-      }
-      printf(" mse: %0.4f\n",double(sum)/double(PSCALE));
-    }
-  protected:
+    void Check();
+  private:
     int FwdTbl[PSCALE];
-    int InvTbl[dscale];
+    int InvTbl[DSCALE];
 };
 
 inline LogDomain myDomain;

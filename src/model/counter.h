@@ -3,11 +3,17 @@
 
 #include "model.h"
 
+using BM::PBITS;
+using BM::PSCALE;
+using BM::PSCALEh;
+using BM::PSCALEm;
+
 class Prob16Counter
 {
   public:
     uint16_t p1;
     Prob16Counter():p1(PSCALEh){};
+    static constexpr int Rate(double eta) {return int(eta*PSCALE+0.5);};
   protected:
     int idiv(int val,int s) {return (val+(1<<(s-1)))>>s;};
     int idiv_signed(int val,int s){return val<0?-(((-val)+(1<<(s-1)))>>s):(val+(1<<(s-1)))>>s;};

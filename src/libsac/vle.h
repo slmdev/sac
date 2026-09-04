@@ -11,31 +11,6 @@
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
 
-class StaticLaplaceModel {
-  public:
-    StaticLaplaceModel(int maxbpn)
-    :pr((1<<maxbpn),std::vector<int>(32))
-    {
-      for (int sum=0;sum<(1<<maxbpn);sum++) {
-        for (int bpn=0;bpn<32;bpn++) {
-          double pd=0.;
-          if (sum>0) {
-            double theta=exp(-1.0/static_cast<double>(sum));
-            pd=1.0-1.0/(1+pow(theta,1<<bpn));
-          }
-          int pi=std::clamp((int)round(pd*PSCALE),1,PSCALEm);
-          pr[sum][bpn]=pi;
-        }
-      }
-    }
-    int Predict(int avg,int bpn)
-    {
-      return pr[avg][bpn];
-    }
-  private:
-    std::vector<std::vector<int>> pr;
-};
-
 using EncodeP1 = std::function<void(uint32_t,int)>;
 using DecodeP1 = std::function<int(uint32_t)>;
 
@@ -43,9 +18,11 @@ class BitplaneCoder {
   const int cnt_upd_rate_p=150;
   const int cnt_upd_rate_sig=300;
   const int cnt_upd_rate_ref=150;
-  const int mix_upd_rate_ref=800;
-  const int mix_upd_rate_sig=700;
-  int sse_upd_rate=250;
+  const int cnt_upd_rate_sse=250;
+
+  const int mix_upd_rate_ref=BM::MixerRate(0.005);
+  const int mix_upd_rate_sig=BM::MixerRate(0.005);
+  const int mix_upd_rate_sse=BM::MixerRate(0.0015);
   public:
     BitplaneCoder(int maxbpn,int numsamples);
     void Encode(EncodeP1 encode_p1,int32_t *abuf);
@@ -64,23 +41,20 @@ class BitplaneCoder {
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,csig3,cref0,cref1,cref2,cref3;
     std::vector<LinearCounterLimit>p_laplace;
-    std::vector <NMixLogistic>lmixref,lmixsig;
-    NMixLogistic ssemix;
+    std::vector <LogMixer>lmixref,lmixsig;
+    LogMixer ssemix;
 
     SSENL<15> sse[1<<12];
     SSENL<15> *psse1,*psse2;
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
     LinearCounterLimit *pl;
-    NMixLogistic *plmix;
+    LogMixer *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
-    //int n_laplace;
-    //std::vector <double>weights_laplace;
     int sigst[17];
     uint32_t bmask[32];
     int maxbpn,bpn,numsamples,nrun,pestimate;
     uint32_t state;
-    //StaticLaplaceModel lm;
 };
 
 class Golomb {

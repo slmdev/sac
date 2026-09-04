@@ -37,7 +37,7 @@ struct RunStats {
 class BMap {
   static constexpr int WCNT=750;
   static constexpr int WSSE=500;
-  static constexpr int WMIX=750;
+  static constexpr int WMIX=BM::MixerRate(0.005);
   public:
     BMap(RangeCoderSH &rc);
     void Encode(const BIntMap &bmap,const BIntMap &bmap_ref);
@@ -52,7 +52,7 @@ class BMap {
     LinearCounter16 c1[32];
     LinearCounter16 c2[32];
     LinearCounter16 c3[32];
-    NMixLogistic pmix;
+    LogMixer pmix;
     SSENL<32> sse;
     int ctx0,ctx1,ctx2,ctx3;
     std::vector<int32_t>pv; //scratch-pad
