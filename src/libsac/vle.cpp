@@ -5,7 +5,7 @@ BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
 p_laplace(32),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(3)),
-ssemix(2),
+ssemix(2,LogMixer::InitType::Uniform),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
@@ -63,13 +63,11 @@ uint32_t BitplaneCoder::GetAvgSum(int n)
 
 int BitplaneCoder::PredictLaplace(uint32_t avg_sum)
 {
-  double p_l=0.0;
-  if (avg_sum>0) {
-    double theta=exp(-1.0/avg_sum);
-    p_l=1.0-1.0/(1+pow(theta,1<<bpn));
-  };
-  int p1=std::min(std::max((int)round(p_l*PSCALE),1),PSCALEm);
-  return p1;
+  if (avg_sum==0) return 1;
+  double sum=(1<<bpn)/static_cast<double>(avg_sum);
+  double t=std::exp(-sum);
+  double ps=(t/(1.0+t))*PSCALE;
+  return std::clamp((int)std::round(ps),1,PSCALEm);
 }
 
 int BitplaneCoder::PredictRef()

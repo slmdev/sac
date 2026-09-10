@@ -1,6 +1,7 @@
 #ifndef COUNTER_H
 #define COUNTER_H
 
+#include <algorithm>
 #include "model.h"
 
 using BM::PBITS;

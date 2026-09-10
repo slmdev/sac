@@ -5,10 +5,12 @@
 #include "model.h"
 #include "domain.h"
 
+
 class LogMixer
 {
   public:
-    LogMixer(int n);
+    enum class InitType {Zero,Uniform};
+    LogMixer(int n,InitType type=InitType::Zero);
     int Predict(const std::vector <int>&p);
     void Update(int bit,int rate);
   private:

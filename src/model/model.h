@@ -1,19 +1,16 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <algorithm>
-
-// probability precision
-
+// bit-model precision constants
 namespace BM {
   //probability
-  inline constexpr int PBITS  = 15;
+  inline constexpr int PBITS  = 15;//fractional bits
   inline constexpr int PSCALE = 1<<PBITS;
   inline constexpr int PSCALEh= PSCALE>>1;
   inline constexpr int PSCALEm= PSCALE-1;
 
   // mixer weights
-  inline constexpr int WBITS  = 16; //fractional bits
+  inline constexpr int WBITS  = 16;
   inline constexpr int WSCALE = 1<<WBITS;
   inline constexpr int WRANGE = 1<<(WBITS+3);
 

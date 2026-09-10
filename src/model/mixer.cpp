@@ -3,9 +3,12 @@
 
 using namespace BM;
 
-LogMixer::LogMixer(int n)
+LogMixer::LogMixer(int n,InitType type)
 :x(n),w(n),pd(0),n(n)
 {
+  if (n && type==InitType::Uniform)
+    for (auto &weight:w)
+      weight=WSCALE/n;
 };
 
 int LogMixer::Predict(const std::vector <int>&p)
