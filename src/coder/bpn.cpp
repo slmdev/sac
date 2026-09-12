@@ -1,4 +1,4 @@
-#include "vle.h"
+#include "bpn.h"
 
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
@@ -45,27 +45,56 @@ void BitplaneCoder::GetSigState(int i)
   sigst[16]=i<numsamples-8?msb[i+8]:0;
 }
 
-uint32_t BitplaneCoder::GetAvgSum(int n)
-{
-  uint64_t nsum=0;
-  int nidx=0;
 
-  for (int k=sample-n;k<=sample+n;k++) {
-    if (k>=0 && k<numsamples) {
-      int val=pabuf[k];
-      val&=k<sample?bmask[bpn]:bmask[bpn+1];
-      nsum+=val;
-      nidx++;
+//int left = std::max(0,sample-r);
+//int right = std::min(sample+r,numsamples-1);
+void BitplaneCoder::UpdateAvgState(AvgState &ctx)
+{
+  const int r=ctx.max_radius;
+  const uint32_t plane = uint32_t{1} << bpn;
+  const uint32_t cmask = ~(plane - uint32_t{1});
+  const uint32_t hmask = cmask ^ plane;
+
+  if (sample==0) { //start of bitplane
+    ctx.sum=0;
+    //include current sample
+    ctx.scount = std::min(r,numsamples-1) + 1;
+    for (int k=0;k<ctx.scount;++k)
+      ctx.sum += pabuf[k] & hmask;
+  } else {
+    //previous samples plane is known
+    ctx.sum += pabuf[sample-1] & plane;
+    //left sample leaves
+    const int idxout = sample-r-1;
+    if (idxout>=0) {
+      ctx.sum -= pabuf[idxout] & cmask;
+      ctx.scount--;
+    }
+    //right sample enters
+    const int idxin = sample + r;
+    if (idxin < numsamples) {
+      ctx.sum += pabuf[idxin] & hmask;
+      ctx.scount++;
     }
   }
-  return nidx>0?(nsum+(nidx-1))/nidx:0;
+  ctx.avg = ctx.scount>0
+    ?(ctx.sum + ctx.scount-1)/ctx.scount:0;
 }
 
-int BitplaneCoder::PredictLaplace(uint32_t avg_sum)
+int BitplaneCoder::PredictLaplace(const AvgState &ctx)
 {
-  if (avg_sum==0) return 1;
-  double sum=(1<<bpn)/static_cast<double>(avg_sum);
-  double t=std::exp(-sum);
+  if (ctx.scount<=0 || ctx.sum==0) return 1;
+  const double plane=static_cast<double>(uint32_t{1}<<bpn);
+
+  #if 0
+    int nleft=std::min(sample,ctx.max_radius);
+    int nright=ctx.scount-nleft;
+    double rho=q*(0.5*nleft + nright) / ctx.scount;
+    double mean=static_cast<double>(ctx.sum)/ctx.scount + 0.25*rho;
+  #else
+    double mean=static_cast<double>(ctx.sum)/ctx.scount;
+  #endif
+  double t=std::exp(-plane/mean);
   double ps=(t/(1.0+t))*PSCALE;
   return std::clamp((int)std::round(ps),1,PSCALEm);
 }
@@ -199,10 +228,12 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
 {
   pabuf=abuf;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
+    AvgState avg32(32);
     state=0;
     for (sample=0;sample<numsamples;sample++) {
-      uint32_t avg_sum = GetAvgSum(32);
-      pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);
+      UpdateAvgState(avg32);
+      pestimate=PredictLaplace(avg32);
+
       GetSigState(sample);
       int bit=(pabuf[sample]>>bpn)&1;
       int p=0;
@@ -228,10 +259,11 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
   pabuf=buf;
   for (int i=0;i<numsamples;i++) buf[i]=0;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
+    AvgState avg32(32);
     state=0;
     for (sample=0;sample<numsamples;sample++) {
-      uint32_t avg_sum=GetAvgSum(32);
-      pestimate=PredictLaplace(avg_sum);//lm.Predict(avg_sum,bpn);
+      UpdateAvgState(avg32);
+      pestimate=PredictLaplace(avg32);
       GetSigState(sample);
       if (sigst[0]) { // coef is significant, refine
         bit=decode_p1(PredictSSE(PredictRef()));

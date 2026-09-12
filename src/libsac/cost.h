@@ -1,9 +1,9 @@
 #ifndef COST_H
 #define COST_H
 
-#include "vle.h"
-#include "../common/utils.h"
 #include <cmath>
+#include "../coder/bpn.h"
+#include "../common/utils.h"
 
 class CostFunction {
   public:
