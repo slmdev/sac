@@ -35,7 +35,7 @@ struct RunStats {
 };
 
 class BMap {
-  static constexpr int WCNT=750;
+  static constexpr int WCNT=100;
   static constexpr int WSSE=500;
   static constexpr int WMIX=BM::MixerRate(0.005);
   public:
@@ -48,10 +48,10 @@ class BMap {
     void Update(int bit);
     int32_t Predict();
     RangeCoderSH &rc;
-    LinearCounter16 c0[32];
-    LinearCounter16 c1[32];
-    LinearCounter16 c2[32];
-    LinearCounter16 c3[32];
+    LinearCounterLimit c0[32];
+    LinearCounterLimit c1[32];
+    LinearCounterLimit c2[32];
+    LinearCounterLimit c3[32];
     LogMixer pmix;
     SSENL<32> sse;
     int ctx0,ctx1,ctx2,ctx3;

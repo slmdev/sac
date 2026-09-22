@@ -6,7 +6,7 @@
 #include "libsac.h"
 #include "pred.h"
 #include "sparse.h"
-#include "bmap.h"
+#include "../coder/bmap.h"
 #include "../common/timer.h"
 #include "../opt/dds.h"
 #include "../opt/de.h"
