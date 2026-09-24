@@ -120,7 +120,7 @@ class SSENL
        if (updlb) lb=bit;
     };
   protected:
-    LinearCounter16 Map[2][N+1];
+    LinearCounterLimit Map[2][N+1];
     int lb;
 };
 
