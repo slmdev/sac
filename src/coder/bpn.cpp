@@ -12,15 +12,10 @@ maxbpn(maxbpn),numsamples(numsamples)
   state=0;
   bpn=0;
   nrun=0;
-  double theta=0.99;
-  for (int i=0;i<32;i++) {
-    int p=(std::min)((std::max)((int)round((1.0-1.0/(1+pow(theta,1<<i)))*PSCALE),1),PSCALEm);
-    //std::cout << p << ' ';
-    p_laplace[i].p1=p;
-  }
   pestimate=0;
   for (int i=0;i<32;i++) {
-    bmask[i]=~((1<<i)-1);
+    p_laplace[i].p1=PredictLaplace(1.0,bpn);
+    bmask[i]=~((uint32_t{1}<<i)-1);
   }
 }
 
@@ -46,54 +41,10 @@ void BitplaneCoder::GetSigState(int i)
 }
 
 
-//int left = std::max(0,sample-r);
-//int right = std::min(sample+r,numsamples-1);
-void BitplaneCoder::UpdateAvgState(AvgState &ctx)
+int BitplaneCoder::PredictLaplace(double mean,int bpn)
 {
-  const int r=ctx.max_radius;
-  const uint32_t plane = uint32_t{1} << bpn;
-  const uint32_t cmask = ~(plane - uint32_t{1});
-  const uint32_t hmask = cmask ^ plane;
-
-  if (sample==0) { //start of bitplane
-    ctx.sum=0;
-    //include current sample
-    ctx.scount = std::min(r,numsamples-1) + 1;
-    for (int k=0;k<ctx.scount;++k)
-      ctx.sum += pabuf[k] & hmask;
-  } else {
-    //previous samples plane is known
-    ctx.sum += pabuf[sample-1] & plane;
-    //left sample leaves
-    const int idxout = sample-r-1;
-    if (idxout>=0) {
-      ctx.sum -= pabuf[idxout] & cmask;
-      ctx.scount--;
-    }
-    //right sample enters
-    const int idxin = sample + r;
-    if (idxin < numsamples) {
-      ctx.sum += pabuf[idxin] & hmask;
-      ctx.scount++;
-    }
-  }
-  ctx.avg = ctx.scount>0
-    ?(ctx.sum + ctx.scount-1)/ctx.scount:0;
-}
-
-int BitplaneCoder::PredictLaplace(const AvgState &ctx)
-{
-  if (ctx.scount<=0 || ctx.sum==0) return 1;
+  if (mean<0.1) return 1;
   const double plane=static_cast<double>(uint32_t{1}<<bpn);
-
-  #if 0
-    int nleft=std::min(sample,ctx.max_radius);
-    int nright=ctx.scount-nleft;
-    double rho=q*(0.5*nleft + nright) / ctx.scount;
-    double mean=static_cast<double>(ctx.sum)/ctx.scount + 0.25*rho;
-  #else
-    double mean=static_cast<double>(ctx.sum)/ctx.scount;
-  #endif
   double t=std::exp(-plane/mean);
   double ps=(t/(1.0+t))*PSCALE;
   return std::clamp((int)std::round(ps),1,PSCALEm);
@@ -224,14 +175,13 @@ void BitplaneCoder::UpdateSSE(int bit)
 void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
 {
   pabuf=abuf;
+  ExpMean em(0.95,numsamples);
   for (bpn=maxbpn;bpn>=0;bpn--)  {
-    AvgState avg32(32);
+    em.Begin(pabuf,bpn);
     state=0;
     nrun=0;
     for (sample=0;sample<numsamples;sample++) {
-      UpdateAvgState(avg32);
-      pestimate=PredictLaplace(avg32);
-
+      pestimate=PredictLaplace(em.Mean(),bpn);
       GetSigState(sample);
       int bit=(pabuf[sample]>>bpn)&1;
       int p=0;
@@ -249,6 +199,7 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
         UpdateSSE(bit);
         if (bit) msb[sample]=bpn;
       }
+      if (sample<numsamples-1) em.Advance();
     }
   }
 }
@@ -257,14 +208,14 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
 {
   int bit;
   pabuf=buf;
+  ExpMean em(0.95,numsamples);
   for (int i=0;i<numsamples;i++) buf[i]=0;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
-    AvgState avg32(32);
+    em.Begin(pabuf,bpn);
     state=0;
     nrun=0;
     for (sample=0;sample<numsamples;sample++) {
-      UpdateAvgState(avg32);
-      pestimate=PredictLaplace(avg32);
+      pestimate=PredictLaplace(em.Mean(),bpn);
       GetSigState(sample);
       if (sigst[0]) { // coef is significant, refine
         nrun=0;
@@ -272,7 +223,7 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
         UpdateRef(bit);
         UpdateSSE(bit);
         if (bit) buf[sample]+=(1<<bpn);
-       } else { // coef is insignificant
+      } else { // coef is insignificant
          if (nrun<15) nrun++;
          bit=decode_p1(PredictSSE(PredictSig()));
          UpdateSig(bit);
@@ -281,7 +232,8 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
            buf[sample]+=(1<<bpn);
            msb[sample]=bpn;
           }
-        }
+      }
+      if (sample<numsamples-1) em.Advance();
     }
   }
   for (int i=0;i<numsamples;i++) buf[i]=MathUtils::U2S(buf[i]);
