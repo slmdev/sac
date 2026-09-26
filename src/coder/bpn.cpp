@@ -129,21 +129,19 @@ int BitplaneCoder::PredictRef()
   int xm=(x0+x1+x2+x3+x4)/5;
 
   int d0=x0>xm;
-  int d1=x1>xm;
+  //int d1=x1>xm;
   //int d2=x2>xm;
 
-  int ctx1=(b0&15)+((b1&15)<<4)+((b2&15)<<8);
-  int ctx2=(c0+(c1<<1)+(c2<<2)+(c3<<3))+(d0<<4)+(d1<<5);
-  int ctx3=(sigst[1]+sigst[2]+sigst[3]+sigst[4]+sigst[5]+sigst[6]+sigst[7]+sigst[8]);
+  int ctx1=(b0&31)+((b1&7)<<5)+((b3&1)<<8); //9-bits
+  int ctx2=(c0+(c1<<1)+(c2<<2)+(c3<<3))+(d0<<4); //5-bits
 
   pl=&p_laplace[bpn];
-  pc1=&cref0[msb[sample]];
-  pc2=&cref1[ctx1&255];
+  pc1=&cref0[msb[sample]-bpn];
+  pc2=&cref1[ctx1];
   pc3=&cref2[ctx2];
-  pc4=&cref3[ctx3];
 
-  int pctx=((((pestimate>>12)<<1)+d0)<<1)+(b0&1);
-  plmix=&lmixref[pctx];
+  int ref_mixctx=((msb[sample])<<1)+d0;
+  plmix=&lmixref[ref_mixctx];
 
   int px=plmix->Predict({pestimate,pl->p1,pc1->p1,pc2->p1,pc3->p1});
 
@@ -156,7 +154,6 @@ void BitplaneCoder::UpdateRef(int bit)
   pc1->update(bit,cnt_upd_rate_ref);
   pc2->update(bit,cnt_upd_rate_ref);
   pc3->update(bit,cnt_upd_rate_ref);
-  pc4->update(bit,cnt_upd_rate_ref);
   plmix->Update(bit,mix_upd_rate_ref);
   state=(state<<1)+0;
 }
@@ -191,8 +188,8 @@ int BitplaneCoder::PredictSig()
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
 
-  int mixctx=((state&15)<<3)+((n1>=3?3:n1)<<1)+(n2>0?1:0);
-  plmix=&lmixsig[mixctx];
+  int sig_mixctx=(nrun<<3)+((n1>=3?3:n1)<<1)+(n2>0?1:0);
+  plmix=&lmixsig[sig_mixctx];
   int p_mix=plmix->Predict({pl->p1,pc1->p1,pc2->p1});
   return p_mix;
 }
@@ -208,7 +205,7 @@ void BitplaneCoder::UpdateSig(int bit)
 
 int BitplaneCoder::PredictSSE(int p1)
 {
-  int ctx1=((pestimate>>11)<<1)+(sigst[0]?1:0);
+  int ctx1=((pestimate>>(PBITS-4))<<1)+(sigst[0]?1:0);
   int ctx2=32+(sigst[0]?1:0)+((sigst[1]?1:0)<<1)+((sigst[2]?1:0)<<2)+((sigst[3]?1:0)<<3)+((sigst[4]?1:0)<<4)+((sigst[5]?1:0)<<5)+((sigst[6]?1:0)<<6);
   psse1=&sse[ctx1];
   psse2=&sse[ctx2];
@@ -230,6 +227,7 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     AvgState avg32(32);
     state=0;
+    nrun=0;
     for (sample=0;sample<numsamples;sample++) {
       UpdateAvgState(avg32);
       pestimate=PredictLaplace(avg32);
@@ -238,11 +236,13 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
       int bit=(pabuf[sample]>>bpn)&1;
       int p=0;
       if (sigst[0]) { // coef is significant, refine
+        nrun=0;
         p=PredictSSE(PredictRef());
         encode_p1(p,bit);
         UpdateRef(bit);
         UpdateSSE(bit);
       } else { // coef is insignificant
+        if (nrun<15) nrun++;
         p=PredictSSE(PredictSig());
         encode_p1(p,bit);
         UpdateSig(bit);
@@ -261,16 +261,19 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     AvgState avg32(32);
     state=0;
+    nrun=0;
     for (sample=0;sample<numsamples;sample++) {
       UpdateAvgState(avg32);
       pestimate=PredictLaplace(avg32);
       GetSigState(sample);
       if (sigst[0]) { // coef is significant, refine
+        nrun=0;
         bit=decode_p1(PredictSSE(PredictRef()));
         UpdateRef(bit);
         UpdateSSE(bit);
         if (bit) buf[sample]+=(1<<bpn);
        } else { // coef is insignificant
+         if (nrun<15) nrun++;
          bit=decode_p1(PredictSSE(PredictSig()));
          UpdateSig(bit);
          UpdateSSE(bit);

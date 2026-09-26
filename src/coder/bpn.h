@@ -25,8 +25,8 @@ struct AvgState {
 
 class BitplaneCoder {
   const int cnt_upd_rate_p=150;
-  const int cnt_upd_rate_sig=300;
-  const int cnt_upd_rate_ref=150;
+  const int cnt_upd_rate_sig=500;
+  const int cnt_upd_rate_ref=200;
   const int cnt_upd_rate_sse=150;
 
   const int mix_upd_rate_ref=BM::MixerRate(0.005);
