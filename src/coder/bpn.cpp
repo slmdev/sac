@@ -3,7 +3,6 @@
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
-p_laplace(32),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(3)),
 ssemix(2,LogMixer::InitType::Uniform),
 msb(numsamples),
@@ -13,10 +12,8 @@ maxbpn(maxbpn),numsamples(numsamples)
   bpn=0;
   nrun=0;
   pestimate=0;
-  for (int i=0;i<32;i++) {
-    p_laplace[i].p1=PredictLaplace(1.0,bpn);
+  for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
-  }
 }
 
 void BitplaneCoder::GetSigState(int i)
@@ -86,7 +83,6 @@ int BitplaneCoder::PredictRef()
   int ctx1=(b0&31)+((b1&7)<<5)+((b3&1)<<8); //9-bits
   int ctx2=(c0+(c1<<1)+(c2<<2)+(c3<<3))+(d0<<4); //5-bits
 
-  pl=&p_laplace[bpn];
   pc1=&cref0[msb[sample]-bpn];
   pc2=&cref1[ctx1];
   pc3=&cref2[ctx2];
@@ -94,14 +90,14 @@ int BitplaneCoder::PredictRef()
   int ref_mixctx=((msb[sample])<<1)+d0;
   plmix=&lmixref[ref_mixctx];
 
-  int px=plmix->Predict({pestimate,pl->p1,pc1->p1,pc2->p1,pc3->p1});
+  int px=plmix->Predict({pestimate,pl.p1,pc1->p1,pc2->p1,pc3->p1});
 
   return px;
 }
 
 void BitplaneCoder::UpdateRef(int bit)
 {
-  pl->update(bit,cnt_upd_rate_p);
+  pl.update(bit,cnt_upd_rate_p);
   pc1->update(bit,cnt_upd_rate_ref);
   pc2->update(bit,cnt_upd_rate_ref);
   pc3->update(bit,cnt_upd_rate_ref);
@@ -135,19 +131,18 @@ int BitplaneCoder::PredictSig()
   CountSig(32,n1,n2);
   int ctx2=n2;
 
-  pl=&p_laplace[bpn];
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
 
   int sig_mixctx=(nrun<<3)+((n1>=3?3:n1)<<1)+(n2>0?1:0);
   plmix=&lmixsig[sig_mixctx];
-  int p_mix=plmix->Predict({pl->p1,pc1->p1,pc2->p1});
+  int p_mix=plmix->Predict({pl.p1,pc1->p1,pc2->p1});
   return p_mix;
 }
 
 void BitplaneCoder::UpdateSig(int bit)
 {
-  pl->update(bit,cnt_upd_rate_p);
+  pl.update(bit,cnt_upd_rate_p);
   pc1->update(bit,cnt_upd_rate_sig);
   pc2->update(bit,cnt_upd_rate_sig);
   plmix->Update(bit,mix_upd_rate_sig);
@@ -156,10 +151,11 @@ void BitplaneCoder::UpdateSig(int bit)
 
 int BitplaneCoder::PredictSSE(int p1)
 {
-  int ctx1=((pestimate>>(PBITS-4))<<1)+(sigst[0]?1:0);
-  int ctx2=32+(sigst[0]?1:0)+((sigst[1]?1:0)<<1)+((sigst[2]?1:0)<<2)+((sigst[3]?1:0)<<3)+((sigst[4]?1:0)<<4)+((sigst[5]?1:0)<<5)+((sigst[6]?1:0)<<6);
-  psse1=&sse[ctx1];
-  psse2=&sse[ctx2];
+  int dist=sigst[0]?std::min(msb[sample]-bpn,7):0;
+  int ctx1=((pestimate>>(PBITS-4))<<3)+(dist);
+  int ctx2=(sigst[0]?1:0)+((sigst[1]?1:0)<<1)+((sigst[2]?1:0)<<2)+((sigst[3]?1:0)<<3)+((sigst[4]?1:0)<<4)+((sigst[5]?1:0)<<5)+((sigst[6]?1:0)<<6);
+  psse1=&sse1[ctx1];
+  psse2=&sse2[ctx2];
   int pr1=psse1->Predict(p1);
   int pr2=psse2->Predict(pr1);
   return ssemix.Predict({(pr1+pr2+1)>>1,p1});
@@ -180,6 +176,7 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
     em.Begin(pabuf,bpn);
     state=0;
     nrun=0;
+    pl.p1 = PredictLaplace(em.Mean(),bpn);
     for (sample=0;sample<numsamples;sample++) {
       pestimate=PredictLaplace(em.Mean(),bpn);
       GetSigState(sample);
@@ -214,6 +211,7 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
     em.Begin(pabuf,bpn);
     state=0;
     nrun=0;
+    pl.p1 = PredictLaplace(em.Mean(),bpn);
     for (sample=0;sample<numsamples;sample++) {
       pestimate=PredictLaplace(em.Mean(),bpn);
       GetSigState(sample);

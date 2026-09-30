@@ -84,7 +84,7 @@ private:
 };
 
 class BitplaneCoder {
-  const int cnt_upd_rate_p=150;
+  const int cnt_upd_rate_p=125;
   const int cnt_upd_rate_sig=500;
   const int cnt_upd_rate_ref=200;
   const int cnt_upd_rate_sse=150;
@@ -108,14 +108,14 @@ class BitplaneCoder {
     void UpdateSSE(int bit);
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,csig3,cref0,cref1,cref2,cref3;
-    std::vector<LinearCounterLimit>p_laplace;
+    LinearCounterLimit pl;
     std::vector <LogMixer>lmixref,lmixsig;
     LogMixer ssemix;
 
-    SSENL<15> sse[1<<12];
+    SSENL<15> sse1[1<<8];
+    SSENL<15> sse2[1<<8];
     SSENL<15> *psse1,*psse2;
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
-    LinearCounterLimit *pl;
     LogMixer *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
