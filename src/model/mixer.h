@@ -10,7 +10,7 @@ class LogMixer
 {
   public:
     enum class InitType {Zero,Uniform};
-    LogMixer(int n,InitType type=InitType::Zero);
+    LogMixer(int n,InitType type=InitType::Uniform);
     int Predict(const std::vector <int>&p);
     void Update(int bit,int rate);
   private:

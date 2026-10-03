@@ -4,7 +4,7 @@ BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(3)),
-ssemix(2,LogMixer::InitType::Uniform),
+ssemix(2),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
