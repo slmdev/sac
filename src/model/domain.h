@@ -1,6 +1,7 @@
 #ifndef _DOMAIN_H
 #define _DOMAIN_H
 
+#include <cstdint>
 #include "model.h"
 
 using namespace BM;
@@ -21,8 +22,8 @@ class LogDomain {
     }
     void Check();
   private:
-    int FwdTbl[PSCALE];
-    int InvTbl[DSCALE];
+    int16_t FwdTbl[PSCALE];
+    int16_t InvTbl[DSCALE];
 };
 
 inline LogDomain myDomain;
