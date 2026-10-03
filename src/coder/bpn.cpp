@@ -106,19 +106,27 @@ void BitplaneCoder::UpdateRef(int bit)
 }
 
 // count number of significant samples in neighborhood
-void BitplaneCoder::CountSig(int n,int &n1,int &n2)
+std::tuple<int,int> BitplaneCoder::CountSig(int n)
 {
-  n1=n2=0;
+  int n1=0,n2=0;
+
+  auto update_scores=[&](int x)
+  {
+    if (x) {
+      const int d=std::min(x-bpn,2);
+      n1+=1;
+      n2+=(d!=0);
+    }
+  };
+
   for (int i=1;i<=n;i++) {
-    if (sample-i>=0) {
-       if (msb[sample-i]) n1+=1;
-       if (msb[sample-i]>bpn) n2+=1;
-    }
-    if (sample+i<numsamples) {
-       if (msb[sample+i]) n1+=1;
-       if (msb[sample+i]>bpn) n2+=1;
-    }
+    if (sample-i>=0)
+      update_scores(msb[sample-i]);
+
+    if (sample+i<numsamples)
+      update_scores(msb[sample+i]);
   }
+  return {n1,n2};
 }
 
 int BitplaneCoder::PredictSig()
@@ -127,8 +135,7 @@ int BitplaneCoder::PredictSig()
   for (int i=0;i<16;i++)
     if (sigst[i+1]) ctx1+=1<<i;
 
-  int n1,n2;
-  CountSig(32,n1,n2);
+  const auto [n1,n2] = CountSig(32);
   int ctx2=n2;
 
   pc1=&csig0[ctx1];

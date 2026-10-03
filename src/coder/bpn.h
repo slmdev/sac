@@ -97,7 +97,7 @@ class BitplaneCoder {
     void Encode(EncodeP1 encode_p1,int32_t *abuf);
     void Decode(DecodeP1 decode_p1,int32_t *buf);
   private:
-    void CountSig(int n,int &n1,int &n2);
+    std::tuple<int,int> CountSig(int n);
     void GetSigState(int i); // get actual significance state
     static int PredictLaplace(double mean,int bpn);
     int PredictRef();
