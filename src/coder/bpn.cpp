@@ -141,7 +141,8 @@ int BitplaneCoder::PredictSig()
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
 
-  int sig_mixctx=(nrun<<3)+((n1>=3?3:n1)<<1)+(n2>0?1:0);
+  //8-bit
+  int sig_mixctx=(nrun<<4)+((n1>=3?3:n1)<<2)+((n2>0)<<1)+(n1-n2>1);
   plmix=&lmixsig[sig_mixctx];
   int p_mix=plmix->Predict({pl.p1,pc1->p1,pc2->p1});
   return p_mix;
