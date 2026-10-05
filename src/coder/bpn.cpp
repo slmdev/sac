@@ -56,27 +56,29 @@ int BitplaneCoder::PredictRef()
   int nval=sample<(numsamples-1)?pabuf[sample+1]:0;
   int nval2=sample<(numsamples-2)?pabuf[sample+2]:0;
 
-  int b0=(val>>(bpn+1));
-  int b1=(lval>>(bpn));
-  int b2=(nval>>(bpn+1));
-  int b3=(lval2>>(bpn));
-  int b4=(nval2>>(bpn+1));
+  int shift0=bpn;
+  int shift1=bpn+1;
+
+  int b0=val>>shift1;
+  int b1=lval>>shift0;
+  int b2=nval>>shift1;
+  int b3=lval2>>shift0;
+  int b4=nval2>>shift1;
 
   int x0=b0<<1;
   int x1=b1;
   int x2=b2<<1;
   int x3=b3;
   int x4=b4<<1;
-  int xm=(x0+x1+x2+x3+x4)/5;
-  int d0=x0>xm;
+  int d0=5*x0>(x0+x1+x2+x3+x4);
 
   int c0=x0<x1?1:0;
   int c1=x0<x2?1:0;
   int c2=x0<x3?1:0;
   int c3=x0<x4?1:0;
 
-  int ctx1=(b0&31)+((b1&7)<<5)+((b3&1)<<8); //9-bits
-  int ctx2=(c0+(c1<<1)+(c2<<2)+(c3<<3))+(d0<<4); //5-bits
+  int ctx1=(b0&31)|((b1&7)<<5)|((b3&1)<<8); //9-bits
+  int ctx2=c0|(c1<<1)|(c2<<2)|(c3<<3)|(d0<<4); //5-bits
 
   pc1=&cref0[msb[sample]-bpn];
   pc2=&cref1[ctx1];
