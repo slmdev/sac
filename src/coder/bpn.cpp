@@ -3,15 +3,16 @@
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
-lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(3)),
+lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
 ssemix(2),
+sm(4,ScaleModel()),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
   state=0;
   bpn=0;
   nrun=0;
-  pestimate=0;
+  pestimate=pzero=0;
   for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
 }
@@ -141,7 +142,7 @@ int BitplaneCoder::PredictSig()
   //8-bit
   int sig_mixctx=(nrun<<4)+((n1>=3?3:n1)<<2)+((n2>0)<<1)+(n1-n2>1);
   plmix=&lmixsig[sig_mixctx];
-  int p_mix=plmix->Predict({pl.p1,pc1->p1,pc2->p1});
+  int p_mix=plmix->Predict({pzero,pl.p1,pc1->p1,pc2->p1});
   return p_mix;
 }
 
@@ -179,27 +180,34 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
   ExpMean em(0.95,numsamples);
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     em.Begin(pabuf,bpn);
+    for (int i=0;i<4;i++)
+      sm[i].Begin();
     state=0;
     nrun=0;
     pl.p1 = PredictLaplace(em.Mean(),bpn);
     for (sample=0;sample<numsamples;sample++) {
-      pestimate=PredictLaplace(em.Mean(),bpn);
+      const double mean=em.Mean();
+
+      pestimate=PredictLaplace(mean,bpn);
       GetSigState(sample);
       int bit=(pabuf[sample]>>bpn)&1;
       int p=0;
       if (sigst[0]) { // coef is significant, refine
-        nrun=0;
         p=PredictSSE(PredictRef());
         encode_p1(p,bit);
         UpdateRef(bit);
         UpdateSSE(bit);
+        nrun=0;
       } else { // coef is insignificant
-        if (nrun<15) nrun++;
+        const int sctx=nrun>8?2:nrun>0?1:0;
+        pzero = sm[sctx].Predict(mean,bpn);
         p=PredictSSE(PredictSig());
         encode_p1(p,bit);
         UpdateSig(bit);
         UpdateSSE(bit);
+        sm[sctx].Update(bit);
         if (bit) msb[sample]=bpn;
+        if (nrun<15) nrun++;
       }
       if (sample<numsamples-1) em.Advance();
     }
@@ -214,27 +222,33 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
   for (int i=0;i<numsamples;i++) buf[i]=0;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     em.Begin(pabuf,bpn);
+    for (int i=0;i<4;i++)
+      sm[i].Begin();
     state=0;
     nrun=0;
     pl.p1 = PredictLaplace(em.Mean(),bpn);
     for (sample=0;sample<numsamples;sample++) {
-      pestimate=PredictLaplace(em.Mean(),bpn);
+      const double mean=em.Mean();
+      pestimate=PredictLaplace(mean,bpn);
       GetSigState(sample);
       if (sigst[0]) { // coef is significant, refine
-        nrun=0;
         bit=decode_p1(PredictSSE(PredictRef()));
         UpdateRef(bit);
         UpdateSSE(bit);
         if (bit) buf[sample]+=(1<<bpn);
+        nrun=0;
       } else { // coef is insignificant
-         if (nrun<15) nrun++;
-         bit=decode_p1(PredictSSE(PredictSig()));
-         UpdateSig(bit);
-         UpdateSSE(bit);
-         if (bit) {
-           buf[sample]+=(1<<bpn);
-           msb[sample]=bpn;
-          }
+        const int sctx=nrun>8?2:nrun>0?1:0;
+        pzero = sm[sctx].Predict(mean,bpn);
+        bit=decode_p1(PredictSSE(PredictSig()));
+        UpdateSig(bit);
+        UpdateSSE(bit);
+        sm[sctx].Update(bit);
+        if (bit) {
+          buf[sample]+=(1<<bpn);
+          msb[sample]=bpn;
+         }
+        if (nrun<15) nrun++;
       }
       if (sample<numsamples-1) em.Advance();
     }

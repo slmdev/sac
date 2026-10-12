@@ -83,6 +83,46 @@ private:
   double left_sum_ = 0;
 };
 
+
+//multiplicative correction model for standard laplace
+class ScaleModel {
+  static constexpr double MAX_LOG_STEP=std::log(2.0);
+  static constexpr double MAX_BIAS=std::log(2.0);
+  static constexpr double MAX_CORR=16.0;
+  static constexpr double MEAN_EPS=1E-3;
+public:
+  ScaleModel(double scale_rate=0.0025,double bias_rate=1E-4)
+  :scale_rate(scale_rate),bias_rate(bias_rate)
+  {}
+  void Begin(double retention=1.0)
+  {
+    if (retention<1.0)
+      corr *= retention;
+    bias = 0.0;
+  }
+  int Predict(double mean, int bpn)
+  {
+    const double plane=static_cast<double>(uint32_t{1}<<bpn);
+
+    const double c=std::exp(corr);
+    //r = std::pow(plane / (mean*c+MEAN_EPS),0.75);
+    r = plane/(mean*c+MEAN_EPS);
+    const double t = std::exp(-r+bias);
+    ps = t / (1.0 + t);
+    return std::clamp(static_cast<int>(std::round(ps*PSCALE)),1,PSCALEm);
+  }
+  void Update(int bit)
+  {
+    const double error = (bit-ps);
+    if (scale_rate>0.0) corr = std::clamp(corr+std::clamp(scale_rate*error*r,-MAX_LOG_STEP,MAX_LOG_STEP),-MAX_CORR,MAX_CORR);
+    if (bias_rate>0.0) bias = std::clamp(bias+bias_rate*error,-MAX_BIAS,MAX_BIAS);
+  }
+private:
+  double r=0.0,ps=0.0;
+  double corr=0.0,bias=0.0;
+  double scale_rate,bias_rate;
+};
+
 class BitplaneCoder {
   const int cnt_upd_rate_p=125;
   const int cnt_upd_rate_sig=500;
@@ -111,6 +151,7 @@ class BitplaneCoder {
     LinearCounterLimit pl;
     std::vector <LogMixer>lmixref,lmixsig;
     LogMixer ssemix;
+    std::vector<ScaleModel> sm;
 
     SSENL<15> sse1[1<<8];
     SSENL<15> sse2[1<<8];
@@ -121,7 +162,7 @@ class BitplaneCoder {
     std::vector <int>msb;
     int sigst[17];
     uint32_t bmask[32];
-    int maxbpn,bpn,numsamples,nrun,pestimate;
+    int maxbpn,bpn,numsamples,nrun,pestimate,pzero;
     uint32_t state;
 };
 

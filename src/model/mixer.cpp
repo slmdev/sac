@@ -11,16 +11,13 @@ LogMixer::LogMixer(int n,InitType type)
       weight=WSCALE/n;
 };
 
-int LogMixer::Predict(const std::vector <int>&p)
+int LogMixer::Predict(const std::vector<int>&p)
 {
-  int64_t sum=0;
   for (int i=0;i<n;i++)
-  {
     x[i]=myDomain.Fwd(p[i]);
-    sum+=int64_t(w[i])*x[i];
-  }
-  sum=idiv_signed(sum,WBITS);
-  pd=std::clamp(myDomain.Inv(sum),1,PSCALEm);
+
+  int pl=dot(x,w);
+  pd=std::clamp(myDomain.Inv(pl),1,PSCALEm);
   return pd;
 }
 
