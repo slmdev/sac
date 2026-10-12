@@ -94,11 +94,12 @@ public:
   ScaleModel(double scale_rate=0.0025,double bias_rate=1E-4)
   :scale_rate(scale_rate),bias_rate(bias_rate)
   {}
-  void Begin(double retention=1.0)
+  void Begin(double corr_retention=1.0,double bias_retention=0.5)
   {
-    if (retention<1.0)
-      corr *= retention;
-    bias = 0.0;
+    if (corr_retention<1.0)
+      corr *= corr_retention;
+    if (bias_retention<1.0)
+      bias *= bias_retention;
   }
   int Predict(double mean, int bpn)
   {
