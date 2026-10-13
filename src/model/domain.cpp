@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 
+#include <algorithm>
 #include "domain.h"
 
 LogDomain::LogDomain()
@@ -16,7 +17,7 @@ LogDomain::LogDomain()
   for (int i=DMIN;i<=DMAX;i++)
   {
     double q=PSCALE/(1.0+exp(-double(i)/double(LSCALE)));
-    InvTbl[i-DMIN]=(int)std::round(q);
+    InvTbl[i-DMIN]=std::clamp(static_cast<int>(std::lround(q)),1,PSCALEm);
   };
 }
 

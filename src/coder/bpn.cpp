@@ -12,7 +12,7 @@ maxbpn(maxbpn),numsamples(numsamples)
   state=0;
   bpn=0;
   nrun=0;
-  pestimate=pzero=0;
+  pl_prob = pl_logit = pl_scale = 0;
   for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
 }
@@ -38,15 +38,6 @@ void BitplaneCoder::GetSigState(int i)
   sigst[16]=i<numsamples-8?msb[i+8]:0;
 }
 
-
-int BitplaneCoder::PredictLaplace(double mean,int bpn)
-{
-  if (mean<0.1) return 1;
-  const double plane=static_cast<double>(uint32_t{1}<<bpn);
-  double t=std::exp(-plane/mean);
-  double ps=(t/(1.0+t))*PSCALE;
-  return std::clamp((int)std::round(ps),1,PSCALEm);
-}
 
 int BitplaneCoder::PredictRef()
 {
@@ -88,7 +79,7 @@ int BitplaneCoder::PredictRef()
   int ref_mixctx=((msb[sample])<<1)+d0;
   plmix=&lmixref[ref_mixctx];
 
-  int px=plmix->Predict({pestimate,pl.p1,pc1->p1,pc2->p1,pc3->p1});
+  int px=plmix->Predict({pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1});
 
   return px;
 }
@@ -142,7 +133,7 @@ int BitplaneCoder::PredictSig()
   //8-bit
   int sig_mixctx=(nrun<<4)+((n1>=3?3:n1)<<2)+((n2>0)<<1)+(n1-n2>1);
   plmix=&lmixsig[sig_mixctx];
-  int p_mix=plmix->Predict({pzero,pl.p1,pc1->p1,pc2->p1});
+  int p_mix=plmix->Predict({pl_scale,pl.p1,pc1->p1,pc2->p1});
   return p_mix;
 }
 
@@ -155,10 +146,21 @@ void BitplaneCoder::UpdateSig(int bit)
   state=(state<<1)+1;
 }
 
+// x is a fixed-point logit: real logit = x / LSCALE.
+static int LaplaceLogitBin(int x, int nbits)
+{
+  assert(nbits >= 0 && nbits <= 16);
+  const int lo = BM::DMIN;
+  const int hi = 0; //p_laplace is always <= 0.5
+  const int nbins=1<<nbits;
+  x = std::clamp(x, lo, hi);
+  return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
+}
+
 int BitplaneCoder::PredictSSE(int p1)
 {
   int dist=sigst[0]?std::min(msb[sample]-bpn,7):0;
-  int ctx1=((pestimate>>(PBITS-4))<<3)+(dist);
+  int ctx1=(LaplaceLogitBin(pl_logit,5)<<3)+(dist);
   int ctx2=(sigst[0]?1:0)+((sigst[1]?1:0)<<1)+((sigst[2]?1:0)<<2)+((sigst[3]?1:0)<<3)+((sigst[4]?1:0)<<4)+((sigst[5]?1:0)<<5)+((sigst[6]?1:0)<<6);
   psse1=&sse1[ctx1];
   psse2=&sse2[ctx2];
@@ -178,17 +180,21 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
 {
   pabuf=abuf;
   ExpMean em(0.95,numsamples);
+  LaplaceModel lm;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     em.Begin(pabuf,bpn);
     for (int i=0;i<4;i++)
       sm[i].Begin();
     state=0;
     nrun=0;
-    pl.p1 = PredictLaplace(em.Mean(),bpn);
+    const uint32_t plane=uint32_t{1}<<bpn;
     for (sample=0;sample<numsamples;sample++) {
       const double mean=em.Mean();
 
-      pestimate=PredictLaplace(mean,bpn);
+      pl_logit=lm.PredictLogit(mean,plane);
+      pl_prob=myDomain.Inv(pl_logit);
+      if (sample==0) pl.p1 = pl_prob;
+
       GetSigState(sample);
       int bit=(pabuf[sample]>>bpn)&1;
       int p=0;
@@ -200,7 +206,7 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
         nrun=0;
       } else { // coef is insignificant
         const int sctx=nrun>8?2:nrun>0?1:0;
-        pzero = sm[sctx].Predict(mean,bpn);
+        pl_scale = sm[sctx].Predict(mean,plane);
         p=PredictSSE(PredictSig());
         encode_p1(p,bit);
         UpdateSig(bit);
@@ -216,9 +222,9 @@ void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
 
 void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
 {
-  int bit;
   pabuf=buf;
   ExpMean em(0.95,numsamples);
+  LaplaceModel lm;
   for (int i=0;i<numsamples;i++) buf[i]=0;
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     em.Begin(pabuf,bpn);
@@ -226,11 +232,16 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
       sm[i].Begin();
     state=0;
     nrun=0;
-    pl.p1 = PredictLaplace(em.Mean(),bpn);
+    const uint32_t plane=uint32_t{1}<<bpn;
     for (sample=0;sample<numsamples;sample++) {
       const double mean=em.Mean();
-      pestimate=PredictLaplace(mean,bpn);
+
+      pl_logit=lm.PredictLogit(mean,plane);
+      pl_prob=myDomain.Inv(pl_logit);
+      if (sample==0) pl.p1 = pl_prob;
+
       GetSigState(sample);
+      int bit=0;
       if (sigst[0]) { // coef is significant, refine
         bit=decode_p1(PredictSSE(PredictRef()));
         UpdateRef(bit);
@@ -239,7 +250,7 @@ void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
         nrun=0;
       } else { // coef is insignificant
         const int sctx=nrun>8?2:nrun>0?1:0;
-        pzero = sm[sctx].Predict(mean,bpn);
+        pl_scale = sm[sctx].Predict(mean,plane);
         bit=decode_p1(PredictSSE(PredictSig()));
         UpdateSig(bit);
         UpdateSSE(bit);

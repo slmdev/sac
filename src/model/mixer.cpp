@@ -16,9 +16,8 @@ int LogMixer::Predict(const std::vector<int>&p)
   for (int i=0;i<n;i++)
     x[i]=myDomain.Fwd(p[i]);
 
-  int pl=dot(x,w);
-  pd=std::clamp(myDomain.Inv(pl),1,PSCALEm);
-  return pd;
+  const int pl=dot(x,w);
+  return (pd=myDomain.Inv(pl));
 }
 
 void LogMixer::Update(int bit,int rate)

@@ -91,7 +91,7 @@ class ScaleModel {
   static constexpr double MAX_CORR=16.0;
   static constexpr double MEAN_EPS=1E-3;
 public:
-  ScaleModel(double scale_rate=0.0025,double bias_rate=1E-4)
+  ScaleModel(double scale_rate=0.003,double bias_rate=1E-4)
   :scale_rate(scale_rate),bias_rate(bias_rate)
   {}
   void Begin(double corr_retention=1.0,double bias_retention=0.5)
@@ -101,16 +101,15 @@ public:
     if (bias_retention<1.0)
       bias *= bias_retention;
   }
-  int Predict(double mean, int bpn)
+  int Predict(double mean, uint32_t plane)
   {
-    const double plane=static_cast<double>(uint32_t{1}<<bpn);
-
     const double c=std::exp(corr);
     //r = std::pow(plane / (mean*c+MEAN_EPS),0.75);
-    r = plane/(mean*c+MEAN_EPS);
+    r = static_cast<double>(plane)/(mean*c+MEAN_EPS);
     const double t = std::exp(-r+bias);
     ps = t / (1.0 + t);
-    return std::clamp(static_cast<int>(std::round(ps*PSCALE)),1,PSCALEm);
+    return std::clamp(
+      static_cast<int>(std::lround(ps*PSCALE)),1,PSCALEm);
   }
   void Update(int bit)
   {
@@ -124,6 +123,17 @@ private:
   double scale_rate,bias_rate;
 };
 
+class LaplaceModel {
+  public:
+    static int PredictLogit(double mean,uint32_t plane)
+    {
+      const double z=-static_cast<double>(plane)/(mean+1E-5);
+      const int zlog=std::lround(std::clamp(z*LSCALE,
+      static_cast<double>(BM::DMIN),static_cast<double>(BM::DMAX)));
+      return zlog;
+    }
+};
+
 class BitplaneCoder {
   const int cnt_upd_rate_p=125;
   const int cnt_upd_rate_sig=500;
@@ -131,7 +141,7 @@ class BitplaneCoder {
   const int cnt_upd_rate_sse=150;
 
   const int mix_upd_rate_ref=BM::MixerRate(0.005);
-  const int mix_upd_rate_sig=BM::MixerRate(0.005);
+  const int mix_upd_rate_sig=BM::MixerRate(0.0045);
   const int mix_upd_rate_sse=BM::MixerRate(0.0015);
   public:
     BitplaneCoder(int maxbpn,int numsamples);
@@ -140,7 +150,6 @@ class BitplaneCoder {
   private:
     std::tuple<int,int> CountSig(int n);
     void GetSigState(int i); // get actual significance state
-    static int PredictLaplace(double mean,int bpn);
     int PredictRef();
     void UpdateRef(int bit);
     int PredictSig();
@@ -154,16 +163,17 @@ class BitplaneCoder {
     LogMixer ssemix;
     std::vector<ScaleModel> sm;
 
-    SSENL<15> sse1[1<<8];
-    SSENL<15> sse2[1<<8];
-    SSENL<15> *psse1,*psse2;
+    SSENL<16> sse1[1<<8];
+    SSENL<16> sse2[1<<8];
+    SSENL<16> *psse1,*psse2;
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
     LogMixer *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
     int sigst[17];
     uint32_t bmask[32];
-    int maxbpn,bpn,numsamples,nrun,pestimate,pzero;
+    int maxbpn,bpn,numsamples,nrun;
+    int pl_prob,pl_logit,pl_scale;
     uint32_t state;
 };
 
