@@ -3,7 +3,7 @@
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
-lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
+lmixref(256,LogMixer(6)),lmixsig(256,LogMixer(5)),
 ssemix(2),
 sm(4,ScaleModel()),
 msb(numsamples),
@@ -79,7 +79,7 @@ int BitplaneCoder::PredictRef()
   int ref_mixctx=((msb[sample])<<1)+d0;
   plmix=&lmixref[ref_mixctx];
 
-  int px=plmix->Predict({pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1});
+  int px=plmix->Predict({pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1,PSCALEh});
 
   return px;
 }
@@ -133,7 +133,7 @@ int BitplaneCoder::PredictSig()
   //8-bit
   int sig_mixctx=(nrun<<4)+((n1>=3?3:n1)<<2)+((n2>0)<<1)+(n1-n2>1);
   plmix=&lmixsig[sig_mixctx];
-  int p_mix=plmix->Predict({pl_scale,pl.p1,pc1->p1,pc2->p1});
+  int p_mix=plmix->Predict({pl_scale,pl.p1,pc1->p1,pc2->p1,PSCALEh});
   return p_mix;
 }
 
