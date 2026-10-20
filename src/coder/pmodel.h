@@ -9,12 +9,12 @@ using namespace BM;
 
 //multiplicative correction model for standard laplace
 class ScaleModel {
-  static constexpr double MAX_LOG_STEP=std::log(2.0);
-  static constexpr double MAX_BIAS=std::log(2.0);
+  static constexpr double MAX_LOG_STEP=0.5;
+  static constexpr double MAX_BIAS=0.75;
   static constexpr double MAX_CORR=20.0;
-  static constexpr double MEAN_EPS=1E-3;
+  static constexpr double MEAN_EPS=1E-8;
 public:
-  ScaleModel(double scale_rate=0.003,double bias_rate=1E-4)
+  ScaleModel(double scale_rate=0.002,double bias_rate=1E-4)
   :scale_rate(scale_rate),bias_rate(bias_rate)
   {}
   void Begin(double corr_retention=1.0,double bias_retention=0.5)
@@ -26,9 +26,10 @@ public:
   }
   int Predict(double mean, uint32_t plane)
   {
-    const double c=std::exp(corr);
+    const double base_mean=mean+MEAN_EPS;
+    const double denom=base_mean*std::exp(corr);
     //r = std::pow(plane / (mean*c+MEAN_EPS),0.75);
-    r = static_cast<double>(plane)/(mean*c+MEAN_EPS);
+    r = static_cast<double>(plane)/denom;
     const double t = std::exp(-r+bias);
     ps = t / (1.0 + t);
     return std::clamp(
