@@ -17,6 +17,30 @@ maxbpn(maxbpn),numsamples(numsamples)
     bmask[i]=~((uint32_t{1}<<i)-1);
 }
 
+// x is a fixed-point logit: real logit = x / LSCALE.
+int BitplaneCoder::LaplaceLogitBin(int x, int nbits)
+{
+  assert(nbits >= 0 && nbits <= 16);
+  const int lo = BM::DMIN;
+  const int hi = 0; //p_laplace is always <= 0.5
+  const int nbins=1<<nbits;
+  x = std::clamp(x, lo, hi);
+  return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
+}
+
+int BitplaneCoder::LogBin(unsigned x,double k,double g,int nbins)
+{
+  if (x == 0) return 0;
+  const double y = std::log1p(static_cast<double>(x)/k)/std::log(g);
+  return static_cast<int>(std::clamp(std::ceil(y),1.0,double(nbins-1)));
+}
+
+//fast LogBin with k=1.0,g=2.0
+int BitplaneCoder::LogBin(unsigned x,int nbins)
+{
+  return std::min(BitUtils::count_bits32(x),nbins-1);
+}
+
 void BitplaneCoder::GetSigState(int i)
 {
   sigst[0]=msb[i];
@@ -95,43 +119,46 @@ void BitplaneCoder::UpdateRef(int bit)
 }
 
 // count number of significant samples in neighborhood
-std::tuple<int,int> BitplaneCoder::CountSig(int n)
+std::tuple<int,int,int> BitplaneCoder::CountSig(int n)
 {
-  int n1=0,n2=0;
+  int n1=0,n2=0,n3=0;
 
-  auto update_scores=[&](int x)
+  auto update_scores=[&](int x,int i)
   {
     if (x) {
       const int d=std::min(x-bpn,2);
       n1+=1;
-      n2+=(d!=0);
+      if (d) {
+        n2++;
+        n3+=i*d;
+      }
     }
   };
 
   for (int i=1;i<=n;i++) {
     if (sample-i>=0)
-      update_scores(msb[sample-i]);
+      update_scores(msb[sample-i],i);
 
     if (sample+i<numsamples)
-      update_scores(msb[sample+i]);
+      update_scores(msb[sample+i],i);
   }
-  return {n1,n2};
+  return {n1,n2,n3};
 }
 
 int BitplaneCoder::PredictSig()
 {
   int ctx1=0;
   for (int i=0;i<16;i++)
-    if (sigst[i+1]) ctx1+=1<<i;
+    if (sigst[i+1]) ctx1|=1<<i;
 
-  const auto [n1,n2] = CountSig(32);
-  int ctx2=n2;
+  const auto [n1,n2,n3] = CountSig(SIG_RADIUS);
+  const int ctx2=(n2<<5)|LogBin(n3,1.0,1.5,32);
 
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
 
   //8-bit
-  int sig_mixctx=(nrun<<4)+((n1>=3?3:n1)<<2)+((n2>0)<<1)+(n1-n2>1);
+  int sig_mixctx=(nrun<<4)|((n1>=3?3:n1)<<2)|((n2>0)<<1)|(n1-n2>1);
   plmix=&lmixsig[sig_mixctx];
   int p_mix=plmix->Predict({pl_scale,pl.p1,pc1->p1,pc2->p1,PSCALEh});
   return p_mix;
@@ -144,17 +171,6 @@ void BitplaneCoder::UpdateSig(int bit)
   pc2->update(bit,cnt_upd_rate_sig);
   plmix->Update(bit,mix_upd_rate_sig);
   state=(state<<1)+1;
-}
-
-// x is a fixed-point logit: real logit = x / LSCALE.
-static int LaplaceLogitBin(int x, int nbits)
-{
-  assert(nbits >= 0 && nbits <= 16);
-  const int lo = BM::DMIN;
-  const int hi = 0; //p_laplace is always <= 0.5
-  const int nbins=1<<nbits;
-  x = std::clamp(x, lo, hi);
-  return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
 }
 
 int BitplaneCoder::PredictSSE(int p1)

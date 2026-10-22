@@ -88,20 +88,26 @@ private:
 
 
 class BitplaneCoder {
-  const int cnt_upd_rate_p=125;
-  const int cnt_upd_rate_sig=500;
-  const int cnt_upd_rate_ref=200;
-  const int cnt_upd_rate_sse=150;
+  static constexpr int cnt_upd_rate_p=125;
+  static constexpr int cnt_upd_rate_sig=500;
+  static constexpr int cnt_upd_rate_ref=200;
+  static constexpr int cnt_upd_rate_sse=150;
 
-  const int mix_upd_rate_ref=BM::MixerRate(0.005);
-  const int mix_upd_rate_sig=BM::MixerRate(0.0045);
-  const int mix_upd_rate_sse=BM::MixerRate(0.0015);
+  static constexpr int mix_upd_rate_ref=BM::MixerRate(0.005);
+  static constexpr int mix_upd_rate_sig=BM::MixerRate(0.0045);
+  static constexpr int mix_upd_rate_sse=BM::MixerRate(0.0015);
+
+  static constexpr int SIG_RADIUS=32;
+  static constexpr int SIG_AGE=2;
   public:
     BitplaneCoder(int maxbpn,int numsamples);
     void Encode(EncodeP1 encode_p1,int32_t *abuf);
     void Decode(DecodeP1 decode_p1,int32_t *buf);
   private:
-    std::tuple<int,int> CountSig(int n);
+    static inline int LaplaceLogitBin(int x, int nbits);
+    static inline int LogBin(unsigned x,int nbins);
+    static inline int LogBin(unsigned x,double knee,double growth,int nbins);
+    std::tuple<int,int,int> CountSig(int n);
     void GetSigState(int i); // get actual significance state
     int PredictRef();
     void UpdateRef(int bit);
