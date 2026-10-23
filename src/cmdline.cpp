@@ -137,11 +137,6 @@ int CmdLine::Parse(int argc,const char *argv[])
          cfg.ocfg.fraction=0.2;
          cfg.ocfg.maxnfunc=300;
          cfg.ocfg.sigma=0.25;
-       } else if (key=="--EXTRAHIGH") {
-         cfg.optimize=1;
-         cfg.ocfg.fraction=0.2;
-         cfg.ocfg.maxnfunc=600;
-         cfg.ocfg.sigma=0.25;
        } else if (key=="--BEST") {
          cfg.optimize=1;
          cfg.ocfg.fraction=0.50;
