@@ -40,9 +40,11 @@ class BMap {
   static constexpr int WMIX=BM::MixerRate(0.005);
   public:
     BMap(RangeCoderSH &rc);
-    void Encode(const BIntMap &bmap,const BIntMap &bmap_ref);
+    void Encode(BIntMap &bmap,const BIntMap &bmap_ref);
     void Decode(BIntMap &bmap,const BIntMap &bmap_ref);
   private:
+    template <bool IsDecode>
+      void Run(BIntMap &bmap,const BIntMap &bmap_ref);
     int32_t MirrorCtx(const BIntMap &bmap,int32_t idx) const;
     int32_t RefCtx(const BIntMap &bmap_ref,int32_t val) const;
     void Update(int bit);

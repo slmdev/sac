@@ -156,13 +156,13 @@ class CostBitplane : public CostFunction {
        ubuf[i]=val;
     }
     #if 1
-    BufIO iobuf;
-    RangeCoderSH rc(iobuf);
-    rc.Init();
-    BitplaneCoder bc_rc(MathUtils::iLog2(vmax),numsamples);
-    bc_rc.Encode(rc.encode_p1,&ubuf[0]);
-    rc.Stop();
-    double c0=iobuf.GetBufPos();
+      BufIO iobuf;
+      RangeCoderSH rc(iobuf);
+      rc.Init();
+      BitplaneCoder bc_rc(MathUtils::iLog2(vmax),numsamples);
+      bc_rc.Encode(rc.encode_p1,ubuf.data());
+      rc.Stop();
+      double c0=iobuf.GetBufPos();
     #else
 
     StaticBitModel bm;

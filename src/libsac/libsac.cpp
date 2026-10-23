@@ -242,7 +242,7 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
     std::cout << "  map_enc ch" << ch << " " << std::size(pcm.used) << " -> " << buf.GetBufPos() << "b (" << std::format("{:0.1f}",r) << "%)\n";
   }
 
-  bc.Encode(rc.encode_p1,&(s2u_error_map[ch][0]));
+  bc.Encode(rc.encode_p1,s2u_error_map[ch].data());
   rc.Stop();
   return buf.GetBufPos();
 }

@@ -192,94 +192,74 @@ void BitplaneCoder::UpdateSSE(int bit)
   ssemix.Update(bit,mix_upd_rate_sse);
 }
 
-void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *abuf)
+template <bool IsDecode,class Coder>
+void BitplaneCoder::Run(Coder &&code,int32_t *buf)
 {
-  pabuf=abuf;
+  pabuf=buf;
   ExpMean em(0.95,numsamples);
   LaplaceModel lm;
+  if constexpr(IsDecode)
+    std::fill_n(buf,numsamples,0);
+
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     em.Begin(pabuf,bpn);
-    for (int i=0;i<4;i++)
-      sm[i].Begin();
+    for (auto& s:sm)
+      s.Begin();
     state=0;
     nrun=0;
     const uint32_t plane=uint32_t{1}<<bpn;
+
     for (sample=0;sample<numsamples;sample++) {
       const double mean=em.Mean();
-
       pl_logit=lm.PredictLogit(mean,plane);
       pl_prob=myDomain.Inv(pl_logit);
       if (sample==0) pl.p1 = pl_prob;
 
       GetSigState(sample);
-      int bit=(pabuf[sample]>>bpn)&1;
-      int p=0;
+
+      int bit=0;
+      if constexpr(!IsDecode) // input bit
+        bit=(pabuf[sample]>>bpn)&1;
       if (sigst[0]) { // coef is significant, refine
-        p=PredictSSE(PredictRef());
-        encode_p1(p,bit);
+        bit = code(PredictSSE(PredictRef()),bit);
         UpdateRef(bit);
         UpdateSSE(bit);
         nrun=0;
       } else { // coef is insignificant
         const int sctx=nrun>8?2:nrun>0?1:0;
         pl_scale = sm[sctx].Predict(mean,plane);
-        p=PredictSSE(PredictSig());
-        encode_p1(p,bit);
+        bit = code(PredictSSE(PredictSig()),bit);
         UpdateSig(bit);
         UpdateSSE(bit);
         sm[sctx].Update(bit);
         if (bit) msb[sample]=bpn;
         if (nrun<15) nrun++;
       }
+      if constexpr(IsDecode)
+        buf[sample] |= bit << bpn;
+
       if (sample<numsamples-1) em.Advance();
     }
   }
+  if constexpr(IsDecode)
+    for (int i=0;i<numsamples;i++)
+      buf[i]=MathUtils::U2S(buf[i]);
+}
+
+void BitplaneCoder::Encode(EncodeP1 encode_p1,int32_t *buf)
+{
+  Run<false>(
+    [&](uint32_t p1, int bit) -> int {
+      encode_p1(p1, bit);
+      return bit;
+    },buf);
 }
 
 void BitplaneCoder::Decode(DecodeP1 decode_p1,int32_t *buf)
 {
-  pabuf=buf;
-  ExpMean em(0.95,numsamples);
-  LaplaceModel lm;
-  for (int i=0;i<numsamples;i++) buf[i]=0;
-  for (bpn=maxbpn;bpn>=0;bpn--)  {
-    em.Begin(pabuf,bpn);
-    for (int i=0;i<4;i++)
-      sm[i].Begin();
-    state=0;
-    nrun=0;
-    const uint32_t plane=uint32_t{1}<<bpn;
-    for (sample=0;sample<numsamples;sample++) {
-      const double mean=em.Mean();
-
-      pl_logit=lm.PredictLogit(mean,plane);
-      pl_prob=myDomain.Inv(pl_logit);
-      if (sample==0) pl.p1 = pl_prob;
-
-      GetSigState(sample);
-      int bit=0;
-      if (sigst[0]) { // coef is significant, refine
-        bit=decode_p1(PredictSSE(PredictRef()));
-        UpdateRef(bit);
-        UpdateSSE(bit);
-        if (bit) buf[sample]+=(1<<bpn);
-        nrun=0;
-      } else { // coef is insignificant
-        const int sctx=nrun>8?2:nrun>0?1:0;
-        pl_scale = sm[sctx].Predict(mean,plane);
-        bit=decode_p1(PredictSSE(PredictSig()));
-        UpdateSig(bit);
-        UpdateSSE(bit);
-        sm[sctx].Update(bit);
-        if (bit) {
-          buf[sample]+=(1<<bpn);
-          msb[sample]=bpn;
-         }
-        if (nrun<15) nrun++;
-      }
-      if (sample<numsamples-1) em.Advance();
-    }
-  }
-  for (int i=0;i<numsamples;i++) buf[i]=MathUtils::U2S(buf[i]);
+  Run<true>(
+    [&](uint32_t p1, int) -> int {
+      return decode_p1(p1);
+    },buf);
 }
 

@@ -68,38 +68,15 @@ int32_t BMap::Predict()
   return px;
 }
 
-void BMap::Encode(const BIntMap &bmap,const BIntMap &)
-{
-  std::size_t buf_len = bmap.buf.size();
-  assert(buf_len==(bmap.maxval-bmap.minval+1));
-  //std::cout << "bmap (" << buf_len << "): " << bmap.minval << ' ' << bmap.maxval << '\n';
-
-  //linear scan order
-  RunStats rs;
-  for (int i=0;i<(int)buf_len;i++)
-  {
-    ctx0 = rs.bhist; //history
-    ctx1 = (rs.rt<<1)|rs.rb; //run
-    ctx2 = MirrorCtx(bmap,i); //mirror
-    ctx3 = 0;//RefCtx(bmap_ref,bmap.idx2val(i)); //reference
-
-    int32_t px=Predict();
-    const int bit=bmap.buf[i]?1:0;
-    rc.EncodeBitOne(px,bit);
-
-    Update(bit);
-
-    rs.Update(bit);
-  }
-}
-
-void BMap::Decode(BIntMap &bmap,const BIntMap &)
+template <bool IsDecode>
+void BMap::Run(BIntMap &bmap,const BIntMap &)
 {
   std::size_t buf_len = bmap.buf.size();
   if (buf_len!=static_cast<std::size_t>(bmap.maxval-bmap.minval+1))
     throw std::runtime_error("BMap: wrong allocation");
 
-  //std::cout << "bmap (" << buf_len << "): " << bmap.minval << ' ' << bmap.maxval << '\n';
+  if constexpr(IsDecode)
+    std::fill(begin(bmap.buf),end(bmap.buf),0);
 
   //linear scan order
   RunStats rs;
@@ -111,12 +88,26 @@ void BMap::Decode(BIntMap &bmap,const BIntMap &)
     ctx3 = 0;//RefCtx(bmap_ref,bmap.idx2val(i)); //reference
 
     int32_t px=Predict();
-    int bit=rc.DecodeBitOne(px);
-
+    int bit=0;
+    if constexpr(!IsDecode) {
+      bit=bmap.buf[i]?1:0;
+      rc.EncodeBitOne(px,bit);
+    } else {
+      bit=rc.DecodeBitOne(px);
+      bmap.buf[i]=bit;
+    }
     Update(bit);
     rs.Update(bit);
-
-    bmap.buf[i] = bit;
   }
+}
+
+void BMap::Encode(BIntMap &bmap,const BIntMap &bmap_ref)
+{
+  Run<false>(bmap,bmap_ref);
+}
+
+void BMap::Decode(BIntMap &bmap,const BIntMap &bmap_ref)
+{
+  Run<true>(bmap,bmap_ref);
 }
 

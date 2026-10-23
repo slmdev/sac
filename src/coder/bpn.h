@@ -101,9 +101,12 @@ class BitplaneCoder {
   static constexpr int SIG_AGE=2;
   public:
     BitplaneCoder(int maxbpn,int numsamples);
-    void Encode(EncodeP1 encode_p1,int32_t *abuf);
+    void Encode(EncodeP1 encode_p1,int32_t *buf);
     void Decode(DecodeP1 decode_p1,int32_t *buf);
   private:
+    template <bool IsDecode,class Coder>
+      void Run(Coder &&code,int32_t *buf);
+
     static inline int LaplaceLogitBin(int x, int nbits);
     static inline int LogBin(unsigned x,int nbins);
     static inline int LogBin(unsigned x,double knee,double growth,int nbins);
