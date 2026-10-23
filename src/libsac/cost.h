@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include "../coder/bpn.h"
+#include "../model/range.h"
+#include "../common/bufio.h"
 #include "../common/utils.h"
 
 class CostFunction {

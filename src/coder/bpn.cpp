@@ -1,3 +1,4 @@
+#include "../common/utils.h"
 #include "bpn.h"
 
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
@@ -6,6 +7,7 @@ cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
 lmixref(256,LogMixer(6)),lmixsig(256,LogMixer(5)),
 ssemix(2),
 sm(4,ScaleModel()),
+sigstats(SIG_RADIUS),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
@@ -118,7 +120,7 @@ void BitplaneCoder::UpdateRef(int bit)
   state=(state<<1)+0;
 }
 
-// count number of significant samples in neighborhood
+// for testing: count number of significant samples in neighborhood
 std::tuple<int,int,int> BitplaneCoder::CountSig(int n)
 {
   int n1=0,n2=0,n3=0;
@@ -134,7 +136,6 @@ std::tuple<int,int,int> BitplaneCoder::CountSig(int n)
       }
     }
   };
-
   for (int i=1;i<=n;i++) {
     if (sample-i>=0)
       update_scores(msb[sample-i],i);
@@ -151,7 +152,8 @@ int BitplaneCoder::PredictSig()
   for (int i=0;i<16;i++)
     if (sigst[i+1]) ctx1|=1<<i;
 
-  const auto [n1,n2,n3] = CountSig(SIG_RADIUS);
+  const auto [n1,n2,n3] = sigstats.Counts();
+
   const int ctx2=(n2<<5)|LogBin(n3,1.0,1.5,32);
 
   pc1=&csig0[ctx1];
@@ -205,6 +207,7 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
     em.Begin(pabuf,bpn);
     for (auto& s:sm)
       s.Begin();
+    sigstats.Begin(msb,bpn);
     state=0;
     nrun=0;
     const uint32_t plane=uint32_t{1}<<bpn;
@@ -220,6 +223,7 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
       int bit=0;
       if constexpr(!IsDecode) // input bit
         bit=(pabuf[sample]>>bpn)&1;
+
       if (sigst[0]) { // coef is significant, refine
         bit = code(PredictSSE(PredictRef()),bit);
         UpdateRef(bit);
@@ -238,7 +242,10 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
       if constexpr(IsDecode)
         buf[sample] |= bit << bpn;
 
-      if (sample<numsamples-1) em.Advance();
+      if (sample<numsamples-1) {
+        em.Advance();
+        sigstats.Advance();
+      }
     }
   }
   if constexpr(IsDecode)
