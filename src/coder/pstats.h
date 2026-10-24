@@ -75,27 +75,29 @@ private:
 };
 
 class SigStats {
-  struct St {
+  public:
+    struct St {
       int n1 = 0;
       int n2 = 0;
-      int sum = 0;
-      int weighted = 0;
-  };
-  public:
+      int n3 = 0;
+      int n4 = 0;
+    };
     SigStats(int radius,int max_age=2)
     :radius_(radius),max_age_(max_age)
     {
 
     }
     //n1=number of significant samples
-    //n2=number of older significant samples
-    //n3=distance weighted activity over older significant samples
-    std::tuple<int, int, int> Counts() const
+    //n2=number of significant samples with age>0
+    //n3=sum of capped_age
+    //n4=sum of distance*capped_age
+    St Counts() const
     {
       return {
         left_.n1 + right_.n1,
         left_.n2 + right_.n2,
-        left_.weighted + right_.weighted
+        left_.n3 + right_.n3,
+        left_.n4 + right_.n4
       };
     }
     void Begin(const std::vector<int>&msb,int bpn)
@@ -114,9 +116,9 @@ class SigStats {
     {
       assert(pos_ + 1 < count_);
       // Existing left samples become one position farther away.
-      left_.weighted += left_.sum;
+      left_.n4 += left_.n3;
       // Existing right samples become one position closer.
-      right_.weighted -= right_.sum;
+      right_.n4 -= right_.n3;
 
       ++pos_;
 
@@ -140,11 +142,10 @@ class SigStats {
       st.n1 += sign;
       const int d = std::min(x-bpn_,max_age_);
       if (d==0) return;
-      const int delta=sign*d;
       const int distance=std::abs(index-pos_);
       st.n2 += sign;
-      st.sum += delta;
-      st.weighted += distance * delta;
+      st.n3 += sign*d;
+      st.n4 += sign*d*distance;
     }
     int radius_,max_age_;
     const int* msb_ = nullptr;

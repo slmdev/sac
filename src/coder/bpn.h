@@ -15,8 +15,13 @@ using EncodeP1 = std::function<void(uint32_t,int)>;
 using DecodeP1 = std::function<int(uint32_t)>;
 
 class BitplaneCoder {
+  struct State {
+    int pl_prob=0,pl_logit=0,pl_scale=0;
+    int sigst[17];
+    int age_sum=0;
+  } s;
   static constexpr int cnt_upd_rate_p=125;
-  static constexpr int cnt_upd_rate_sig=500;
+  static constexpr int cnt_upd_rate_sig=400;
   static constexpr int cnt_upd_rate_ref=200;
   static constexpr int cnt_upd_rate_sse=150;
 
@@ -38,7 +43,7 @@ class BitplaneCoder {
     static inline int LogBin(unsigned x,int nbins);
     static inline int LogBin(unsigned x,double knee,double growth,int nbins);
     std::tuple<int,int,int> CountSig(int n);
-    void GetSigState(int i); // get actual significance state
+    void GetState(State &s,int i);
     int PredictRef();
     void UpdateRef(int bit);
     int PredictSig();
@@ -60,11 +65,8 @@ class BitplaneCoder {
     LogMixer *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
-    int sigst[17];
     uint32_t bmask[32];
     int maxbpn,bpn,numsamples,nrun;
-    int pl_prob,pl_logit,pl_scale;
-    uint32_t state;
 };
 
 #endif
