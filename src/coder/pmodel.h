@@ -14,10 +14,10 @@ class ScaleModel {
   static constexpr double MAX_CORR=20.0;
   static constexpr double MEAN_EPS=1E-8;
 public:
-  ScaleModel(double scale_rate=0.002,double bias_rate=1E-4)
+  ScaleModel(double scale_rate=0.001,double bias_rate=1E-4)
   :scale_rate(scale_rate),bias_rate(bias_rate)
   {}
-  void Begin(double corr_retention=1.0,double bias_retention=0.5)
+  void Begin(double corr_retention=0.95,double bias_retention=0.5)
   {
     if (corr_retention<1.0)
       corr *= corr_retention;
