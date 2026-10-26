@@ -53,7 +53,7 @@ void BitplaneCoder::GetState(State &s,int i)
   {
     int &xl=x[2*r-1];
     int &xr=x[2*r];
-    xl = i>r?msb[i-r]:0;
+    xl = i>=r?msb[i-r]:0;
     xr = i<numsamples-r?msb[i+r]:0;
 
     if (r<=maxr_age) {
