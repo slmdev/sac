@@ -4,7 +4,7 @@
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
-lmixref(256,LogMixer(6)),lmixsig(256,LogMixer(5)),
+lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
 ssemix(2),
 sm(4,ScaleModel()),
 sigstats(SIG_RADIUS),
@@ -15,6 +15,12 @@ maxbpn(maxbpn),numsamples(numsamples)
   nrun=0;
   for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
+  for (int i=0;i<256;i++) {
+    lmixref[i].SetConfidence(0.01);
+    //set laplace weight higher
+    lmixref[i].w[0] = WSCALE/2;
+    lmixsig[i].SetConfidence(0.15);
+  }
 }
 
 // x is a fixed-point logit: real logit = x / LSCALE.
@@ -104,7 +110,7 @@ int BitplaneCoder::PredictRef()
   int ref_mixctx=((msb[sample])<<1)+d0;
   plmix=&lmixref[ref_mixctx];
 
-  int px=plmix->Predict({s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1,PSCALEh});
+  int px=plmix->Predict({s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1});
 
   return px;
 }
@@ -159,7 +165,7 @@ int BitplaneCoder::PredictSig()
   //8-bit
   int sig_mixctx=(nrun<<4)|((c.n1>=3?3:c.n1)<<2)|((c.n2>0)<<1)|(c.n1-c.n2>1);
   plmix=&lmixsig[sig_mixctx];
-  int p_mix=plmix->Predict({s.pl_scale,pl.p1,pc1->p1,pc2->p1,PSCALEh});
+  int p_mix=plmix->Predict({s.pl_scale,pl.p1,pc1->p1,pc2->p1});
   return p_mix;
 }
 

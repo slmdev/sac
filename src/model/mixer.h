@@ -1,6 +1,7 @@
 #ifndef MIXER_H
 #define MIXER_H
 
+#include <cmath>
 #include "../global.h"
 #include "model.h"
 #include "domain.h"
@@ -13,6 +14,11 @@ class LogMixer
     LogMixer(int n,InitType type=InitType::Uniform);
     int Predict(const std::vector<int>&p);
     void Update(int bit,int rate);
+    inline void SetConfidence(float s)
+    {
+      for (auto &weight:w)
+        weight = static_cast<int>(std::lround(s*WSCALE));
+    }
     inline int idiv_signed(int64_t val,int64_t s)
     {
       const int64_t half=int64_t{1} << (s-1);
