@@ -2,6 +2,7 @@
 #define BPN_H
 
 #include <functional>
+#include <bitset>
 #include "pmodel.h"
 #include "pstats.h"
 #include "../model/counter.h"
@@ -19,6 +20,7 @@ class BitplaneCoder {
     int pl_prob=0,pl_logit=0,pl_scale=0;
     int sigst[17];
     int age_sum=0;
+    int mclass=0;
   } s;
   static constexpr int cnt_upd_rate_p=125;
   static constexpr int cnt_upd_rate_sig=400;
@@ -43,7 +45,7 @@ class BitplaneCoder {
     static inline int LogBin(unsigned x,int nbins);
     static inline int LogBin(unsigned x,double knee,double growth,int nbins);
     std::tuple<int,int,int> CountSig(int n);
-    void GetState(State &s,int i);
+    void GetState(double mean,int sample,State &s);
     int PredictRef();
     void UpdateRef(int bit);
     int PredictSig();

@@ -47,10 +47,21 @@ int BitplaneCoder::LogBin(unsigned x,int nbins)
   return std::min(BitUtils::count_bits32(x),nbins-1);
 }
 
-void BitplaneCoder::GetState(State &s,int i)
+static int RelativeMagnitudeClass(double r)
+{
+  return r < 0.25 ? 0:
+         r < 0.5  ? 1:
+         r < 1.0  ? 2:
+         r < 2.0  ? 3:
+         r < 4.0  ? 4:
+         r < 8.0  ? 5:
+         r < 16.0 ? 6:7;
+}
+
+void BitplaneCoder::GetState(double mean,int sample,State &s)
 {
   int *x=s.sigst;
-  x[0]=msb[i];
+  x[0]=msb[sample];
   const int maxr=8;
   const int maxr_age=4;
   const int maxr_agecap=8;
@@ -59,14 +70,21 @@ void BitplaneCoder::GetState(State &s,int i)
   {
     int &xl=x[2*r-1];
     int &xr=x[2*r];
-    xl = i>=r?msb[i-r]:0;
-    xr = i<numsamples-r?msb[i+r]:0;
+    xl = sample>=r?msb[sample-r]:0;
+    xr = sample<numsamples-r?msb[sample+r]:0;
 
     if (r<=maxr_age) {
       s.age_sum += xl?std::min(xl-bpn,maxr_agecap):0;
       s.age_sum += xr?std::min(xr-bpn,maxr_agecap):0;
     }
   }
+
+  const double rho=0.5;
+  const int plane= uint32_t{1}<<bpn;
+  const int value = static_cast<uint32_t>(pabuf[sample]);
+  const int prefix = (value >> (bpn+1)) << (bpn+1);
+  const double rel_ratio = static_cast<double>(prefix) /(mean+rho*static_cast<double>(plane));
+  s.mclass = RelativeMagnitudeClass(rel_ratio);
 }
 
 int BitplaneCoder::PredictRef()
@@ -92,14 +110,14 @@ int BitplaneCoder::PredictRef()
   int x2=b2<<1;
   int x3=b3;
   int x4=b4<<1;
-  int d0=5*x0>(x0+x1+x2+x3+x4);
+  int d0=4*x0>(x1+x2+x3+x4);
 
   int c0=x0<x1?1:0;
   int c1=x0<x2?1:0;
   int c2=x0<x3?1:0;
   int c3=x0<x4?1:0;
 
-  int ctx0=msb[sample]-bpn;
+  int ctx0=s.mclass|(std::min(s.age_sum,31)<<3);//8-bit
   int ctx1=(b0&31)|((b1&7)<<5)|((b3&1)<<8); //9-bits
   int ctx2=c0|(c1<<1)|(c2<<2)|(c3<<3)|(d0<<4); //5-bits
 
@@ -107,7 +125,8 @@ int BitplaneCoder::PredictRef()
   pc2=&cref1[ctx1];
   pc3=&cref2[ctx2];
 
-  int ref_mixctx=((msb[sample])<<1)+d0;
+  //8-bit mixer context
+  int ref_mixctx=(std::min(msb[sample]-bpn,15)<<4)|(s.mclass<<1)|d0;
   plmix=&lmixref[ref_mixctx];
 
   int px=plmix->Predict({s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1});
@@ -158,6 +177,8 @@ int BitplaneCoder::PredictSig()
 
   const SigStats::St c = sigstats.Counts();
   const int ctx2=(c.n2<<5)|LogBin(c.n4,1.0,1.5,32);
+
+
 
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
@@ -219,7 +240,7 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
       s.pl_prob=myDomain.Inv(s.pl_logit);
       if (sample==0) pl.p1 = s.pl_prob;
 
-      GetState(s,sample);
+      GetState(mean,sample,s);
 
       int bit=0;
       if constexpr(!IsDecode) // input bit
