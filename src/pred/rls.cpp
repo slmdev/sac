@@ -6,7 +6,7 @@
 RLS::RLS(int n,double gamma,double beta,double nu)
 :n(n),
 px(0.),
-x(n),w(n),
+x(n),w(n),ph(n),
 P(n,vec1D(n)), // inverse covariance matrix
 alc(gamma,beta)
 {
@@ -39,7 +39,7 @@ void RLS::Update(double val)
   const double err=val-px;
 
   // a priori variance of prediction, //phi=x^T P x
-  const vec1D ph=slmath::mul(P,x);
+  slmath::mul(P,x,ph);
   const double phi=slmath::dot(x,ph);
 
   if (!std::isfinite(phi) || phi<0.0) {

@@ -51,7 +51,7 @@ class RLS {
   private:
     void ResetP();
     double px;
-    vec1D x,w;
+    vec1D x,w,ph;
     vec2D P;
     ALC alc;
 };

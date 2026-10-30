@@ -200,6 +200,13 @@ namespace slmath
     return v_out;
   }
 
+  // output vector = matrix * vector overload
+  inline void mul(const vec2D &m,const vec1D &v,vec1D &v_out)
+  {
+    for (std::size_t i=0;i<m.size();i++)
+      v_out[i]=slmath::dot(m[i],v);
+  }
+
   // vector = scalar * vector
   inline vec1D mul(const double s,const vec1D &v)
   {
