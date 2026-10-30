@@ -11,7 +11,7 @@ LogMixer::LogMixer(int n,InitType type)
       weight=WSCALE/n;
 };
 
-int LogMixer::Predict(const std::vector<int>&p)
+int LogMixer::Predict(std::span<const int>p)
 {
   for (int i=0;i<n;i++)
     x[i]=myDomain.Fwd(p[i]);

@@ -12,7 +12,11 @@ class LogMixer
   public:
     enum class InitType {Zero,Uniform};
     LogMixer(int n,InitType type=InitType::Uniform);
-    int Predict(const std::vector<int>&p);
+    int Predict(std::span<const int>p);
+    int Predict(std::initializer_list<int>p)
+    {
+      return Predict(std::span<const int>(p.begin(), p.size()));
+    }
     void Update(int bit,int rate);
     inline void SetConfidence(float s)
     {

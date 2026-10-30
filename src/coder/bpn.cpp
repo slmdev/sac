@@ -129,9 +129,8 @@ int BitplaneCoder::PredictRef()
   int ref_mixctx=(std::min(msb[sample]-bpn,15)<<4)|(s.mclass<<1)|d0;
   plmix=&lmixref[ref_mixctx];
 
-  int px=plmix->Predict({s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1});
-
-  return px;
+  const int input[] = {s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1};
+  return plmix->Predict(input);
 }
 
 void BitplaneCoder::UpdateRef(int bit)
@@ -178,16 +177,14 @@ int BitplaneCoder::PredictSig()
   const SigStats::St c = sigstats.Counts();
   const int ctx2=(c.n2<<5)|LogBin(c.n4,1.0,1.5,32);
 
-
-
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
 
   //8-bit
   int sig_mixctx=(nrun<<4)|((c.n1>=3?3:c.n1)<<2)|((c.n2>0)<<1)|(c.n1-c.n2>1);
   plmix=&lmixsig[sig_mixctx];
-  int p_mix=plmix->Predict({s.pl_scale,pl.p1,pc1->p1,pc2->p1});
-  return p_mix;
+  const int input[]={s.pl_scale,pl.p1,pc1->p1,pc2->p1};
+  return plmix->Predict(input);
 }
 
 void BitplaneCoder::UpdateSig(int bit)
