@@ -32,7 +32,7 @@ class BitplaneCoder {
   static constexpr int mix_upd_rate_sse=BM::MixerRate(0.0015);
 
   static constexpr int SIG_RADIUS=32;
-  static constexpr int SIG_AGE=2;
+  static constexpr int SIG_MAXAGE=2;
   public:
     BitplaneCoder(int maxbpn,int numsamples);
     void Encode(EncodeP1 encode_p1,int32_t *buf);
@@ -53,7 +53,7 @@ class BitplaneCoder {
     int PredictSSE(int p1);
     void UpdateSSE(int bit);
 
-    std::vector<LinearCounterLimit> csig0,csig1,csig2,csig3,cref0,cref1,cref2,cref3;
+    std::vector<LinearCounterLimit> csig0,csig1,csig2,cref0,cref1,cref2;
     LinearCounterLimit pl;
     std::vector <LogMixer>lmixref,lmixsig;
     LogMixer ssemix;
@@ -67,6 +67,7 @@ class BitplaneCoder {
     LogMixer *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
+    std::vector <int>q_logbin;
     uint32_t bmask[32];
     int maxbpn,bpn,numsamples,nrun;
 };

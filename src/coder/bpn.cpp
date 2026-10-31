@@ -2,12 +2,12 @@
 #include "bpn.h"
 
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
-:csig0(1<<20),csig1(1<<20),csig2(1<<20),csig3(1<<20),
-cref0(1<<20),cref1(1<<20),cref2(1<<20),cref3(1<<20),
+:csig0(1<<20),csig1(1<<20),csig2(1<<20),
+cref0(1<<20),cref1(1<<20),cref2(1<<20),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
 ssemix(2),
 sm(4,ScaleModel()),
-sigstats(SIG_RADIUS),
+sigstats(SIG_RADIUS,SIG_MAXAGE),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
@@ -15,11 +15,18 @@ maxbpn(maxbpn),numsamples(numsamples)
   nrun=0;
   for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
+  //set initial mixer weights
   for (int i=0;i<256;i++) {
     lmixref[i].SetConfidence(0.01);
     //set laplace weight higher
     lmixref[i].w[0] = WSCALE/2;
     lmixsig[i].SetConfidence(0.15);
+  }
+  //create quantization table for activity context
+  int num_qcontext=sigstats.get_max_acc()+1;
+  q_logbin.resize(num_qcontext);
+  for (int i=0;i<num_qcontext;i++) {
+    q_logbin[i]=LogBin(i,1.0,1.5,32);
   }
 }
 
@@ -175,7 +182,8 @@ int BitplaneCoder::PredictSig()
     if (s.sigst[i+1]) ctx1|=1<<i;
 
   const SigStats::St c = sigstats.Counts();
-  const int ctx2=(c.n2<<5)|LogBin(c.n4,1.0,1.5,32);
+  assert(c.n4 < q_logbin.size());
+  const int ctx2=(c.n2<<5)|q_logbin[c.n4];
 
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];

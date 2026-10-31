@@ -100,6 +100,10 @@ class SigStats {
         left_.n4 + right_.n4
       };
     }
+    //max of activity sum n4
+    int get_max_acc() {
+      return max_age_*radius_*(radius_+1);
+    }
     void Begin(const std::vector<int>&msb,int bpn)
     {
       msb_= msb.data();
