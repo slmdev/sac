@@ -385,21 +385,27 @@ void FrameCoder::PrintProfile(SacProfile &profile)
 
 double FrameCoder::GetCost(const CostFunction *func,const tch_samples &samples,std::size_t samples_to_optimize) const
 {
-  // return a span over samples
-  const auto span_ch = [=](int ch){
-    return std::span{&samples[ch][0],samples_to_optimize};
+  // capture samples by ref
+  const auto span_ch = [&samples,samples_to_optimize](int ch){
+    return std::span{samples[ch].data(),samples_to_optimize};
   };
 
   double cost=0.0;
   if (cfg.mt_mode>1 && numchannels_>1) {
 
     std::vector <std::future<double>> threads;
-    for (int ch=0;ch<numchannels_;ch++)
-        threads.emplace_back(std::async([=]{return func->Calc(span_ch(ch));}));
+    threads.reserve(numchannels_);
 
-    for (auto &thread : threads)
-      cost += thread.get();
-
+    for (int ch=0;ch<numchannels_;ch++) {
+      //create span bevor task launch
+      threads.emplace_back(std::async(
+        std::launch::async,
+        [func, src=span_ch(ch)]{
+          return func->Calc(src);
+        }));
+    }
+    for (auto &thr : threads)
+      cost += thr.get();
   } else {
     for (int ch=0;ch<numchannels_;ch++)
       cost += func->Calc(span_ch(ch));
