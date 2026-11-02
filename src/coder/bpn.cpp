@@ -7,7 +7,8 @@ cref0(1<<20),cref1(1<<20),cref2(1<<20),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
 ssemix(2),
 sm(4,ScaleModel()),
-sigstats(SIG_RADIUS,SIG_MAXAGE),
+sigstats(32,2),
+rm_q(1.25),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
@@ -23,7 +24,7 @@ maxbpn(maxbpn),numsamples(numsamples)
     lmixsig[i].SetConfidence(0.15);
   }
   //create quantization table for activity context
-  int num_qcontext=sigstats.get_max_acc()+1;
+  const int num_qcontext=sigstats.get_max_acc()+1;
   q_logbin.resize(num_qcontext);
   for (int i=0;i<num_qcontext;i++) {
     q_logbin[i]=LogBin(i,1.0,1.5,32);
@@ -54,17 +55,6 @@ int BitplaneCoder::LogBin(unsigned x,int nbins)
   return std::min(BitUtils::count_bits32(x),nbins-1);
 }
 
-static int RelativeMagnitudeClass(double r)
-{
-  return r < 0.25 ? 0:
-         r < 0.5  ? 1:
-         r < 1.0  ? 2:
-         r < 2.0  ? 3:
-         r < 4.0  ? 4:
-         r < 8.0  ? 5:
-         r < 16.0 ? 6:7;
-}
-
 void BitplaneCoder::GetState(double mean,int sample,State &s)
 {
   int *x=s.sigst;
@@ -91,7 +81,7 @@ void BitplaneCoder::GetState(double mean,int sample,State &s)
   const int value = static_cast<uint32_t>(pabuf[sample]);
   const int prefix = (value >> (bpn+1)) << (bpn+1);
   const double rel_ratio = static_cast<double>(prefix) /(mean+rho*static_cast<double>(plane));
-  s.mclass = RelativeMagnitudeClass(rel_ratio);
+  s.rm_ctx = rm_q(rel_ratio);
 }
 
 int BitplaneCoder::PredictRef()
@@ -124,7 +114,7 @@ int BitplaneCoder::PredictRef()
   int c2=x0<x3?1:0;
   int c3=x0<x4?1:0;
 
-  int ctx0=s.mclass|(std::min(s.age_sum,31)<<3);//8-bit
+  int ctx0=s.rm_ctx|(std::min(s.age_sum,31)<<3);//8-bit
   int ctx1=(b0&31)|((b1&7)<<5)|((b3&1)<<8); //9-bits
   int ctx2=c0|(c1<<1)|(c2<<2)|(c3<<3)|(d0<<4); //5-bits
 
@@ -133,7 +123,7 @@ int BitplaneCoder::PredictRef()
   pc3=&cref2[ctx2];
 
   //8-bit mixer context
-  int ref_mixctx=(std::min(msb[sample]-bpn,15)<<4)|(s.mclass<<1)|d0;
+  int ref_mixctx=(std::min(msb[sample]-bpn,15)<<4)|(s.rm_ctx<<1)|d0;
   plmix=&lmixref[ref_mixctx];
 
   const int input[] = {s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1};

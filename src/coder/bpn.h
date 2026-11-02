@@ -12,6 +12,32 @@
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
 
+template <int NBins>
+class RelativeMagnitudeQ
+{
+  static_assert(NBins>=1);
+  static constexpr int NB=NBins-1;
+  public:
+    RelativeMagnitudeQ(double growth)
+    {
+      assert(growth>1.0);
+      double threshold=1.0/(growth*growth);
+      for (double&t:thres) {
+        t=threshold;
+        threshold*=growth;
+      }
+    }
+    int operator()(double r) const {
+      assert(r>=0);
+      int bin=0;
+      while (bin<NB && r>=thres[bin])
+        ++bin;
+      return bin;
+    }
+  private:
+    std::array<double,NB> thres;
+};
+
 using EncodeP1 = std::function<void(uint32_t,int)>;
 using DecodeP1 = std::function<int(uint32_t)>;
 
@@ -20,7 +46,7 @@ class BitplaneCoder {
     int pl_prob=0,pl_logit=0,pl_scale=0;
     int sigst[17];
     int age_sum=0;
-    int mclass=0;
+    int rm_ctx=0;
   } s;
   static constexpr int cnt_upd_rate_p=125;
   static constexpr int cnt_upd_rate_sig=400;
@@ -30,9 +56,6 @@ class BitplaneCoder {
   static constexpr int mix_upd_rate_ref=BM::MixerRate(0.005);
   static constexpr int mix_upd_rate_sig=BM::MixerRate(0.0045);
   static constexpr int mix_upd_rate_sse=BM::MixerRate(0.0015);
-
-  static constexpr int SIG_RADIUS=32;
-  static constexpr int SIG_MAXAGE=2;
   public:
     BitplaneCoder(int maxbpn,int numsamples);
     void Encode(EncodeP1 encode_p1,int32_t *buf);
@@ -59,6 +82,7 @@ class BitplaneCoder {
     LogMixer ssemix;
     std::vector<ScaleModel> sm;
     SigStats sigstats;
+    RelativeMagnitudeQ<8> rm_q;
 
     SSENL<16> sse1[1<<8];
     SSENL<16> sse2[1<<8];
