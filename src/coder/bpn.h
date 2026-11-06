@@ -8,6 +8,7 @@
 #include "../model/counter.h"
 #include "../model/sse.h"
 #include "../model/mixer.h"
+#include "../common/utils.h"
 
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
@@ -38,6 +39,23 @@ class RelativeMagnitudeQ
     std::array<double,NB> thres;
 };
 
+class WeightedAgeQ
+{
+  public:
+    WeightedAgeQ(int NBins,int num_ctx,double knee,double growth)
+    :q_logbin(num_ctx)
+    {
+      for (int i=0;i<num_ctx;i++)
+        q_logbin[i]=MathUtils::LogBin(i,knee,growth,NBins);
+    }
+    int operator()(int k) const {
+      assert(k>=0 && k<(int)q_logbin.size());
+      return q_logbin[k];
+    }
+  private:
+    std::vector <int>q_logbin;
+};
+
 using EncodeP1 = std::function<void(uint32_t,int)>;
 using DecodeP1 = std::function<int(uint32_t)>;
 
@@ -65,8 +83,6 @@ class BitplaneCoder {
       void Run(Coder &&code,int32_t *buf);
 
     static inline int LaplaceLogitBin(int x, int nbits);
-    static inline int LogBin(unsigned x,int nbins);
-    static inline int LogBin(unsigned x,double knee,double growth,int nbins);
     std::tuple<int,int,int> CountSig(int n);
     void GetState(double mean,int sample,State &s);
     int PredictRef();
@@ -83,6 +99,7 @@ class BitplaneCoder {
     std::vector<ScaleModel> sm;
     SigStats sigstats;
     RelativeMagnitudeQ<8> rm_q;
+    WeightedAgeQ age_q;
 
     SSENL<16> sse1[1<<8];
     SSENL<16> sse2[1<<8];
@@ -91,7 +108,6 @@ class BitplaneCoder {
     LogMixer *plmix;
     int *pabuf,sample;
     std::vector <int>msb;
-    std::vector <int>q_logbin;
     uint32_t bmask[32];
     int maxbpn,bpn,numsamples,nrun;
 };

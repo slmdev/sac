@@ -9,6 +9,7 @@ ssemix(2),
 sm(4,ScaleModel()),
 sigstats(32,2),
 rm_q(1.25),
+age_q(32,sigstats.get_max_acc()+1,1.0,1.5),
 msb(numsamples),
 maxbpn(maxbpn),numsamples(numsamples)
 {
@@ -23,12 +24,6 @@ maxbpn(maxbpn),numsamples(numsamples)
     lmixref[i].w[0] = WSCALE/2;
     lmixsig[i].SetConfidence(0.15);
   }
-  //create quantization table for activity context
-  const int num_qcontext=sigstats.get_max_acc()+1;
-  q_logbin.resize(num_qcontext);
-  for (int i=0;i<num_qcontext;i++) {
-    q_logbin[i]=LogBin(i,1.0,1.5,32);
-  }
 }
 
 // x is a fixed-point logit: real logit = x / LSCALE.
@@ -40,19 +35,6 @@ int BitplaneCoder::LaplaceLogitBin(int x, int nbits)
   const int nbins=1<<nbits;
   x = std::clamp(x, lo, hi);
   return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
-}
-
-int BitplaneCoder::LogBin(unsigned x,double k,double g,int nbins)
-{
-  if (x == 0) return 0;
-  const double y = std::log1p(static_cast<double>(x)*k)/std::log(g);
-  return static_cast<int>(std::clamp(std::ceil(y),1.0,double(nbins-1)));
-}
-
-//fast LogBin with k=1.0,g=2.0
-int BitplaneCoder::LogBin(unsigned x,int nbins)
-{
-  return std::min(BitUtils::count_bits32(x),nbins-1);
 }
 
 void BitplaneCoder::GetState(double mean,int sample,State &s)
@@ -173,7 +155,7 @@ int BitplaneCoder::PredictSig()
 
   const SigStats::St c = sigstats.Counts();
   assert(c.n4 < q_logbin.size());
-  const int ctx2=(c.n2<<5)|q_logbin[c.n4];
+  const int ctx2=(c.n2<<5)|age_q(c.n4);
 
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];

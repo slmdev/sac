@@ -178,6 +178,25 @@ namespace StrUtils {
       }
 };
 
+namespace BitUtils {
+  uint32_t get32HL(const uint8_t *buf);
+  uint32_t get32LH(const uint8_t *buf);
+  uint16_t get16LH(const uint8_t *buf);
+  void put16LH(uint8_t *buf,uint16_t val);
+  void put32LH(uint8_t *buf,uint32_t val);
+  std::string U322Str(uint32_t val);
+
+  inline int32_t count_bits32(uint32_t m)
+  {
+    #ifdef __GNUC__
+      return m == 0 ? 0 : (32 - __builtin_clz(m));
+    #else
+      return std::bit_width(m);
+    #endif
+  }
+}
+
+
 namespace MathUtils {
   template <typename T>
   T sgn(T x) {
@@ -339,6 +358,19 @@ namespace MathUtils {
     double dy = y1-y0;
     return idx*(dy/dx)+y0;
   }
+
+  inline int LogBin(unsigned x,double k,double g,int nbins)
+  {
+    if (x == 0) return 0;
+    const double y = std::log1p(static_cast<double>(x)*k)/std::log(g);
+    return static_cast<int>(std::clamp(std::ceil(y),1.0,double(nbins-1)));
+  }
+
+  //fast LogBin with k=1.0,g=2.0
+  inline int LogBin(unsigned x,int nbins)
+  {
+    return std::min(BitUtils::count_bits32(x),nbins-1);
+  }
 };
 
 namespace miscUtils {
@@ -420,22 +452,5 @@ namespace miscUtils {
  }
 };
 
-namespace BitUtils {
-  uint32_t get32HL(const uint8_t *buf);
-  uint32_t get32LH(const uint8_t *buf);
-  uint16_t get16LH(const uint8_t *buf);
-  void put16LH(uint8_t *buf,uint16_t val);
-  void put32LH(uint8_t *buf,uint32_t val);
-  std::string U322Str(uint32_t val);
-
-  inline int32_t count_bits32(uint32_t m)
-  {
-    #ifdef __GNUC__
-      return m == 0 ? 0 : (32 - __builtin_clz(m));
-    #else
-      return std::bit_width(m);
-    #endif
-  }
-}
 
 #endif // UTILS_H
