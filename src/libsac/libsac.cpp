@@ -126,6 +126,7 @@ void FrameCoder::PredictFrame(const SacProfile &profile,tch_samples &error,int f
     const auto *src0=&samples[ch0][from];
     const auto *src1=&samples[ch1][from];
 
+    const int lookahead = std::min(param.nS1,numsamples);
     int idx0=0,idx1=0;
     while (idx0<numsamples || idx1<numsamples)
     {
@@ -134,7 +135,7 @@ void FrameCoder::PredictFrame(const SacProfile &profile,tch_samples &error,int f
         eprocess(0,ch0,src0[idx0],idx0);
         idx0++;
       }
-      if (idx0>=param.nS1) {
+      if (idx0>=lookahead) {
         pr.fillbuf_ch1(src0,src1,idx1,numsamples);
         eprocess(1,ch1,src1[idx1],idx1);
         idx1++;
@@ -178,6 +179,8 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
 
     auto *dst0=&samples[ch0][0];
     auto *dst1=&samples[ch1][0];
+
+    const int lookahead = std::min(param.nS1,numsamples);
     int idx0=0,idx1=0;
     while (idx0<numsamples || idx1<numsamples)
     {
@@ -186,7 +189,7 @@ void FrameCoder::UnpredictFrame(const SacProfile &profile,int numsamples)
         dprocess(0,ch0,dst0,idx0);
         idx0++;
       }
-      if (idx0>=param.nS1) {
+      if (idx0>=lookahead) {
         pr.fillbuf_ch1(dst0,dst1,idx1,numsamples);
         dprocess(1,ch1,dst1,idx1);
         idx1++;
