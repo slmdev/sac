@@ -52,7 +52,7 @@ public:
   void Advance()
   {
     assert(pos_<(count_-1));
-    left_sum_ = alpha_ * (left_sum_ + Known(pos_));
+    left_sum_ = alpha_*(left_sum_+Known(pos_));
     ++pos_;
   }
 

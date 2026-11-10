@@ -37,14 +37,31 @@ int BitplaneCoder::LaplaceLogitBin(int x, int nbits)
   return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
 }
 
-void BitplaneCoder::GetState(double mean,int sample,State &s)
+int EmaCtx(double mean0, double mean1, uint32_t plane,double rho)
 {
+  const double floor = rho * static_cast<double>(plane);
+  const double base = mean0 + floor;
+  const double other = mean1 + floor;
+
+  if (other * 1.10 < base) return 0;  // below
+  if (other > base * 1.40) return 3;  // far above
+  if (other > base * 1.10) return 2;  // above
+  return 1;                           // agree
+}
+
+void BitplaneCoder::GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s)
+{
+  constexpr double rho=0.10;
+  constexpr double rho_rm=0.5;
+
+  constexpr int maxr=8;//16 sample range
+  constexpr int maxr_age=4;//8 sample range for age sum
+  constexpr int maxr_agecap=8;//age cap for local age sum
+
+  //fill 16-bit significance state
   int *x=s.sigst;
   x[0]=msb[sample];
-  const int maxr=8;
-  const int maxr_age=4;
-  const int maxr_agecap=8;
-  s.age_sum=0;
+  int age_sum=0;
   for (int r=1;r<=maxr;r++)
   {
     int &xl=x[2*r-1];
@@ -53,17 +70,29 @@ void BitplaneCoder::GetState(double mean,int sample,State &s)
     xr = sample<numsamples-r?msb[sample+r]:0;
 
     if (r<=maxr_age) {
-      s.age_sum += xl?std::min(xl-bpn,maxr_agecap):0;
-      s.age_sum += xr?std::min(xr-bpn,maxr_agecap):0;
+      age_sum += xl?std::min(xl-bpn,maxr_agecap):0;
+      age_sum += xr?std::min(xr-bpn,maxr_agecap):0;
     }
   }
+  //3-bit local age context
+  s.age_ctx = age_sum<4?age_sum:4+(age_sum>=8)+(age_sum>=16)+(age_sum>=24);
 
-  const double rho=0.5;
-  const int plane= uint32_t{1}<<bpn;
-  const int value = static_cast<uint32_t>(pabuf[sample]);
-  const int prefix = (value >> (bpn+1)) << (bpn+1);
-  const double rel_ratio = static_cast<double>(prefix) /(mean+rho*static_cast<double>(plane));
-  s.rm_ctx = rm_q(rel_ratio);
+  //laplace prediction
+  s.pl_logit=LaplaceModel::PredictLogit(means[0],plane,rho);
+  s.pl_prob=myDomain.Inv(s.pl_logit);
+
+  //2-bit scale disagreement
+  s.ema_ctx0=EmaCtx(means[0],means[1],plane,rho);
+  s.ema_ctx1=EmaCtx(means[0],means[2],plane,rho);
+
+  //3-bit relative magnitude context
+  s.rm_ctx=0;
+  if (s.sigst[0]) {
+    const int prefix = pabuf[sample] & bmask[bpn+1];
+    const double floor=rho_rm*static_cast<double>(plane);
+    const double rel_ratio = static_cast<double>(prefix) /(means[0]+floor);
+    s.rm_ctx = rm_q(rel_ratio);
+  }
 }
 
 int BitplaneCoder::PredictRef()
@@ -96,7 +125,7 @@ int BitplaneCoder::PredictRef()
   int c2=x0<x3?1:0;
   int c3=x0<x4?1:0;
 
-  int ctx0=s.rm_ctx|(std::min(s.age_sum,31)<<3);//8-bit
+  int ctx0=s.rm_ctx|(s.age_ctx<<3)|(s.ema_ctx0<<6)|(s.ema_ctx1<<8);//10-bit
   int ctx1=(b0&31)|((b1&7)<<5)|((b3&1)<<8); //9-bits
   int ctx2=c0|(c1<<1)|(c2<<2)|(c3<<3)|(d0<<4); //5-bits
 
@@ -119,32 +148,6 @@ void BitplaneCoder::UpdateRef(int bit)
   pc2->update(bit,cnt_upd_rate_ref);
   pc3->update(bit,cnt_upd_rate_ref);
   plmix->Update(bit,mix_upd_rate_ref);
-}
-
-// for testing: count number of significant samples in neighborhood
-std::tuple<int,int,int> BitplaneCoder::CountSig(int n)
-{
-  int n1=0,n2=0,n3=0;
-
-  auto update_scores=[&](int x,int i)
-  {
-    if (x) {
-      const int d=std::min(x-bpn,2);
-      n1+=1;
-      if (d) {
-        n2++;
-        n3+=i*d;
-      }
-    }
-  };
-  for (int i=1;i<=n;i++) {
-    if (sample-i>=0)
-      update_scores(msb[sample-i],i);
-
-    if (sample+i<numsamples)
-      update_scores(msb[sample+i],i);
-  }
-  return {n1,n2,n3};
 }
 
 int BitplaneCoder::PredictSig()
@@ -177,14 +180,15 @@ void BitplaneCoder::UpdateSig(int bit)
 
 int BitplaneCoder::PredictSSE(int p1)
 {
-  int dist=s.sigst[0]?std::min(msb[sample]-bpn,7):0;
-  int ctx1=(LaplaceLogitBin(s.pl_logit,5)<<3)+(dist); //8-bit
-  int ctx2=(s.sigst[0]?1:0)+((s.sigst[1]?1:0)<<1)+((s.sigst[2]?1:0)<<2)+(std::min(s.age_sum,31)<<3); //8-bit
+  const int dist=s.sigst[0]?std::min(msb[sample]-bpn,3):0;
+  int ctx1=dist|(s.ema_ctx0<<2)|(s.ema_ctx1<<4)|(LaplaceLogitBin(s.pl_logit,4)<<6); //10-bit
+  int ctx2=(s.sigst[0]?1:0)|((s.sigst[1]?1:0)<<1)|((s.sigst[2]?1:0)<<2)|(s.age_ctx<<3)|(s.rm_ctx<<6); //9-bit
   psse1=&sse1[ctx1];
   psse2=&sse2[ctx2];
   int pr1=psse1->Predict(p1);
   int pr2=psse2->Predict(pr1);
-  return ssemix.Predict({(pr1+pr2+1)>>1,p1});
+  const int input[]={p1,(pr1+pr2+1)>>1};
+  return ssemix.Predict(input);
 }
 
 void BitplaneCoder::UpdateSSE(int bit)
@@ -194,30 +198,36 @@ void BitplaneCoder::UpdateSSE(int bit)
   ssemix.Update(bit,mix_upd_rate_sse);
 }
 
+
 template <bool IsDecode,class Coder>
 void BitplaneCoder::Run(Coder &&code,int32_t *buf)
 {
   pabuf=buf;
-  ExpMean em(0.95,numsamples);
-  LaplaceModel lm;
+  std::array<ExpMean,3> em={
+    ExpMean(0.95,numsamples),
+    ExpMean(0.99,numsamples),
+    ExpMean(0.85,numsamples)
+  };
+
   if constexpr(IsDecode)
     std::fill_n(buf,numsamples,0);
 
   for (bpn=maxbpn;bpn>=0;bpn--)  {
     const uint32_t plane=uint32_t{1}<<bpn;
-    em.Begin(pabuf,bpn);
+    for (auto &m:em)
+      m.Begin(pabuf,bpn);
+
     for (auto& model:sm)
       model.Begin();
     sigstats.Begin(msb,bpn);
     nrun=0;
 
     for (sample=0;sample<numsamples;sample++) {
-      const double mean=em.Mean();
-      s.pl_logit=lm.PredictLogit(mean,plane);
-      s.pl_prob=myDomain.Inv(s.pl_logit);
+      const std::array<double,3>means={
+        em[0].Mean(),em[1].Mean(),em[2].Mean()
+      };
+      GetState(means,plane,sample,s);
       if (sample==0) pl.p1 = s.pl_prob;
-
-      GetState(mean,sample,s);
 
       int bit=0;
       if constexpr(!IsDecode) // input bit
@@ -229,8 +239,8 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
         UpdateSSE(bit);
         nrun=0;
       } else { // coef is insignificant
-        const int sctx=nrun>8?2:nrun>0?1:0;
-        s.pl_scale = sm[sctx].Predict(mean,plane);
+        const int sctx=(nrun>8?2:nrun>0?1:0);
+        s.pl_scale = sm[sctx].Predict(means[0],plane);
         bit = code(PredictSSE(PredictSig()),bit);
         UpdateSig(bit);
         UpdateSSE(bit);
@@ -242,7 +252,8 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
         buf[sample] |= bit << bpn;
 
       if (sample<numsamples-1) {
-        em.Advance();
+        for (auto &m:em)
+          m.Advance();
         sigstats.Advance();
       }
     }

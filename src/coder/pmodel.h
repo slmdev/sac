@@ -49,9 +49,9 @@ private:
 
 class LaplaceModel {
   public:
-    static int PredictLogit(double mean,uint32_t plane)
+    static int PredictLogit(double mean,uint32_t plane,double rho)
     {
-      const double z=-static_cast<double>(plane)/(mean+1E-5);
+      const double z=-static_cast<double>(plane)/(mean+rho*plane);
       const int zlog=std::lround(std::clamp(z*LSCALE,
       static_cast<double>(BM::DMIN),static_cast<double>(BM::DMAX)));
       return zlog;

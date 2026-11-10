@@ -63,8 +63,9 @@ class BitplaneCoder {
   struct State {
     int pl_prob=0,pl_logit=0,pl_scale=0;
     int sigst[17];
-    int age_sum=0;
+    int age_ctx=0;
     int rm_ctx=0;
+    int ema_ctx0=0,ema_ctx1=0;
   } s;
   static constexpr int cnt_upd_rate_p=125;
   static constexpr int cnt_upd_rate_sig=400;
@@ -83,8 +84,8 @@ class BitplaneCoder {
       void Run(Coder &&code,int32_t *buf);
 
     static inline int LaplaceLogitBin(int x, int nbits);
-    std::tuple<int,int,int> CountSig(int n);
-    void GetState(double mean,int sample,State &s);
+    void GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s);
+
     int PredictRef();
     void UpdateRef(int bit);
     int PredictSig();
@@ -101,8 +102,8 @@ class BitplaneCoder {
     RelativeMagnitudeQ<8> rm_q;
     WeightedAgeQ age_q;
 
-    SSENL<16> sse1[1<<8];
-    SSENL<16> sse2[1<<8];
+    SSENL<16> sse1[1<<10];
+    SSENL<16> sse2[1<<9];
     SSENL<16> *psse1,*psse2;
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
     LogMixer *plmix;
