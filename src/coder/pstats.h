@@ -144,7 +144,7 @@ class SigStats {
       if (x == 0) return;
       assert(x >= bpn_);
       st.n1 += sign;
-      const int d = std::min(x-bpn_,max_age_);
+      const int d = std::min(x-(bpn_+1),max_age_);
       if (d==0) return;
       const int distance=std::abs(index-pos_);
       st.n2 += sign;

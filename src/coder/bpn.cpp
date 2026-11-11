@@ -49,7 +49,7 @@ int EmaCtx(double mean0, double mean1, uint32_t plane,double rho)
   return 1;                           // agree
 }
 
-void BitplaneCoder::GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s)
+void BitplaneCoder::GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s) const
 {
   constexpr double rho=0.10;
   constexpr double rho_rm=0.5;
@@ -70,8 +70,8 @@ void BitplaneCoder::GetState(const std::array<double,3> &means,uint32_t plane,in
     xr = sample<numsamples-r?msb[sample+r]:0;
 
     if (r<=maxr_age) {
-      age_sum += xl?std::min(xl-bpn,maxr_agecap):0;
-      age_sum += xr?std::min(xr-bpn,maxr_agecap):0;
+      age_sum += xl?std::min(SigAge(xl),maxr_agecap):0;
+      age_sum += xr?std::min(SigAge(xr),maxr_agecap):0;
     }
   }
   //3-bit local age context
@@ -134,7 +134,7 @@ int BitplaneCoder::PredictRef()
   pc3=&cref2[ctx2];
 
   //8-bit mixer context
-  int ref_mixctx=(std::min(msb[sample]-bpn,15)<<4)|(s.rm_ctx<<1)|d0;
+  int ref_mixctx=(std::min(SigAge(msb[sample]),15)<<4)|(s.rm_ctx<<1)|d0;
   plmix=&lmixref[ref_mixctx];
 
   const int input[] = {s.pl_prob,pl.p1,pc1->p1,pc2->p1,pc3->p1};
@@ -180,7 +180,7 @@ void BitplaneCoder::UpdateSig(int bit)
 
 int BitplaneCoder::PredictSSE(int p1)
 {
-  const int dist=s.sigst[0]?std::min(msb[sample]-bpn,3):0;
+  const int dist=s.sigst[0]?std::min(SigAge(msb[sample]),3):0;
   int ctx1=dist|(s.ema_ctx0<<2)|(s.ema_ctx1<<4)|(LaplaceLogitBin(s.pl_logit,4)<<6); //10-bit
   int ctx2=(s.sigst[0]?1:0)|((s.sigst[1]?1:0)<<1)|((s.sigst[2]?1:0)<<2)|(s.age_ctx<<3)|(s.rm_ctx<<6); //9-bit
   psse1=&sse1[ctx1];
@@ -245,7 +245,7 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
         UpdateSig(bit);
         UpdateSSE(bit);
         sm[sctx].Update(bit);
-        if (bit) msb[sample]=bpn;
+        if (bit) msb[sample]=bpn+1;
         if (nrun<15) nrun++;
       }
       if constexpr(IsDecode)

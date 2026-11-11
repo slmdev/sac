@@ -84,7 +84,11 @@ class BitplaneCoder {
       void Run(Coder &&code,int32_t *buf);
 
     static inline int LaplaceLogitBin(int x, int nbits);
-    void GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s);
+    void GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s) const;
+
+    inline int SigAge(int msb) const {
+      return msb - (bpn+1);
+    }
 
     int PredictRef();
     void UpdateRef(int bit);
@@ -108,6 +112,7 @@ class BitplaneCoder {
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
     LogMixer *plmix;
     int *pabuf,sample;
+    //0=insignificant, else first significant plane+1
     std::vector <int>msb;
     uint32_t bmask[32];
     int maxbpn,bpn,numsamples,nrun;
