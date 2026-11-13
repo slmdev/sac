@@ -61,19 +61,20 @@ using DecodeP1 = std::function<int(uint32_t)>;
 
 class BitplaneCoder {
   struct State {
-    int pl_prob=0,pl_logit=0,pl_scale=0;
+    int pl_prob=0,pl_logit=0,pl_logit_q=0,pl_scale=0;
     int sigst[17];
     int age_ctx=0;
+    int logit_q=0;
     int rm_ctx=0;
     int ema_ctx0=0,ema_ctx1=0;
   } s;
-  static constexpr int cnt_upd_rate_p=125;
+  static constexpr int cnt_upd_rate_p=150;
   static constexpr int cnt_upd_rate_sig=400;
   static constexpr int cnt_upd_rate_ref=200;
   static constexpr int cnt_upd_rate_sse=150;
 
-  static constexpr int mix_upd_rate_ref=BM::MixerRate(0.005);
-  static constexpr int mix_upd_rate_sig=BM::MixerRate(0.0045);
+  static constexpr int mix_upd_rate_ref=BM::MixerRate(0.0035);
+  static constexpr int mix_upd_rate_sig=BM::MixerRate(0.0025);
   static constexpr int mix_upd_rate_sse=BM::MixerRate(0.0015);
   public:
     BitplaneCoder(int maxbpn,int numsamples);
@@ -83,7 +84,6 @@ class BitplaneCoder {
     template <bool IsDecode,class Coder>
       void Run(Coder &&code,int32_t *buf);
 
-    static inline int LaplaceLogitBin(int x, int nbits);
     void GetState(const std::array<double,3> &means,uint32_t plane,int sample,State &s) const;
 
     inline int SigAge(int msb) const {

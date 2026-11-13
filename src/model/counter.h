@@ -59,8 +59,8 @@ static struct tdiv_tbl
 
 class LinearCounterLimit: public Prob16Counter
 {
-  uint16_t counter;
   public:
+    uint16_t counter;
     LinearCounterLimit():Prob16Counter(){counter=0;};
     void update(int bit,int limit)
     {

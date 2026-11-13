@@ -37,7 +37,7 @@ struct RunStats {
 class BMap {
   static constexpr int WCNT=100;
   static constexpr int WSSE=100;
-  static constexpr int WMIX=BM::MixerRate(0.005);
+  static constexpr int WMIX=BM::MixerRate(0.008);
   public:
     BMap(RangeCoderSH &rc);
     void Encode(BIntMap &bmap,const BIntMap &bmap_ref);

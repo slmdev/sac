@@ -26,17 +26,6 @@ maxbpn(maxbpn),numsamples(numsamples)
   }
 }
 
-// x is a fixed-point logit: real logit = x / LSCALE.
-int BitplaneCoder::LaplaceLogitBin(int x, int nbits)
-{
-  assert(nbits >= 0 && nbits <= 16);
-  const int lo = BM::DMIN;
-  const int hi = 0; //p_laplace is always <= 0.5
-  const int nbins=1<<nbits;
-  x = std::clamp(x, lo, hi);
-  return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
-}
-
 int EmaCtx(double mean0, double mean1, uint32_t plane,double rho)
 {
   const double floor = rho * static_cast<double>(plane);
@@ -80,6 +69,7 @@ void BitplaneCoder::GetState(const std::array<double,3> &means,uint32_t plane,in
   //laplace prediction
   s.pl_logit=LaplaceModel::PredictLogit(means[0],plane,rho);
   s.pl_prob=myDomain.Inv(s.pl_logit);
+  s.pl_logit_q=LaplaceModel::LogitBin(s.pl_logit,4);
 
   //2-bit scale disagreement
   s.ema_ctx0=EmaCtx(means[0],means[1],plane,rho);
@@ -181,8 +171,8 @@ void BitplaneCoder::UpdateSig(int bit)
 int BitplaneCoder::PredictSSE(int p1)
 {
   const int dist=s.sigst[0]?std::min(SigAge(msb[sample]),3):0;
-  int ctx1=dist|(s.ema_ctx0<<2)|(s.ema_ctx1<<4)|(LaplaceLogitBin(s.pl_logit,4)<<6); //10-bit
-  int ctx2=(s.sigst[0]?1:0)|((s.sigst[1]?1:0)<<1)|((s.sigst[2]?1:0)<<2)|(s.age_ctx<<3)|(s.rm_ctx<<6); //9-bit
+  const int ctx1=dist|(s.ema_ctx0<<2)|(s.ema_ctx1<<4)|(s.pl_logit_q<<6); //10-bit
+  const int ctx2=(s.sigst[0]?1:0)|((s.sigst[1]?1:0)<<1)|((s.sigst[2]?1:0)<<2)|(s.age_ctx<<3)|(s.rm_ctx<<6); //9-bit
   psse1=&sse1[ctx1];
   psse2=&sse2[ctx2];
   int pr1=psse1->Predict(p1);
@@ -227,8 +217,10 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
         em[0].Mean(),em[1].Mean(),em[2].Mean()
       };
       GetState(means,plane,sample,s);
-      if (sample==0) pl.p1 = s.pl_prob;
-
+      if (sample==0) {
+        pl.p1 = s.pl_prob;
+        pl.counter = 0;
+      }
       int bit=0;
       if constexpr(!IsDecode) // input bit
         bit=(pabuf[sample]>>bpn)&1;

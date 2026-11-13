@@ -49,12 +49,21 @@ private:
 
 class LaplaceModel {
   public:
-    static int PredictLogit(double mean,uint32_t plane,double rho)
+    static inline int PredictLogit(double mean,uint32_t plane,double rho)
     {
       const double z=-static_cast<double>(plane)/(mean+rho*plane);
       const int zlog=std::lround(std::clamp(z*LSCALE,
       static_cast<double>(BM::DMIN),static_cast<double>(BM::DMAX)));
       return zlog;
+    }
+    // x is a fixed-point logit: real logit = x / LSCALE.
+    static inline int LogitBin(int x, int nbits)
+    {
+      const int lo = BM::DMIN;
+      const int hi = 0; //p_laplace is always <= 0.5
+      const int nbins=1<<nbits;
+      x = std::clamp(x, lo, hi);
+      return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
     }
 };
 
