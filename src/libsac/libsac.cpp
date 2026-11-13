@@ -2,6 +2,7 @@
 #include <format>
 #include <thread>
 #include <future>
+#include <syncstream>
 
 #include "libsac.h"
 #include "pred.h"
@@ -242,7 +243,9 @@ int FrameCoder::EncodeMonoFrame_Mapped(int ch,int numsamples,BufIO &buf)
   bm.Encode(bmap,bmap_ref);
   if (cfg.verbose_level>0 && std::size(pcm.used)) {
     double r=buf.GetBufPos()*800.0/std::size(pcm.used);
-    std::cout << "  map_enc ch" << ch << " " << std::size(pcm.used) << " -> " << buf.GetBufPos() << "b (" << std::format("{:0.1f}",r) << "%)\n";
+    std::osyncstream(std::cout)
+      << "  map_enc ch" << ch << ": " << std::size(pcm.used)
+      << " -> " << buf.GetBufPos() << "b (" << std::format("{:0.1f}",r) << "%)\n";
   }
 
   bc.Encode(rc.encode_p1,s2u_error_map[ch].data());
@@ -256,19 +259,15 @@ double FrameCoder::CalcRemapError(int ch, int numsamples)
     int32_t emax_map=0;
     for (int i=0;i<numsamples;i++) {
       int e=error[ch][i],p=pred[ch][i];
-      //int32_t map_e=framestats[ch].mymap.Map(p,e);
-
       int32_t map_spcm=framestats[ch].pcm_map.Map(e,p);
-      //if (map_e != map_spcm)
-      //  std::cerr << "error in map: " << map_e << ' ' << map_spcm << '\n';
-      int32_t unmap_e=framestats[ch].pcm_map.Unmap(map_spcm,p);
-      if (e!=unmap_e)
-        std::cerr << "error: pcm_map (" << e << ' ' << unmap_e << ")\n";
 
-      int32_t map_e = map_spcm;
+      //int32_t unmap_e=framestats[ch].pcm_map.Unmap(map_spcm,p);
+      //if (e!=unmap_e)
+      //  std::cerr << "error: pcm_map (" << e << ' ' << unmap_e << ")\n";
 
-      int32_t map_ue=MathUtils::S2U(map_e);
-      emap[i]=map_e;
+      emap[i]=map_spcm;
+
+      int32_t map_ue=MathUtils::S2U(map_spcm);
       s2u_error_map[ch][i]=map_ue;
       if (map_ue>emax_map) emax_map=map_ue;
     }
@@ -279,7 +278,10 @@ double FrameCoder::CalcRemapError(int ch, int numsamples)
     double ent2 = cost.Calc(std::span{&emap[0],static_cast<unsigned>(numsamples)});
     double r=1.0;
     if (ent2!=0.0) r=ent1/ent2;
-    if (cfg.verbose_level>0) std::cout << "  cost pcm-model: " << ent1 << ' ' << ent2 << ' ' << r << '\n';
+    if (cfg.verbose_level>0)
+      std::osyncstream(std::cout)
+        << "  cost pcm-model ch" << ch << ": "
+        << ent1 << ' ' << ent2 << ' ' << r << '\n';
     return r;
 }
 
@@ -301,7 +303,9 @@ void FrameCoder::EncodeMonoFrame(int ch,int numsamples)
       if (size_mapped<size_normal)
       {
         if (cfg.verbose_level>0) {
-          std::cout << "  sparse frame " << size_normal << " -> " << size_mapped << " (" << (size_mapped-size_normal) << ")\n";
+          std::osyncstream(std::cout)
+            << "  sparse frame ch" << ch << ": "
+            << size_normal << " -> " << size_mapped << " (" << (size_mapped-size_normal) << ")\n";
         }
         framestats[ch].enc_mapped=true;
         encoded[ch]=enc_temp2[ch];
