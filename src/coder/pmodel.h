@@ -42,26 +42,41 @@ public:
     if (bias_rate>0.0) bias = std::clamp(bias+bias_rate*error,-MAX_BIAS,MAX_BIAS);
   }
 private:
-  double r=0.0,ps=0.0;
-  double corr=0.0,bias=0.0;
+  double ps=0.0;
+  double corr=0.0,r=0.0,bias=0.0;
   double scale_rate,bias_rate;
 };
 
-class LaplaceModel {
-  public:
-    static inline int PredictLogit(double mean,uint32_t plane,double rho)
+namespace LaplaceModel
+{
+    inline int PredictLogit(double mean,uint32_t plane,double rho)
     {
-      const double z=-static_cast<double>(plane)/(mean+rho*plane);
+      const double h=static_cast<double>(plane);
+      const double z=-h/(mean+rho*h);
       const int zlog=std::lround(std::clamp(z*LSCALE,
       static_cast<double>(BM::DMIN),static_cast<double>(BM::DMAX)));
       return zlog;
     }
-    // x is a fixed-point logit: real logit = x / LSCALE.
-    static inline int LogitBin(int x, int nbits)
+};
+
+template <int NBits,int LogitMax=BM::LOGITMAX>
+class ProbModel {
+  public:
+   // x is a fixed-point logit: real logit = x / LSCALE.
+    static inline int LaplaceLogitBin(int x)
     {
-      const int lo = BM::DMIN;
-      const int hi = 0; //p_laplace is always <= 0.5
-      const int nbins=1<<nbits;
+      constexpr int lo = -LogitMax*BM::LSCALE;
+      constexpr int hi = 0; //p_laplace is always <= 0.5
+      constexpr int nbins=1<<NBits;
+      x = std::clamp(x, lo, hi);
+      return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
+    }
+    static inline int LogitBin(int x)
+    {
+      constexpr int kscale=LogitMax*BM::LSCALE;
+      constexpr int lo = -kscale;
+      constexpr int hi = kscale;
+      constexpr int nbins=1<<NBits;
       x = std::clamp(x, lo, hi);
       return std::min(nbins-1,((x-lo)*nbins)/(hi - lo));
     }

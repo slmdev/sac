@@ -9,6 +9,7 @@
 #include "../model/sse.h"
 #include "../model/mixer.h"
 #include "../common/utils.h"
+#include "apm2.h"
 
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
@@ -61,21 +62,26 @@ using DecodeP1 = std::function<int(uint32_t)>;
 
 class BitplaneCoder {
   struct State {
-    int pl_prob=0,pl_logit=0,pl_logit_q=0,pl_scale=0;
+    int pl_prob=0,logit0=0,logit0_q=0,logit1_q=0,logit2_q=0;
+    int pl_scale=0;
     int sigst[17];
+    int age_sum=0;
     int age_ctx=0;
-    int logit_q=0;
     int rm_ctx=0;
-    int ema_ctx0=0,ema_ctx1=0;
+    int ema_ctx1=0,ema_ctx2=0;
+    int emb_ctx1=0,emb_ctx2=0;
+    int nrun=0;
+    uint32_t bhist=0;
   } s;
+
   static constexpr int cnt_upd_rate_p=150;
-  static constexpr int cnt_upd_rate_sig=400;
-  static constexpr int cnt_upd_rate_ref=200;
+  static constexpr int cnt_upd_rate_sig=350;
+  static constexpr int cnt_upd_rate_ref=150;
   static constexpr int cnt_upd_rate_sse=150;
 
-  static constexpr int mix_upd_rate_ref=BM::MixerRate(0.0035);
-  static constexpr int mix_upd_rate_sig=BM::MixerRate(0.0025);
-  static constexpr int mix_upd_rate_sse=BM::MixerRate(0.0015);
+  static constexpr int mix_upd_rate_ref =BM::MixerRate(0.0035);
+  static constexpr int mix_upd_rate_sig =BM::MixerRate(0.0025);
+  static constexpr int mix_upd_rate_msse=BM::MixerRate(0.0025);
   public:
     BitplaneCoder(int maxbpn,int numsamples);
     void Encode(EncodeP1 encode_p1,int32_t *buf);
@@ -94,28 +100,33 @@ class BitplaneCoder {
     void UpdateRef(int bit);
     int PredictSig();
     void UpdateSig(int bit);
-    int PredictSSE(int p1);
-    void UpdateSSE(int bit);
+    int PredictSSERef(int p1);
+    void UpdateSSERef(int bit);
+
+    int PredictSSESig(int p1);
+    void UpdateSSESig(int bit);
+
+    APM2 apm_sig,apm_ref;
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,cref0,cref1,cref2;
     LinearCounterLimit pl;
+    std::vector<LinearCounterLimit> chist;
+    LinearCounterLimit *phist;
     std::vector <LogMixer>lmixref,lmixsig;
-    LogMixer ssemix;
+
     std::vector<ScaleModel> sm;
     SigStats sigstats;
     RelativeMagnitudeQ<8> rm_q;
     WeightedAgeQ age_q;
 
-    SSENL<16> sse1[1<<10];
-    SSENL<16> sse2[1<<9];
-    SSENL<16> *psse1,*psse2;
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
     LogMixer *plmix;
     int *pabuf,sample;
     //0=insignificant, else first significant plane+1
     std::vector <int>msb;
     uint32_t bmask[32];
-    int maxbpn,bpn,numsamples,nrun;
+    int maxbpn,bpn,numsamples;
+    SigStats::St st;
 };
 
 #endif

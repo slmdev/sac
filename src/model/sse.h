@@ -105,7 +105,7 @@ class SSENL
        int pq=std::clamp(myDomain.Fwd(p1)+tscale,0,2*tscale);
 
        p_quant=pq/xscale;
-       int p_mod=pq-(p_quant*xscale); //%xscale;
+       int p_mod=pq-(p_quant*xscale);
 
        int pl=Map[lb][p_quant].p1;
        int ph=Map[lb][p_quant+1].p1;
@@ -121,7 +121,7 @@ class SSENL
     };
   protected:
     LinearCounterLimit Map[2][N+1];
-    int lb;
+    uint8_t lb;
 };
 
 #endif

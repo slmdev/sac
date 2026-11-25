@@ -2,7 +2,7 @@
 #include <cassert>
 
 BMap::BMap(RangeCoderSH &rc)
-:rc(rc),pmix(4),
+:rc(rc),pmix(4),lmix(1),
 ctx0(0),ctx1(0),ctx2(0),ctx3(0),
 pv(4)
 {
@@ -45,16 +45,6 @@ int32_t BMap::RefCtx(const BIntMap &bmap_ref,int32_t val) const
   return ctx;
 }
 
-void BMap::Update(int bit)
-{
-  c0[ctx0].update(bit,WCNT);
-  c1[ctx1].update(bit,WCNT);
-  c2[ctx2].update(bit,WCNT);
-  c3[ctx3].update(bit,WCNT);
-  sse.Update(bit,WSSE);
-  pmix.Update(bit,WMIX);
-}
-
 int32_t BMap::Predict()
 {
   pv[0]=c0[ctx0].p1;
@@ -64,8 +54,20 @@ int32_t BMap::Predict()
 
   int32_t pm=pmix.Predict(pv);
   int32_t p_sse = sse.Predict(pm);
-  int32_t px=(3*pm+p_sse)>>2;
+
+  int32_t px=lmix.Predict(pm,{p_sse});
   return px;
+}
+
+void BMap::Update(int bit)
+{
+  c0[ctx0].update(bit,WCNT);
+  c1[ctx1].update(bit,WCNT);
+  c2[ctx2].update(bit,WCNT);
+  c3[ctx3].update(bit,WCNT);
+  sse.Update(bit,WSSE);
+  pmix.Update(bit,WMIX);
+  lmix.Update(bit,WMIX);
 }
 
 template <bool IsDecode>
