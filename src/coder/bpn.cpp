@@ -4,8 +4,8 @@
 
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :
-apm_sig(256,{1<<10,1<<10,1<<10,1<<10}),
-apm_ref(256,{1<<10,1<<10,1<<10,1<<10}),
+apm_sig(256,{1<<10,1<<10,1<<10,1<<10},0.5,0.80),
+apm_ref(256,{1<<10,1<<10,1<<10,1<<10},0.5,0.80),
 csig0(1<<20),csig1(1<<20),csig2(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),chist(1<<20),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),

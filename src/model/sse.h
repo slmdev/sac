@@ -87,17 +87,19 @@ class SSENL
   public:
     int tscale,xscale;
     uint16_t p_quant;
-    SSENL(int scale=myDomain.fmax)
-    :tscale(scale),xscale((2*tscale)/(N-1))
+    SSENL(float fscale=1.0)
     {
-      if (xscale==0) xscale=1;
+      tscale=std::max(1,static_cast<int>(std::lround(fscale*myDomain.fmax)));
+      xscale=std::max(1,(2*tscale)/(N-1));
+      if ((2*tscale/xscale)>=N)
+        throw std::invalid_argument("SSENL: range too small for spacing");
+
       for (int i=0;i<=N;i++)
       {
          int x=myDomain.Inv(i*xscale-tscale);
          Map[0][i].p1=x;
          Map[1][i].p1=x;
       }
-      lb=0;
     };
     int Predict(int p1)
     {
@@ -120,7 +122,7 @@ class SSENL
     };
   protected:
     LinearCounterLimit Map[2][N+1];
-    uint8_t lb;
+    uint8_t lb=0;
 };
 
 #endif

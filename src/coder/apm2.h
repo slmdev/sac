@@ -5,9 +5,12 @@
 //using LogMixerBias and multiple sse-layer
 class APM2 {
   static constexpr float DCONF = 0.15;
-  static constexpr float FSCALE= 0.85;
   public:
-    APM2(int nmix,const std::vector<std::size_t>&nctx)
+    //nmix=mixer context size
+    //nctx=vector of sse table sizes
+    //mconf=initial mixer confidence (0.0=pass-through, 1.0=uniform
+    //fscale=saturation scale for sse, scale=myDomain.Fwd(PSCALE) for fscale=1.0
+    APM2(int nmix,const std::vector<std::size_t>&nctx,float mconf=0.0,float fscale=1.0)
     :n(nctx.size()),
      sse_tbl(n),
      sse_mix(nmix,LogMixerBias(n+2)),
@@ -16,7 +19,12 @@ class APM2 {
     {
       for (std::size_t i=0;i<n;i++) {
         //nctx[i] constructed SSE tables
-        sse_tbl[i].resize(nctx[i],SSENL<16>(FSCALE*myDomain.fmax));
+        sse_tbl[i].resize(
+          nctx[i],SSENL<16>(fscale));
+      }
+      if (mconf>0.0) {
+        for (auto &m:sse_mix)
+          m.SetConfidence(mconf/(n+2));
       }
     }
     int Predict(int p1,int mix_ctx,std::span<const int>ctx)
