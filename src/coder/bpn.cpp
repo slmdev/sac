@@ -4,8 +4,8 @@
 
 BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :
-apm_sig(256,{1<<10,1<<10,1<<10,1<<10},0.5,0.80),
-apm_ref(256,{1<<10,1<<10,1<<10,1<<10},0.5,0.80),
+apm_sig(256,{1<<10,1<<10,1<<10,1<<10},0.5),
+apm_ref(256,{1<<10,1<<10,1<<10,1<<10},0.5),
 csig0(1<<20),csig1(1<<20),csig2(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),chist(1<<20),
 lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
@@ -182,15 +182,15 @@ int BitplaneCoder::PredictSig()
 
 void BitplaneCoder::UpdateRef(int bit)
 {
-  pc1->update(bit,cnt_upd_rate_ref);
-  pc2->update(bit,cnt_upd_rate_ref);
+  pc1->update(bit,limit_ref);
+  pc2->update(bit,limit_ref);
   plmix->Update(bit,mix_upd_rate_ref);
 }
 
 void BitplaneCoder::UpdateSig(int bit)
 {
-  pc1->update(bit,cnt_upd_rate_sig);
-  pc2->update(bit,cnt_upd_rate_sig);
+  pc1->update(bit,limit_sig);
+  pc2->update(bit,limit_sig);
   plmix->Update(bit,mix_upd_rate_sig);
 }
 
@@ -225,12 +225,12 @@ int BitplaneCoder::PredictSSESig(int p1)
 
 void BitplaneCoder::UpdateSSERef(int bit)
 {
-  apm_ref.Update(bit,cnt_upd_rate_sse,mix_upd_rate_msse);
+  apm_ref.Update(bit,limit_sse_ref,mix_upd_rate_msse);
 }
 
 void BitplaneCoder::UpdateSSESig(int bit)
 {
-  apm_sig.Update(bit,cnt_upd_rate_sse,mix_upd_rate_msse);
+  apm_sig.Update(bit,limit_sse_sig,mix_upd_rate_msse);
 }
 
 template <bool IsDecode,class Coder>
@@ -290,8 +290,8 @@ void BitplaneCoder::Run(Coder &&code,int32_t *buf)
         if (s.nrun<15) s.nrun++;
       }
       s.bhist=(s.bhist<<1)|bit;
-      phist->update(bit,cnt_upd_rate_p);
-      pl.update(bit,cnt_upd_rate_p);
+      phist->update(bit,limit_p);
+      pl.update(bit,limit_p);
 
       if constexpr(IsDecode)
         buf[sample] |= bit << bpn;

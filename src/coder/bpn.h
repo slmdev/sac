@@ -74,10 +74,11 @@ class BitplaneCoder {
     uint32_t bhist=0;
   } s;
 
-  static constexpr int cnt_upd_rate_p=150;
-  static constexpr int cnt_upd_rate_sig=350;
-  static constexpr int cnt_upd_rate_ref=150;
-  static constexpr int cnt_upd_rate_sse=150;
+  static constexpr int limit_p=150;
+  static constexpr int limit_sig=350;
+  static constexpr int limit_ref=150;
+  static constexpr int limit_sse_ref=500;
+  static constexpr int limit_sse_sig=150;
 
   static constexpr int mix_upd_rate_ref =BM::MixerRate(0.0035);
   static constexpr int mix_upd_rate_sig =BM::MixerRate(0.0025);
