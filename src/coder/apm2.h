@@ -5,6 +5,7 @@
 //using LogMixerBias and multiple sse-layer
 class APM2 {
   static constexpr float DCONF = 0.15;
+  static constexpr float FSCALE= 0.85;
   public:
     APM2(int nmix,const std::vector<std::size_t>&nctx)
     :n(nctx.size()),
@@ -15,7 +16,7 @@ class APM2 {
     {
       for (std::size_t i=0;i<n;i++) {
         //nctx[i] default-constructed SSE tables
-        sse_tbl[i].resize(nctx[i]);
+        sse_tbl[i].resize(nctx[i],SSENL<16>(FSCALE*myDomain.fmax));
       }
     }
     int Predict(int p1,int mix_ctx,std::span<const int>ctx)
