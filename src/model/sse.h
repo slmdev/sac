@@ -58,33 +58,32 @@ class SSE {
     LinearCounter16 Map[(1<<NB)+1];
 };
 
-// Maps a state to a probability
+// Maps a paq8-state to a probability
 class HistProbMapping
 {
-  enum {NUMSTATES=256};
   public:
     HistProbMapping()
     {
-      for (int i=0;i<NUMSTATES;i++) Map[i].p1=StateProb::GetP1(i);
+      for (int i=0;i<StateProb::StateCount;i++)
+        Map[i].p1=StateProb::GetP1(i);
     };
-    inline int p1(uint8_t state)
+    int p1(StateProb::State state)
     {
        st=state;
        return Map[state].p1;
     }
-    void Update(int bit,int rate)
+    void Update(int bit,int limit)
     {
-       Map[st].update(bit,rate);
+       Map[st].update(bit,limit);
     }
   protected:
-    uint8_t st;
-    LinearCounterLimit Map[NUMSTATES];
+    StateProb::State st=0;
+    std::array<LinearCounterLimit,StateProb::StateCount> Map{};
 };
 
 template <int N>
 class SSENL
 {
-  //enum {szmap=1<<NB};
   public:
     int tscale,xscale;
     uint16_t p_quant;
