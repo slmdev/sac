@@ -24,7 +24,7 @@ class APM2 {
       }
       if (mconf>0.0) {
         for (auto &m:sse_mix)
-          m.SetConfidence(mconf/(n+2));
+          m.SetConfidence(mconf);
       }
     }
     int Predict(int p1,int mix_ctx,std::span<const int>ctx)

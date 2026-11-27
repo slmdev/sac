@@ -8,7 +8,7 @@ apm_sig(256,{1<<10,1<<10,1<<10,1<<10},0.5),
 apm_ref(256,{1<<10,1<<10,1<<10,1<<10},0.5),
 csig0(1<<20),csig1(1<<20),csig2(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),chist(1<<20),
-lmixref(256,LogMixer(5)),lmixsig(256,LogMixer(4)),
+lmixref(256,LogMixer(5,0.05)),lmixsig(256,LogMixer(4,0.6)),
 sm(4,ScaleModel()),
 sigstats(32,2),
 rm_q(1.20),
@@ -19,14 +19,9 @@ maxbpn(maxbpn),numsamples(numsamples)
   bpn=0;
   for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
-  //set initial mixer weights
-  for (int i=0;i<256;i++) {
-    lmixref[i].SetConfidence(0.01);
-    //set laplace weight higher
+  //set laplace weight higher
+  for (int i=0;i<256;i++)
     lmixref[i].SetConfidence(0,0.65);
-
-    lmixsig[i].SetConfidence(0.15);
-  }
 }
 
 //3-bit context

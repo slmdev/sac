@@ -6,19 +6,15 @@
 #include "model.h"
 #include "domain.h"
 
-//shared type
-enum class MixerInitType {Zero,Uniform};
-
 template <int ExtraBits>
 class LogMixerBase {
   public:
-    using InitType = MixerInitType; //alias
-    LogMixerBase(int n,InitType type=InitType::Uniform)
+    LogMixerBase(int n,float minit=1.0)
     :n(n),x(n),w(n),pd(0)
     {
-      if (n && type==InitType::Uniform)
+      if (n && minit>0.0)
       for (auto &weight:w)
-        weight=wscale/n;
+        weight=static_cast<int>(std::lround(minit*wscale/n));
     }
 
     void Update(int bit,int rate)
@@ -34,7 +30,7 @@ class LogMixerBase {
     void SetConfidence(float s)
     {
       for (int i=0;i<n;i++)
-        SetConfidence(i,s);
+        SetConfidence(i,s/n);
     }
     void SetConfidence(int idx,float s)
     {
@@ -72,8 +68,8 @@ class LogMixerBase {
 class LogMixer : public LogMixerBase<0>
 {
   public:
-    LogMixer(int n,InitType type=InitType::Uniform)
-    :LogMixerBase(n,type){};
+    LogMixer(int n,float minit=1.0)
+    :LogMixerBase(n,minit){};
     int Predict(std::span<const int>p);
     int Predict(std::initializer_list<int>p)
     {
@@ -84,8 +80,8 @@ class LogMixer : public LogMixerBase<0>
 class LogMixerBias : public LogMixerBase<5>
 {
   public:
-    LogMixerBias(int n,InitType type=InitType::Zero)
-    :LogMixerBase(n,type){};
+    LogMixerBias(int n,float minit=0.0)
+    :LogMixerBase(n,minit){};
     int Predict(int p1,std::span<const int>p);
     int Predict(int p1,std::initializer_list<int>p)
     {
