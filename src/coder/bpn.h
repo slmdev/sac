@@ -10,6 +10,7 @@
 #include "../model/mixer.h"
 #include "../common/utils.h"
 #include "apm2.h"
+#include "gln2.h"
 
 //#define h1y(v,k) (((v)>>k)^(v))
 //#define h2y(v,k) (((v)*2654435761UL)>>(k))
@@ -81,7 +82,8 @@ class BitplaneCoder {
   static constexpr int limit_sse_sig=150;
 
   static constexpr int mix_upd_rate_ref =BM::MixerRate(0.0035);
-  static constexpr int mix_upd_rate_sig =BM::MixerRate(0.0025);
+  static constexpr int mix_upd_rate_sig =BM::MixerRate(0.0030);
+  static constexpr int mix_upd_rate_fmix=BM::MixerRate(0.001);
   static constexpr int mix_upd_rate_msse=BM::MixerRate(0.0025);
   public:
     BitplaneCoder(int maxbpn,int numsamples);
@@ -107,13 +109,13 @@ class BitplaneCoder {
     int PredictSSESig(int p1);
     void UpdateSSESig(int bit);
 
-    APM2 <> apm_sig,apm_ref;
+    APM2 <20> apm_sig,apm_ref;
+    GLN2 gln_ref,gln_sig;
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,cref0,cref1,cref2;
     LinearCounterLimit pl;
     std::vector<LinearCounterLimit> chist;
     LinearCounterLimit *phist;
-    std::vector <LogMixer>lmixref,lmixsig;
 
     std::vector<ScaleModel> sm;
     SigStats sigstats;
@@ -121,7 +123,6 @@ class BitplaneCoder {
     WeightedAgeQ age_q;
 
     LinearCounterLimit *pc1,*pc2,*pc3,*pc4;
-    LogMixer *plmix;
     int *pabuf,sample;
     //0=insignificant, else first significant plane+1
     std::vector <int>msb;

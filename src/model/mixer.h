@@ -65,17 +65,28 @@ class LogMixerBase {
     int16_t pd;
 };
 
-class LogMixer : public LogMixerBase<0>
+template <int ExtraBits=0>
+class LogMixerExtra : public LogMixerBase<ExtraBits>
 {
+  using Base=LogMixerBase<ExtraBits>;
+  using Base::n,Base::dot,Base::x,Base::w,Base::pd;
   public:
-    LogMixer(int n,float minit=1.0)
-    :LogMixerBase(n,minit){};
-    int Predict(std::span<const int>p);
+    LogMixerExtra(int n,float minit=1.0)
+    :Base(n,minit){};
+    int Predict(std::span<const int>p)
+    {
+      for (int i=0;i<n;i++)
+        x[i]=myDomain.Fwd(p[i]);
+      const int logit=dot(x,w);
+      return (pd=myDomain.Inv(logit));
+    }
     int Predict(std::initializer_list<int>p)
     {
       return Predict(std::span<const int>(p.begin(), p.size()));
     }
 };
+
+using LogMixer=LogMixerExtra<0>;
 
 class LogMixerBias : public LogMixerBase<5>
 {

@@ -6,9 +6,10 @@ BitplaneCoder::BitplaneCoder(int maxbpn,int numsamples)
 :
 apm_sig(256,{1<<10,1<<10,1<<10,1<<10},0.5),
 apm_ref(256,{1<<10,1<<10,1<<10,1<<10},0.5),
+gln_ref(5,{1<<8,1<<8},0.05),
+gln_sig(4,{1<<8,1<<8},0.5),
 csig0(1<<20),csig1(1<<20),csig2(1<<20),
 cref0(1<<20),cref1(1<<20),cref2(1<<20),chist(1<<20),
-lmixref(256,LogMixer(5,0.05)),lmixsig(256,LogMixer(4,0.6)),
 sm(4,ScaleModel()),
 sigstats(32,2),
 rm_q(1.20),
@@ -19,9 +20,9 @@ maxbpn(maxbpn),numsamples(numsamples)
   bpn=0;
   for (int i=0;i<32;i++)
     bmask[i]=~((uint32_t{1}<<i)-1);
+
   //set laplace weight higher
-  for (int i=0;i<256;i++)
-    lmixref[i].SetConfidence(0,0.65);
+  gln_ref.SetConfidence(0,0.65);
 }
 
 //3-bit context
@@ -147,12 +148,14 @@ int BitplaneCoder::PredictRef()
   pc1=&cref0[ctx0];
   pc2=&cref1[ctx1];
 
-  //6-bit mixer context
-  int ref_mixctx=(std::min(SigAge(msb[sample]),3)<<4)|(s.rm_ctx<<1)|(m0);
-  plmix=&lmixref[ref_mixctx];
+  //mixer context
+  int dist=std::min(SigAge(msb[sample]),3);
+  int mixctx0=dist|(s.rm_ctx<<2)|(m0<<5);
+  int mixctx1=dist|(c0<<2)|(c1<<3);
 
   const int input[] = {s.pl_prob,pl.p1,pc1->p1,pc2->p1,phist->p1};
-  return plmix->Predict(input);
+  const int hctx[] = {mixctx0,mixctx1};
+  return gln_ref.Predict(input,hctx);
 }
 
 int BitplaneCoder::PredictSig()
@@ -167,26 +170,27 @@ int BitplaneCoder::PredictSig()
   pc1=&csig0[ctx1];
   pc2=&csig1[ctx2];
 
-  //8-bit
-  int sig_mixctx=(std::min(s.nrun,15)<<4)|((st.n1>=3?3:st.n1)<<2)|((st.n2>0)<<1)|(st.n1-st.n2>1);
-  plmix=&lmixsig[sig_mixctx];
+  //mixer context
+  int mixctx0=(std::min(s.nrun,15)<<4)|((st.n1>=3?3:st.n1)<<2)|((st.n2>0)<<1)|(st.n1-st.n2>1);
+  int mixctx1=s.age_ctx|(s.ema_ctx1<<3)|(s.ema_ctx2<<5);
 
   const int input[]={s.pl_scale,pl.p1,pc1->p1,pc2->p1};
-  return plmix->Predict(input);
+  const int hctx[]={mixctx0,mixctx1};
+  return gln_sig.Predict(input,hctx);
 }
 
 void BitplaneCoder::UpdateRef(int bit)
 {
   pc1->update(bit,limit_ref);
   pc2->update(bit,limit_ref);
-  plmix->Update(bit,mix_upd_rate_ref);
+  gln_ref.Update(bit,mix_upd_rate_ref,mix_upd_rate_fmix);
 }
 
 void BitplaneCoder::UpdateSig(int bit)
 {
   pc1->update(bit,limit_sig);
   pc2->update(bit,limit_sig);
-  plmix->Update(bit,mix_upd_rate_sig);
+  gln_sig.Update(bit,mix_upd_rate_sig,mix_upd_rate_fmix);
 }
 
 int BitplaneCoder::PredictSSERef(int p1)
