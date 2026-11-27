@@ -3,6 +3,7 @@
 
 //prediction as correction to p1
 //using LogMixerBias and multiple sse-layer
+template <int N=16>
 class APM2 {
   static constexpr float DCONF = 0.15;
   public:
@@ -20,7 +21,7 @@ class APM2 {
       for (std::size_t i=0;i<n;i++) {
         //nctx[i] constructed SSE tables
         sse_tbl[i].resize(
-          nctx[i],SSENL<16>(fscale));
+          nctx[i],SSENL<N>(fscale));
       }
       if (mconf>0.0) {
         for (auto &m:sse_mix)
@@ -56,11 +57,11 @@ class APM2 {
   private:
     std::size_t n;
     //2D array
-    std::vector<std::vector<SSENL<16>>>sse_tbl;
+    std::vector<std::vector<SSENL<N>>>sse_tbl;
     std::vector<LogMixerBias> sse_mix;
 
     std::vector<int> input;
-    std::vector<SSENL<16>*> psse;
+    std::vector<SSENL<N>*> psse;
     LogMixerBias *pmix=nullptr;
 };
 

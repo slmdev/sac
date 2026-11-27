@@ -107,7 +107,7 @@ class BitplaneCoder {
     int PredictSSESig(int p1);
     void UpdateSSESig(int bit);
 
-    APM2 apm_sig,apm_ref;
+    APM2 <> apm_sig,apm_ref;
 
     std::vector<LinearCounterLimit> csig0,csig1,csig2,cref0,cref1,cref2;
     LinearCounterLimit pl;
