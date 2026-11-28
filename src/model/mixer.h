@@ -6,18 +6,27 @@
 #include "model.h"
 #include "domain.h"
 
+//x = input in log-domain
+//w = weights (precision=BM::WBITS+ExtraBits
 template <int ExtraBits>
 class LogMixerBase {
   public:
+    //minit = initial mixer confidence 0.0=none,1.0=uniform
     LogMixerBase(int n,float minit=1.0)
-    :n(n),x(n),w(n),pd(0)
+    :n(n),w(n)
     {
-      if (n && minit>0.0)
-      for (auto &weight:w)
-        weight=static_cast<int>(std::lround(minit*wscale/n));
+      if (n<=0)
+        throw std::invalid_argument("LogMixerBase: invalid inputsize");
+      if (minit>0.0)
+        for (auto &weight:w)
+          weight=static_cast<int>(std::lround(minit*wscale/n));
     }
-
-    void Update(int bit,int rate)
+    int Predict(std::span<const int16_t>x)
+    {
+      const int logit=dot(x,w);
+      return (pd=myDomain.Inv(logit));
+    }
+    void Update(std::span<const int16_t> x,int bit,int rate)
     {
       int err=(bit<<PBITS)-pd;
       for (int i=0;i<n;i++)
@@ -26,7 +35,6 @@ class LogMixerBase {
         w[i]=std::clamp(w[i]+dw,-wrange,wrange-1);
       }
     }
-
     void SetConfidence(float s)
     {
       for (int i=0;i<n;i++)
@@ -45,59 +53,66 @@ class LogMixerBase {
     static_assert(ExtraBits >= 0);
     static_assert(wbits < 28 && ushift > 0);
 
-    inline int dot(std::span<int16_t>x,std::span<int>w)
+    static int dot(std::span<const int16_t>x,std::span<const int>w)
     {
       int64_t sum=0;
-      for (int i=0;i<n;i++)
+      for (std::size_t i=0;i<x.size();++i)
         sum+=int64_t(w[i])*x[i];
       return idiv_signed(sum,wbits);
     }
-    static inline int idiv_signed(int64_t val,int64_t s)
+    static int idiv_signed(int64_t val,int64_t s)
     {
       const int64_t half=int64_t{1} << (s-1);
       return val<0
         ? -(((-val)+ half)>>s)
         :   ((val  + half)>>s);
     };
-    uint8_t n;
-    std::vector <int16_t>x;
+    int16_t n;
     std::vector <int>w;
-    int16_t pd;
+    int16_t pd=0;
 };
 
 template <int ExtraBits=0>
 class LogMixerExtra : public LogMixerBase<ExtraBits>
 {
   using Base=LogMixerBase<ExtraBits>;
-  using Base::n,Base::dot,Base::x,Base::w,Base::pd;
+  using Base::n,Base::dot,Base::w,Base::pd;
   public:
     LogMixerExtra(int n,float minit=1.0)
-    :Base(n,minit){};
-    int Predict(std::span<const int>p)
-    {
+    :Base(n,minit),x(n){};
+    int Predict(std::span<const int>p) {
       for (int i=0;i<n;i++)
         x[i]=myDomain.Fwd(p[i]);
-      const int logit=dot(x,w);
-      return (pd=myDomain.Inv(logit));
+      return Base::Predict(x);
     }
-    int Predict(std::initializer_list<int>p)
-    {
+    int Predict(std::initializer_list<int>p) {
       return Predict(std::span<const int>(p.begin(), p.size()));
     }
+    void Update(int bit,int rate) {
+      Base::Update(x,bit,rate);
+    }
+  private:
+    std::vector<int16_t> x;
 };
-
-using LogMixer=LogMixerExtra<0>;
 
 class LogMixerBias : public LogMixerBase<5>
 {
+  using Base=LogMixerBase<5>;
   public:
     LogMixerBias(int n,float minit=0.0)
-    :LogMixerBase(n,minit){};
+    :LogMixerBase(n,minit),x(n){};
     int Predict(int p1,std::span<const int>p);
-    int Predict(int p1,std::initializer_list<int>p)
-    {
+    int Predict(int p1,std::initializer_list<int>p) {
       return Predict(p1,std::span<const int>(p.begin(), p.size()));
     }
+    void Update(int bit,int rate) {
+      Base::Update(x,bit,rate);
+    }
+  private:
+    std::vector<int16_t> x;
 };
+
+using LogitMixer=LogMixerBase<0>;
+using LogMixer=LogMixerExtra<0>;
 
 #endif
