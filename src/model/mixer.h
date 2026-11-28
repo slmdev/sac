@@ -28,10 +28,11 @@ class LogMixerBase {
     }
     void Update(std::span<const int16_t> x,int bit,int rate)
     {
-      int err=(bit<<PBITS)-pd;
+      const int err=(bit<<PBITS)-pd;
+      const int gain=int64_t(err)*rate;
       for (int i=0;i<n;i++)
       {
-        int dw=idiv_signed(int64_t(x[i])*err*rate,ushift);
+        int dw=idiv64(int64_t(x[i])*gain,ushift);
         w[i]=std::clamp(w[i]+dw,-wrange,wrange-1);
       }
     }
@@ -44,7 +45,21 @@ class LogMixerBase {
     {
       w[idx]=static_cast<int>(std::lround(s*wscale));
     }
+
   protected:
+    static int dot(std::span<const int16_t>x,std::span<const int>w)
+    {
+      int64_t sum=0;
+      for (std::size_t i=0;i<x.size();++i)
+        sum+=int64_t(w[i])*x[i];
+      return idiv64(sum,wbits);
+    }
+    int16_t n;
+    std::vector <int>w;
+    int16_t pd=0;
+
+  private:
+    static constexpr bool branchless_div=true;
     static constexpr int wbits  = BM::WBITS + ExtraBits;
     static constexpr int wscale = 1 << wbits;
     static constexpr int wrange = 1 << (wbits + 3);
@@ -53,23 +68,17 @@ class LogMixerBase {
     static_assert(ExtraBits >= 0);
     static_assert(wbits < 28 && ushift > 0);
 
-    static int dot(std::span<const int16_t>x,std::span<const int>w)
-    {
-      int64_t sum=0;
-      for (std::size_t i=0;i<x.size();++i)
-        sum+=int64_t(w[i])*x[i];
-      return idiv_signed(sum,wbits);
-    }
-    static int idiv_signed(int64_t val,int64_t s)
+    static int idiv64(int64_t val,int s)
     {
       const int64_t half=int64_t{1} << (s-1);
-      return val<0
-        ? -(((-val)+ half)>>s)
-        :   ((val  + half)>>s);
-    };
-    int16_t n;
-    std::vector <int>w;
-    int16_t pd=0;
+      if constexpr(branchless_div) {
+        return static_cast<int>((val+half+(val>>63))>>s);
+      } else {
+        return static_cast<int>(val<0
+          ? -(((-val)+ half)>>s)
+          :   ((val  + half)>>s));
+      }
+    }
 };
 
 template <int ExtraBits=0>
